@@ -133,27 +133,66 @@ You must reply ONLY with a valid JSON object matching this schema:
 
 func ParseDiscoveryOutput(content string) (*DiscoveryResult, error) {
 	clean := strings.TrimSpace(content)
-
-	// Strip potential markdown code fences: ```json ... ```
-	if strings.HasPrefix(clean, "```") {
-		idx := strings.Index(clean, "\n")
-		if idx != -1 {
-			clean = clean[idx+1:]
-		}
-		if strings.HasSuffix(clean, "```") {
-			clean = strings.TrimSuffix(clean, "```")
-		}
-		clean = strings.TrimSpace(clean)
+	if clean == "" {
+		return &DiscoveryResult{Reply: ""}, nil
 	}
 
+	// 1. Direct JSON unmarshal attempt (fast path for strict JSON CLI like antigravity)
 	var res DiscoveryResult
-	if err := json.Unmarshal([]byte(clean), &res); err != nil {
-		// Fallback gracefully: treat raw text as conversational reply without structured items
-		return &DiscoveryResult{
-			Reply: clean,
-			Role:  "Product Analyst",
-		}, nil
+	if err := json.Unmarshal([]byte(clean), &res); err == nil && (res.Reply != "" || len(res.Requirements) > 0) {
+		return &res, nil
 	}
 
-	return &res, nil
+	// 2. Extract JSON from markdown code fence anywhere in the output: ```json ... ``` or ``` ... ```
+	// This directly fixes OpenCode CLI responses that include conversational preambles/postambles.
+	fenceStart := strings.Index(clean, "```")
+	if fenceStart != -1 {
+		firstNewline := strings.Index(clean[fenceStart:], "\n")
+		if firstNewline != -1 {
+			bodyStart := fenceStart + firstNewline + 1
+			fenceEnd := strings.Index(clean[bodyStart:], "```")
+			if fenceEnd != -1 {
+				jsonCandidate := strings.TrimSpace(clean[bodyStart : bodyStart+fenceEnd])
+				var fenceRes DiscoveryResult
+				if err := json.Unmarshal([]byte(jsonCandidate), &fenceRes); err == nil {
+					// If model omitted inner reply, adopt outer preamble as conversational reply
+					if fenceRes.Reply == "" && fenceStart > 0 {
+						fenceRes.Reply = strings.TrimSpace(clean[:fenceStart])
+					}
+					return &fenceRes, nil
+				}
+			}
+		}
+	}
+
+	// 3. Extract JSON by outermost bracket matching '{' ... '}'
+	// Handles outputs with conversational text before/after raw JSON without markdown fences.
+	firstBrace := strings.Index(clean, "{")
+	lastBrace := strings.LastIndex(clean, "}")
+	if firstBrace != -1 && lastBrace > firstBrace {
+		jsonCandidate := strings.TrimSpace(clean[firstBrace : lastBrace+1])
+		var braceRes DiscoveryResult
+		if err := json.Unmarshal([]byte(jsonCandidate), &braceRes); err == nil {
+			if braceRes.Reply == "" && firstBrace > 0 {
+				preamble := strings.TrimSpace(clean[:firstBrace])
+				preamble = strings.TrimSuffix(preamble, "```json")
+				preamble = strings.TrimSuffix(preamble, "```")
+				braceRes.Reply = strings.TrimSpace(preamble)
+			}
+			return &braceRes, nil
+		}
+	}
+
+	// 4. Support TOON (Token-Oriented Object Notation) decoded discovery
+	if strings.Contains(clean, "requirements[") || strings.Contains(clean, "reply:") {
+		if toonRes, err := DecodeTOONDiscovery(clean); err == nil && (toonRes.Reply != "" || len(toonRes.Requirements) > 0) {
+			return toonRes, nil
+		}
+	}
+
+	// 5. Fallback: treat entire clean text as conversational reply without crashing
+	return &DiscoveryResult{
+		Reply: clean,
+		Role:  "Product Analyst",
+	}, nil
 }

@@ -75,4 +75,55 @@ func TestDiscoveryPromptAndParse(t *testing.T) {
 	if res3.Reply != plain {
 		t.Errorf("expected plain text reply, got %s", res3.Reply)
 	}
+
+	// 5. OpenCode CLI scenario: Conversational preamble + markdown code fence + postamble
+	opencodeOutput := `Tentu! Berikut adalah hasil analisis awal kebutuhan Anda:
+
+` + "```json\n" + rawJSON + "\n```" + `
+
+Semoga hasil analisis ini bermanfaat. Silakan tanyakan jika ada penyesuaian!`
+
+	res4, err := ParseDiscoveryOutput(opencodeOutput)
+	if err != nil {
+		t.Fatalf("failed to parse OpenCode output with preamble: %v", err)
+	}
+	if res4.Reply != "I have analyzed your courier requirement." {
+		t.Errorf("expected reply extracted from JSON, got %q", res4.Reply)
+	}
+	if len(res4.Requirements) != 1 || res4.Requirements[0].Key != "REQ-002" {
+		t.Errorf("expected extracted requirement REQ-002, got: %+v", res4.Requirements)
+	}
+
+	// 6. OpenCode CLI scenario: Conversational preamble + raw braces without fence
+	rawBracesOutput := `Analisis cepat:
+` + rawJSON + `
+Silakan verifikasi kebutuhan di atas.`
+
+	res5, err := ParseDiscoveryOutput(rawBracesOutput)
+	if err != nil {
+		t.Fatalf("failed to parse raw braces output: %v", err)
+	}
+	if res5.Reply != "I have analyzed your courier requirement." {
+		t.Errorf("expected reply extracted from JSON, got %q", res5.Reply)
+	}
+	if len(res5.Requirements) != 1 {
+		t.Errorf("expected requirements count 1, got %d", len(res5.Requirements))
+	}
+
+	// 7. TOON Format Input parsing
+	toonSample := `reply: Halo, ini hasil analisis dalam format TOON yang hemat token.
+role: Product Analyst
+requirements[1]{key,category,title,description,priority,confidence}:
+  REQ-101,functional,Cart Checkout,User can checkout with credit card,Must Have,high
+`
+	res6, err := ParseDiscoveryOutput(toonSample)
+	if err != nil {
+		t.Fatalf("failed to parse TOON discovery output: %v", err)
+	}
+	if len(res6.Requirements) != 1 || res6.Requirements[0].Key != "REQ-101" {
+		t.Errorf("unexpected TOON requirement: %+v", res6.Requirements)
+	}
+	if res6.Reply != "Halo, ini hasil analisis dalam format TOON yang hemat token." {
+		t.Errorf("unexpected TOON reply: %s", res6.Reply)
+	}
 }
