@@ -118,12 +118,12 @@ func (a *Adapter) generateCLI(ctx context.Context, req ai.GenerateRequest, start
 	if a.model != "" && a.model != "default" {
 		args = append(args, "-m", a.model)
 	}
-	args = append(args, fullPrompt)
 
 	cmd := exec.CommandContext(ctx, a.executablePath, args...)
 	if req.WorkDir != "" {
 		cmd.Dir = req.WorkDir
 	}
+	cmd.Stdin = strings.NewReader(fullPrompt)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr

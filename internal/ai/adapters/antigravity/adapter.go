@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -72,7 +73,6 @@ func (a *Adapter) CheckAuthentication(ctx context.Context) error {
 
 func (a *Adapter) Generate(ctx context.Context, req ai.GenerateRequest) (*ai.GenerateResponse, error) {
 	args := []string{
-		"-p", req.Prompt,
 		"--output-format", "json",
 		"--disable-slash-commands",
 	}
@@ -81,14 +81,25 @@ func (a *Adapter) Generate(ctx context.Context, req ai.GenerateRequest) (*ai.Gen
 		args = append(args, "--model", req.Model)
 	}
 
+	var tempSchemaFile string
 	if req.JSONSchema != "" {
-		args = append(args, "--json-schema", req.JSONSchema)
+		tmpFile, err := os.CreateTemp("", "agy-schema-*.json")
+		if err == nil {
+			_, _ = tmpFile.WriteString(req.JSONSchema)
+			_ = tmpFile.Close()
+			tempSchemaFile = tmpFile.Name()
+			args = append(args, "--json-schema", tempSchemaFile)
+			defer os.Remove(tempSchemaFile)
+		} else {
+			args = append(args, "--json-schema", req.JSONSchema)
+		}
 	}
 
 	cmd := exec.CommandContext(ctx, a.executablePath, args...)
 	if req.WorkDir != "" {
 		cmd.Dir = req.WorkDir
 	}
+	cmd.Stdin = strings.NewReader(req.Prompt)
 
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf

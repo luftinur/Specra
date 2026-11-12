@@ -36,6 +36,7 @@ docs/
 │   ├── plan_opencode_json_fix_and_toon_tokenization.md# Fix respon JSON OpenCode & elaborasi TOON tokenization
 │   ├── plan_decouple_mq_studio_and_fix_slash_scroll.md# Decoupling MQ-Studio & fix slash dropup auto-scroll
 │   ├── plan_adaptive_edge_scaling_and_viewport_containment.md# Kunci 4 tepi viewport & fix pergeseran zoom HiDPI
+│   ├── plan_fix_windows_cli_length_and_auto_pipeline.md# Fix limit argumen CLI Windows via stdin pipe & Auto Pipeline
 │   └── walkthrough.md                                 # Rangkuman komprehensif & hasil testing
 └── context_history/
     ├── transcript_01_windows.jsonl                    # Log riwayat sesi awal pengembangan di Windows (1.963 steps)
@@ -55,6 +56,7 @@ docs/
 7. **[`plan_decouple_mq_studio_and_fix_slash_scroll.md`](./artifacts/plan_decouple_mq_studio_and_fix_slash_scroll.md)**: Isolasi konteks AI dari MQ-Studio, auto-scroll dropup slash command, Export All Documents, pembersihan Q&A chat, dan adaptive HiDPI scaling.
 8. **[`plan_adaptive_edge_scaling_and_viewport_containment.md`](./artifacts/plan_adaptive_edge_scaling_and_viewport_containment.md)**: Rencana teknis penguncian kontainer 4 tepi layar (*top, bottom, left, right*), eliminasi unit `w-screen`/`h-screen` viewport, isolasi scroll offset (0, 0), dan kalkulasi skala dua sumbu.
 9. **[`plan_agentic_pipeline_and_unified_console.md`](./artifacts/plan_agentic_pipeline_and_unified_console.md)**: Rencana teknis Fase 12: Unified Prompt Console, Pipeline Stepper, Interactive Q&A Loop Cards, dan AI Readiness Recommender.
+10. **[`plan_fix_windows_cli_length_and_auto_pipeline.md`](./artifacts/plan_fix_windows_cli_length_and_auto_pipeline.md)**: Perbaikan error batas panjang argumen CLI Windows (`The filename or extension is too long`) lewat stdin pipe & perancangan Autonomous Pipeline Orchestrator.
 5. **[`plan_agentic_modes_and_slash_commands.md`](./artifacts/plan_agentic_modes_and_slash_commands.md)**: Rencana teknis Agentic Interaction Modes, Slash Commands System (/plan, /discovery, /exec, /prd), dan Interactive Clarification Cards dalam Chat Bubble.
 6. **[`plan_skills_ux_and_right_inspector_wiring.md`](./artifacts/plan_skills_ux_and_right_inspector_wiring.md)**: Rencana teknis Skills UX Refinement (Dropdown per Persona) dan Interaktivitas Right Inspector (Requirements, Validation, Assumptions, Clarifications).
 7. **[`plan_workspace_and_canvas_experience_refactor.md`](./artifacts/plan_workspace_and_canvas_experience_refactor.md)**: Rekonstruksi Canvas Empty State, Elevasi 3-Pane, Pill Tab Agen, dan Elevated Chat Input.

@@ -304,6 +304,12 @@ export default function App() {
   const [editProjectDesc, setEditProjectDesc] = useState('');
   const [editProjectStatus, setEditProjectStatus] = useState('active');
 
+  // Auto Pipeline Orchestrator State
+  const [autoPipelineRunning, setAutoPipelineRunning] = useState(false);
+  const [autoPipelineStage, setAutoPipelineStage] = useState<string | null>(null);
+  const [pipelinePausedReason, setPipelinePausedReason] = useState<string | null>(null);
+  const [pipelineCompletedNotice, setPipelineCompletedNotice] = useState(false);
+
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
 
   // Theme & Font Scale Application Helpers
@@ -1478,6 +1484,100 @@ export default function App() {
     }
   };
 
+  const runAutoPipeline = async (skipClarificationGating = false) => {
+    if (!activeProject) {
+      alert('Pilih atau buat project terlebih dahulu!');
+      return;
+    }
+    if (autoPipelineRunning) return;
+
+    setAutoPipelineRunning(true);
+    setPipelineCompletedNotice(false);
+    setPipelinePausedReason(null);
+
+    try {
+      // 1. Discovery & Requirements Extraction if needed
+      if (requirements.length === 0) {
+        setAutoPipelineStage('1/5: Mengekstrak Kebutuhan Awal...');
+        if (activeSession) {
+          try {
+            await ConversationService.SendMessageWithAgent(
+              activeSession.id,
+              activeProject.id,
+              "Analisis brief dan ide project ini. Ekstrak kebutuhan fungsional (FR-xxx), non-fungsional, pertanyaan klarifikasi yang krusial, dan asumsi awal.",
+              activeChatAgent
+            );
+            const msgs = await ConversationService.ListMessages(activeSession.id);
+            setMessages(msgs || []);
+            await refreshProjectEntities(activeProject.id);
+          } catch (e) {
+            console.warn('Initial discovery prompt error:', e);
+          }
+        }
+      }
+
+      // Clarification Gating Check
+      if (!skipClarificationGating) {
+        const freshClar = await ConversationService.ListClarifications(activeProject.id);
+        const openClar = (freshClar || []).filter(c => c.status !== 'answered' && !c.answer);
+        if (openClar.length > 0) {
+          setClarifications(freshClar || []);
+          setAutoPipelineRunning(false);
+          setPipelinePausedReason(`Pipeline Berhenti Sementara: Harap jawab ${openClar.length} pertanyaan klarifikasi.`);
+          setCurrentView('chat');
+          return;
+        }
+      }
+
+      // 2. PRD Generation & Auto-Approve
+      setAutoPipelineStage('2/5: Menyusun PRD (20 Sections)...');
+      setCurrentView('prd');
+      const prdVer = await DocumentService.GeneratePRD(activeProject.id);
+      if (prdVer) {
+        await DocumentService.ApprovePRD(activeProject.id, prdVer.id);
+      }
+      await loadDocumentDetails(activeProject.id);
+      await handleRunValidation();
+
+      // 3. SRS Generation & Auto-Approve
+      setAutoPipelineStage('3/5: Menyusun SRS IEEE 830 (22 Sections)...');
+      setCurrentView('srs');
+      const srsVer = await DocumentService.GenerateSRS(activeProject.id);
+      if (srsVer) {
+        await DocumentService.ApproveSRS(activeProject.id, srsVer.id);
+      }
+      await loadDocumentDetails(activeProject.id);
+      await handleRunValidation();
+
+      // 4. Architecture Generation & Auto-Approve
+      setAutoPipelineStage('4/5: Menyusun Architecture C4 (16 Sections)...');
+      setCurrentView('architecture');
+      const archVer = await DocumentService.GenerateArchitecture(activeProject.id);
+      if (archVer) {
+        await DocumentService.ApproveArchitecture(activeProject.id, archVer.id);
+      }
+      await loadDocumentDetails(activeProject.id);
+
+      // 5. Design System Generation & Auto-Approve
+      setAutoPipelineStage('5/5: Menyusun Design System (16 Sections)...');
+      setCurrentView('design');
+      const desVer = await DocumentService.GenerateDesign(activeProject.id);
+      if (desVer) {
+        await DocumentService.ApproveDesign(activeProject.id, desVer.id);
+      }
+      await loadDocumentDetails(activeProject.id);
+
+      setAutoPipelineStage(null);
+      setAutoPipelineRunning(false);
+      setPipelineCompletedNotice(true);
+    } catch (err) {
+      console.error('Auto Pipeline Failed:', err);
+      alert(`Auto Pipeline terhenti pada tahap "${autoPipelineStage || 'Eksekusi'}": ${String(err)}`);
+      setAutoPipelineRunning(false);
+      setAutoPipelineStage(null);
+    }
+  };
+
   const isPRDApproved = prdDetails.document?.status === 'approved';
   const isSRSOutdated = srsDetails.document?.status === 'outdated';
   const isArchitectureApproved = architectureDetails.document?.status === 'approved';
@@ -2018,8 +2118,27 @@ export default function App() {
               })}
             </div>
 
-            <div className="flex items-center gap-3 text-xs text-muted shrink-0">
-              <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2.5 text-xs text-muted shrink-0">
+              {/* Auto Pipeline Trigger Button */}
+              {autoPipelineRunning ? (
+                <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-primary-soft border border-primary/40 text-primary text-xs font-semibold shrink-0 animate-pulse">
+                  <Loader2 size={13} className="animate-spin text-primary" />
+                  <span>{autoPipelineStage || 'Menjalankan Pipeline...'}</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => runAutoPipeline(false)}
+                  disabled={!activeProject || isDocLoading}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold shrink-0 transition-all shadow-2xs hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50"
+                  title="Jalankan seluruh rangkaian otomatis: Discovery ➔ PRD ➔ SRS ➔ Architecture ➔ Design System"
+                >
+                  <Zap size={13} className="fill-current text-amber-300" />
+                  <span>Auto Pipeline</span>
+                </button>
+              )}
+
+              <div className="flex items-center gap-1.5 pl-2 border-l border-border/60">
                 <span className="text-[11px] font-mono">Mode:</span>
                 <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
                   interactionMode === 'discovery'
@@ -2029,10 +2148,72 @@ export default function App() {
                   {interactionMode}
                 </span>
               </div>
-              <div className="hidden lg:flex items-center gap-1.5 font-mono text-[11px]">
+              <div className="hidden xl:flex items-center gap-1.5 font-mono text-[11px]">
                 <span className="w-1.5 h-1.5 rounded-full bg-ok" />
                 <span>{currentSpecialist.name}</span>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Auto Pipeline Gating Banner (Paused on Clarifications) */}
+        {pipelinePausedReason && (
+          <div className="mx-4 mt-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between gap-3 text-xs text-amber-800 dark:text-amber-200 shrink-0 shadow-2xs animate-in fade-in slide-in-from-top-1">
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle size={16} className="text-amber-500 shrink-0" />
+              <div>
+                <span className="font-semibold">{pipelinePausedReason}</span>
+                <p className="text-[11.5px] text-muted mt-0.5">Jawab pertanyaan klarifikasi di bawah agar AI tidak berhalusinasi, atau lanjutkan dengan asumsi saat ini.</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => { setPipelinePausedReason(null); runAutoPipeline(true); }}
+                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
+              >
+                <span>Lanjutkan Pipeline</span>
+                <ChevronRight size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setPipelinePausedReason(null)}
+                className="p-1 hover:bg-fill-mute rounded text-muted hover:text-fg transition-colors"
+                title="Tutup pesan"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Auto Pipeline Completion Celebration Banner */}
+        {pipelineCompletedNotice && (
+          <div className="mx-4 mt-2 p-3 bg-ok-tint border border-ok/30 rounded-xl flex items-center justify-between gap-3 text-xs text-ok shrink-0 shadow-2xs animate-in fade-in slide-in-from-top-1">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 size={16} className="text-ok shrink-0" />
+              <div>
+                <span className="font-semibold text-fg">Auto Pipeline Selesai! Seluruh 4 Dokumen Spesifikasi Berhasil Disusun</span>
+                <p className="text-[11.5px] text-muted mt-0.5">PRD (20 Sections), SRS (22 Sections), Architecture (16 Sections), dan Design System (16 Sections) siap digunakan.</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleExportAllDocs}
+                className="px-3 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
+              >
+                <Download size={13} />
+                <span>Export All (.md)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPipelineCompletedNotice(false)}
+                className="p-1 hover:bg-fill-mute rounded text-muted hover:text-fg transition-colors"
+                title="Tutup pesan"
+              >
+                <X size={14} />
+              </button>
             </div>
           </div>
         )}

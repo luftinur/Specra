@@ -101,7 +101,19 @@ Fase 13 telah selesai diimplementasikan penuh untuk menghadirkan pengalaman visu
 - **Normalisasi Respon OpenCode CLI (Chat Bersih, Bukan JSON)**:
   - Memperbaiki parser `internal/ai/adapters/opencode/adapter.go` untuk mengekstrak stream event NDJSON multi-line (`part.text`, `content`, `text`, `message`).
   - Memperkuat `ParseDiscoveryOutput` di `internal/ai/discovery.go` dengan alias unwrap (`reply`, `message`, `content`, `response`) sehingga jika LLM mengembalikan JSON terstruktur, teks percakapan natural tetap diekstrak bersih ke bubble chat dan tidak pernah menampilkan kurung kurawal `{ ... }` JSON mentah.
-  - **Penyederhanaan Tampilan Pengaturan (Dropdown-Based)**:
+  - **Perbaikan Limit Argumen Windows CLI (`The filename or extension is too long`)**:
+  - Menyelesaikan error kode 206 kernel Windows saat menyusun dokumen turunan panjang (seperti SRS atau Architecture dari PRD 20 Sections).
+  - Adapter `antigravity` dan `opencode` kini menyalurkan prompt AI via `cmd.Stdin = strings.NewReader(req.Prompt)` daripada argumen baris perintah `-p`.
+  - Skema JSON panjang disimpan ke berkas sementara OS temp (`temp-schema-*.json`) dan dihapus otomatis setelah eksekusi selesai (`defer os.Remove(...)`).
+  - Panjang perintah `CreateProcess` menyusut menjadi hanya ~50 karakter sehingga bebas dari limit 32.767 karakter Windows OS.
+- **Autonomous Requirements Pipeline Orchestrator ("Auto Pipeline")**:
+  - Tombol aksi cerdas **`[ ⚡ Auto Pipeline ]`** kini terintegrasi langsung di Header Stepper Bar.
+  - Menjalankan alur beruntun otomatis dari hulu ke hilir:
+    1. **Discovery & MoSCoW Extraction**: Mengekstrak kebutuhan awal dari brief.
+    2. **Clarification Gating**: Otomatis berhenti sementara jika AI memerlukan jawaban klarifikasi penting dari pengguna. Setelah dijawab, pipeline otomatis berlanjut.
+    3. **Beruntun Otomatis**: Menyusun dan meng-approve **PRD (20 Sections)** ➔ **SRS IEEE 830 (22 Sections)** ➔ **C4 Architecture (16 Sections)** ➔ **Design System (16 Sections)**.
+    4. **Celebration & Export**: Menampilkan banner penyelesaian lengkap dengan tombol instan `[ 📥 Export All (.md) ]`.
+- **Penyederhanaan Tampilan Pengaturan (Dropdown-Based)**:
     - Mengganti grid kartu mockup besar dengan **`<select>` dropdown elegan dan ringkas** pada tab *General & Appearance*.
     - Dropdown Tema: `Light (Warm Stone)`, `Dark (Obsidian Slate)`, dan `System / Auto`.
     - Dropdown Skala UI: `Auto (Adaptive HiDPI)`, `90% (Compact)`, `100% (Default)`, `105%`, `110%`, `115%`, `120%`, `125%`.
