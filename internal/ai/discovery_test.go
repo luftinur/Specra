@@ -126,4 +126,14 @@ requirements[1]{key,category,title,description,priority,confidence}:
 	if res6.Reply != "Halo, ini hasil analisis dalam format TOON yang hemat token." {
 		t.Errorf("unexpected TOON reply: %s", res6.Reply)
 	}
+
+	// 8. OpenCode generic JSON response wrapping text in "message" or "content"
+	genericJSON := `{"message": "Halo! Saya telah meninjau brief Anda dan siap mengekstrak requirement sistem."}`
+	res7, err := ParseDiscoveryOutput(genericJSON)
+	if err != nil {
+		t.Fatalf("failed to parse generic JSON message: %v", err)
+	}
+	if res7.Reply != "Halo! Saya telah meninjau brief Anda dan siap mengekstrak requirement sistem." {
+		t.Errorf("unexpected generic reply: %s", res7.Reply)
+	}
 }

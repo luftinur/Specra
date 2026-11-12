@@ -51,7 +51,7 @@ const CodeBlock: React.FC<{ code: string; language: string }> = ({ code, languag
 
 export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, isDark = false, className = '' }) => {
   return (
-    <div className={`markdown-content text-fg ${className}`}>
+    <div className={`markdown-content select-text text-fg ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{

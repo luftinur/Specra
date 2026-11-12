@@ -332,6 +332,18 @@ export default function App() {
     document.documentElement.style.zoom = String(zoom);
     document.documentElement.style.setProperty('--app-base-font-size', `${fontPx}px`);
     document.documentElement.style.setProperty('--mqs-scale', String(zoom));
+
+    // Force viewport scroll coordinates to (0, 0) to prevent any off-screen shift
+    window.scrollTo(0, 0);
+    document.documentElement.scrollLeft = 0;
+    document.documentElement.scrollTop = 0;
+    document.body.scrollLeft = 0;
+    document.body.scrollTop = 0;
+    const rootEl = document.getElementById('root');
+    if (rootEl) {
+      rootEl.scrollLeft = 0;
+      rootEl.scrollTop = 0;
+    }
   };
 
   useEffect(() => {
@@ -339,6 +351,10 @@ export default function App() {
       const stored = localStorage.getItem('font_scale') || 'auto';
       if (stored === 'auto') {
         applyFontScale('auto');
+      } else {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollLeft = 0;
+        document.body.scrollLeft = 0;
       }
     };
     window.addEventListener('resize', handleResize);
@@ -346,19 +362,32 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    // Edge guard: ensure document never scrolls off (0, 0) in frameless desktop window
+    const handleScrollLock = () => {
+      if (window.scrollX !== 0 || window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+    };
+    window.addEventListener('scroll', handleScrollLock);
+    return () => window.removeEventListener('scroll', handleScrollLock);
+  }, []);
+
+  useEffect(() => {
     const handleGlobalZoomKeys = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+')) {
         e.preventDefault();
         const cur = document.documentElement.style.zoom ? parseFloat(document.documentElement.style.zoom) : 1;
-        const nextZoom = Math.min(2.0, Number((cur + 0.1).toFixed(2)));
+        const nextZoom = Math.min(2.0, Number((cur + 0.05).toFixed(2)));
         document.documentElement.style.zoom = String(nextZoom);
         document.documentElement.style.setProperty('--mqs-scale', String(nextZoom));
+        window.scrollTo(0, 0);
       } else if ((e.ctrlKey || e.metaKey) && (e.key === '-' || e.key === '_')) {
         e.preventDefault();
         const cur = document.documentElement.style.zoom ? parseFloat(document.documentElement.style.zoom) : 1;
-        const nextZoom = Math.max(0.7, Number((cur - 0.1).toFixed(2)));
+        const nextZoom = Math.max(0.7, Number((cur - 0.05).toFixed(2)));
         document.documentElement.style.zoom = String(nextZoom);
         document.documentElement.style.setProperty('--mqs-scale', String(nextZoom));
+        window.scrollTo(0, 0);
       } else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
         e.preventDefault();
         applyFontScale('auto');
@@ -1510,7 +1539,7 @@ export default function App() {
   const currentInspectorTab = inspectorTabs.find(t => t.id === activeTab) || inspectorTabs[0];
 
   return (
-    <div className="m3 flex flex-col h-screen w-screen overflow-hidden text-fg select-none">
+    <div className="m3 flex flex-col w-full h-full overflow-hidden text-fg">
       
       {/* 1. Full-Width Title Bar (40px) */}
       <header className="tb2 h-10 px-3 flex items-center justify-between border-b border-border/60 bg-chrome select-none shrink-0">
@@ -2094,14 +2123,14 @@ export default function App() {
                   const isUser = m.role === 'user';
                   const isLastAssistant = !isUser && idx === messages.map(msg => String(msg.role)).lastIndexOf('assistant');
                   return isUser ? (
-                    <div key={m.id} className="flex justify-end">
-                      <div className="max-w-[75%] rounded-[8px] px-3.5 py-2.5 bg-fill text-fg border border-border/60 leading-relaxed whitespace-pre-wrap shadow-2xs text-[13px]">
+                    <div key={m.id} className="flex justify-end select-text">
+                      <div className="max-w-[75%] rounded-[8px] px-3.5 py-2.5 bg-fill text-fg border border-border/60 leading-relaxed whitespace-pre-wrap shadow-2xs text-[13px] select-text">
                         {m.content}
                       </div>
                     </div>
                   ) : (
-                    <div key={m.id} className="border-l-2 border-primary pl-4 py-2 space-y-2 bg-fill-soft/40 p-3 rounded-r-[8px]">
-                      <div className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center justify-between gap-1.5">
+                    <div key={m.id} className="border-l-2 border-primary pl-4 py-2 space-y-2 bg-fill-soft/40 p-3 rounded-r-[8px] select-text">
+                      <div className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center justify-between gap-1.5 select-none">
                         <div className="flex items-center gap-1.5">
                           <Bot size={13} />
                           <span>{currentSpecialist.name} ({currentSpecialist.role})</span>
@@ -2110,7 +2139,7 @@ export default function App() {
                           {interactionMode === 'discovery' ? 'Discovery Mode' : 'Execution Mode'}
                         </span>
                       </div>
-                      <div className="leading-relaxed text-fg-2 text-[13px]">
+                      <div className="leading-relaxed text-fg-2 text-[13px] select-text">
                         <MarkdownViewer content={m.content} isDark={isCurrentDark} />
                       </div>
 

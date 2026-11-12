@@ -144,10 +144,32 @@ func ParseDiscoveryOutput(content string) (*DiscoveryResult, error) {
 		return &DiscoveryResult{Reply: ""}, nil
 	}
 
+	// Helper to extract conversational text from raw JSON map if standard .Reply is empty
+	extractReplyAlias := func(rawJSON []byte, target *DiscoveryResult) {
+		if target.Reply != "" {
+			return
+		}
+		var rawMap map[string]json.RawMessage
+		if err := json.Unmarshal(rawJSON, &rawMap); err == nil {
+			for _, key := range []string{"reply", "message", "content", "response", "text", "answer", "description"} {
+				if val, ok := rawMap[key]; ok {
+					var strVal string
+					if err := json.Unmarshal(val, &strVal); err == nil && strings.TrimSpace(strVal) != "" {
+						target.Reply = strings.TrimSpace(strVal)
+						return
+					}
+				}
+			}
+		}
+	}
+
 	// 1. Direct JSON unmarshal attempt (fast path for strict JSON CLI like antigravity)
 	var res DiscoveryResult
-	if err := json.Unmarshal([]byte(clean), &res); err == nil && (res.Reply != "" || len(res.Requirements) > 0) {
-		return &res, nil
+	if err := json.Unmarshal([]byte(clean), &res); err == nil {
+		extractReplyAlias([]byte(clean), &res)
+		if res.Reply != "" || len(res.Requirements) > 0 {
+			return &res, nil
+		}
 	}
 
 	// 2. Extract JSON from markdown code fence anywhere in the output: ```json ... ``` or ``` ... ```
@@ -162,6 +184,7 @@ func ParseDiscoveryOutput(content string) (*DiscoveryResult, error) {
 				jsonCandidate := strings.TrimSpace(clean[bodyStart : bodyStart+fenceEnd])
 				var fenceRes DiscoveryResult
 				if err := json.Unmarshal([]byte(jsonCandidate), &fenceRes); err == nil {
+					extractReplyAlias([]byte(jsonCandidate), &fenceRes)
 					// If model omitted inner reply, adopt outer preamble as conversational reply
 					if fenceRes.Reply == "" && fenceStart > 0 {
 						fenceRes.Reply = strings.TrimSpace(clean[:fenceStart])
@@ -180,6 +203,7 @@ func ParseDiscoveryOutput(content string) (*DiscoveryResult, error) {
 		jsonCandidate := strings.TrimSpace(clean[firstBrace : lastBrace+1])
 		var braceRes DiscoveryResult
 		if err := json.Unmarshal([]byte(jsonCandidate), &braceRes); err == nil {
+			extractReplyAlias([]byte(jsonCandidate), &braceRes)
 			if braceRes.Reply == "" && firstBrace > 0 {
 				preamble := strings.TrimSpace(clean[:firstBrace])
 				preamble = strings.TrimSuffix(preamble, "```json")
@@ -197,7 +221,22 @@ func ParseDiscoveryOutput(content string) (*DiscoveryResult, error) {
 		}
 	}
 
-	// 5. Fallback: treat entire clean text as conversational reply without crashing
+	// 5. If clean is wrapped in JSON without proper schema, unwrap the textual content
+	if strings.HasPrefix(clean, "{") && strings.HasSuffix(clean, "}") {
+		var fallbackMap map[string]any
+		if err := json.Unmarshal([]byte(clean), &fallbackMap); err == nil {
+			for _, key := range []string{"reply", "message", "content", "response", "text", "answer", "description"} {
+				if strVal, ok := fallbackMap[key].(string); ok && strings.TrimSpace(strVal) != "" {
+					return &DiscoveryResult{
+						Reply: strings.TrimSpace(strVal),
+						Role:  "Product Analyst",
+					}, nil
+				}
+			}
+		}
+	}
+
+	// 6. Fallback: treat entire clean text as conversational reply without crashing
 	return &DiscoveryResult{
 		Reply: clean,
 		Role:  "Product Analyst",

@@ -90,8 +90,17 @@ Fase 13 telah selesai diimplementasikan penuh untuk menghadirkan pengalaman visu
   - Tombol `Export All (.md)` kini tersedia di Header Bar baik dari halaman Dokumen maupun langsung saat berada di tampilan **Chat**.
 - **Deduplikasi Kartu Konfirmasi Chat**:
   - Di dalam bubble chat, hanya pertanyaan klarifikasi berstatus pending/terbuka yang di-render (`clarifications.filter(c => c.status !== 'answered' && !c.answer)`). Pertanyaan yang sudah dijawab otomatis hilang dari bubble chat dan tersimpan rapi di Right Inspector.
-- **Adaptive HiDPI UI Scaling & Layout Optimization**:
-  - Mengimplementasikan `resolveZoomFactor(scale, width, height)` di [`frontend/src/lib/uiScale.ts`](file:///E:/dev-agent-assistant/frontend/src/lib/uiScale.ts) dengan faktor skala terkontrol (0.90x hingga 1.25x) sehingga teks besar dan jelas tanpa merusak tata letak layar laptop HiDPI (3072×1920 @ 175%).
+- **Adaptive 4-Edge Viewport Containment & Scroll Lock**:
+  - Mengeliminasi kelas `w-screen` (`100vw`) dan `h-screen` (`100vh`) yang memicu engine Chromium memperbesar kontainer menjadi 115vw × 115vh saat zoom aktif.
+  - Mengunci shell aplikasi dengan `position: fixed; inset: 0; width: 100%; height: 100%; max-width: 100%; max-height: 100%; overflow: hidden;` pada `#root` dan `body`.
+  - Mengunci koordinat scroll dokumen ke `(0, 0)` secara konsisten sehingga ke-4 tepi (*top, bottom, left, right*) selalu menempel presisi di batas jendela native tanpa terpotong atau terdorong keluar layar.
+  - Memperbarui `getAdaptiveZoomFactor` di [`frontend/src/lib/uiScale.ts`](file:///E:/dev-agent-assistant/frontend/src/lib/uiScale.ts) dengan algoritma kalkulasi dua sumbu (*width & height*) agar skala optimal layar tidak pernah melebihi batas vertikal maupun horizontal laptop HiDPI (3072×1920 @ 175%).
+- **Chat Text Selection (`user-select: text`)**:
+  - Menghapus kelas `select-none` dari root aplikasi `.m3`.
+  - Mengaktifkan kelas `select-text` pada seluruh bubble percakapan (user prompt, jawaban asisten AI, dan blok Markdown) sehingga teks dapat diblok, diseleksi, dan disalin (`Ctrl + C`) layaknya aplikasi chat pada umumnya.
+- **Normalisasi Respon OpenCode CLI (Chat Bersih, Bukan JSON)**:
+  - Memperbaiki parser `internal/ai/adapters/opencode/adapter.go` untuk mengekstrak stream event NDJSON multi-line (`part.text`, `content`, `text`, `message`).
+  - Memperkuat `ParseDiscoveryOutput` di `internal/ai/discovery.go` dengan alias unwrap (`reply`, `message`, `content`, `response`) sehingga jika LLM mengembalikan JSON terstruktur, teks percakapan natural tetap diekstrak bersih ke bubble chat dan tidak pernah menampilkan kurung kurawal `{ ... }` JSON mentah.
   - **Penyederhanaan Tampilan Pengaturan (Dropdown-Based)**:
     - Mengganti grid kartu mockup besar dengan **`<select>` dropdown elegan dan ringkas** pada tab *General & Appearance*.
     - Dropdown Tema: `Light (Warm Stone)`, `Dark (Obsidian Slate)`, dan `System / Auto`.

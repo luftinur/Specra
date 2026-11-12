@@ -139,35 +139,89 @@ func (a *Adapter) generateCLI(ctx context.Context, req ai.GenerateRequest, start
 	outBytes := stdout.Bytes()
 	content := string(outBytes)
 
-	// Try parsing JSON format
-	type OpenCodeJSON struct {
-		Content string `json:"content"`
-		Message string `json:"message"`
-		Text    string `json:"text"`
-		Usage   struct {
+	// 1. Try parsing NDJSON event stream (OpenCode v2 outputs stream events)
+	lines := strings.Split(content, "\n")
+	var ndjsonText strings.Builder
+	var totalInTokens, totalOutTokens int
+
+	type EventPart struct {
+		Text string `json:"text"`
+	}
+	type OpenCodeEvent struct {
+		Type    string    `json:"type"`
+		Text    string    `json:"text"`
+		Part    EventPart `json:"part"`
+		Content string    `json:"content"`
+		Message string    `json:"message"`
+		Usage   *struct {
 			InputTokens  int `json:"input_tokens"`
 			OutputTokens int `json:"output_tokens"`
 			TotalTokens  int `json:"total_tokens"`
 		} `json:"usage"`
 	}
 
-	var parsed OpenCodeJSON
-	if err := json.Unmarshal(outBytes, &parsed); err == nil {
-		if parsed.Content != "" {
-			content = parsed.Content
-		} else if parsed.Text != "" {
-			content = parsed.Text
-		} else if parsed.Message != "" {
-			content = parsed.Message
+	foundEvents := false
+	for _, l := range lines {
+		trimmed := strings.TrimSpace(l)
+		if trimmed == "" {
+			continue
+		}
+		var ev OpenCodeEvent
+		if err := json.Unmarshal([]byte(trimmed), &ev); err == nil {
+			foundEvents = true
+			if ev.Part.Text != "" {
+				ndjsonText.WriteString(ev.Part.Text)
+			} else if ev.Text != "" {
+				ndjsonText.WriteString(ev.Text)
+			} else if ev.Content != "" {
+				ndjsonText.WriteString(ev.Content)
+			} else if ev.Message != "" {
+				ndjsonText.WriteString(ev.Message)
+			}
+			if ev.Usage != nil {
+				totalInTokens = ev.Usage.InputTokens
+				totalOutTokens = ev.Usage.OutputTokens
+			}
+		}
+	}
+
+	if foundEvents && ndjsonText.Len() > 0 {
+		content = ndjsonText.String()
+	} else {
+		// 2. Try parsing single JSON format
+		type OpenCodeJSON struct {
+			Content string `json:"content"`
+			Message string `json:"message"`
+			Text    string `json:"text"`
+			Usage   struct {
+				InputTokens  int `json:"input_tokens"`
+				OutputTokens int `json:"output_tokens"`
+				TotalTokens  int `json:"total_tokens"`
+			} `json:"usage"`
+		}
+
+		var parsed OpenCodeJSON
+		if err := json.Unmarshal(outBytes, &parsed); err == nil {
+			if parsed.Content != "" {
+				content = parsed.Content
+			} else if parsed.Text != "" {
+				content = parsed.Text
+			} else if parsed.Message != "" {
+				content = parsed.Message
+			}
+			if parsed.Usage.TotalTokens > 0 {
+				totalInTokens = parsed.Usage.InputTokens
+				totalOutTokens = parsed.Usage.OutputTokens
+			}
 		}
 	}
 
 	// Calculate approximate tokens if not provided
 	inTokens := len(fullPrompt) / 4
 	outTokens := len(content) / 4
-	if parsed.Usage.TotalTokens > 0 {
-		inTokens = parsed.Usage.InputTokens
-		outTokens = parsed.Usage.OutputTokens
+	if totalInTokens > 0 {
+		inTokens = totalInTokens
+		outTokens = totalOutTokens
 	}
 
 	dur := time.Since(start).Seconds()

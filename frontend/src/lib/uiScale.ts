@@ -22,15 +22,21 @@ export const SCALE_OPTIONS: ScaleOption[] = [
   { id: '125', label: '125% — Extra Large (18px)', factor: 1.25, baseFont: 18, desc: 'Skala maksimal yang tetap menjaga ruang kolom tengah.' },
 ];
 
+/** Baseline desktop artboard dimensions */
+const DESIGN_WIDTH = 1200;
+const DESIGN_HEIGHT = 800;
+
 /**
  * Calculates a safe adaptive zoom factor that fits high-resolution displays
- * without squeezing the main workspace or overflowing the settings dialog.
+ * across both axes (width & height) without squeezing or overflowing.
  */
 export function getAdaptiveZoomFactor(width: number, height: number): number {
-  if (width >= 2400) return 1.15;
-  if (width >= 1700) return 1.05;
-  if (width >= 1350) return 1.0;
-  return 1.0;
+  if (width <= 0 || height <= 0) return 1.0;
+  const fit = Math.min(width / DESIGN_WIDTH, height / DESIGN_HEIGHT);
+  if (fit >= 1.30) return 1.15;
+  if (fit >= 1.10) return 1.08;
+  if (fit >= 1.00) return 1.00;
+  return Math.max(0.90, Number(fit.toFixed(2)));
 }
 
 export function resolveZoomFactor(setting: string, width: number, height: number): { zoom: number; fontPx: number } {
