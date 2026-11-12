@@ -45,8 +45,17 @@ import {
   Sliders,
   FolderOpen,
   Layers,
-  Globe
+  Globe,
+  Eye,
+  EyeOff,
+  ChevronDown,
+  ChevronRight,
+  HelpCircle,
+  Copy,
+  Code
 } from 'lucide-react';
+import { MarkdownViewer } from './components/MarkdownViewer';
+import { SpecraLogo, SpecraIcon, SpecraWordmark } from './components/SpecraBrand';
 import { 
   ProjectService, 
   ConversationService, 
@@ -135,6 +144,8 @@ export default function App() {
   const [isEditingDoc, setIsEditingDoc] = useState(false);
   const [docEditContent, setDocEditContent] = useState('');
   const [selectedSectionNum, setSelectedSectionNum] = useState<number>(1);
+  const [docDisplayMode, setDocDisplayMode] = useState<'preview' | 'source'>('preview');
+  const [copiedFullDoc, setCopiedFullDoc] = useState(false);
 
   // Inspector & Chat UI State
   const [activeTab, setActiveTab] = useState<'requirements' | 'validation' | 'traceability' | 'assumptions' | 'questions'>('requirements');
@@ -158,6 +169,55 @@ export default function App() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showInspectorMenu]);
+
+  // Close Add Skill dropdown when clicking outside
+  const addSkillDropdownRef = useRef<HTMLDivElement | null>(null);
+  const [showAddSkillDropdown, setShowAddSkillDropdown] = useState(false);
+  useEffect(() => {
+    const handleSkillClickOutside = (event: MouseEvent) => {
+      if (addSkillDropdownRef.current && !addSkillDropdownRef.current.contains(event.target as Node)) {
+        setShowAddSkillDropdown(false);
+      }
+    };
+    if (showAddSkillDropdown) {
+      document.addEventListener('mousedown', handleSkillClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleSkillClickOutside);
+    };
+  }, [showAddSkillDropdown]);
+
+  const [clarificationAnswers, setClarificationAnswers] = useState<Record<string, string>>({});
+  const [isExtractingReqs, setIsExtractingReqs] = useState(false);
+
+  // Agentic Interaction Modes & Slash Commands
+  const [interactionMode, setInteractionMode] = useState<'discovery' | 'execution'>('discovery');
+  const [showPersonaMenu, setShowPersonaMenu] = useState(false);
+  const personaMenuRef = useRef<HTMLDivElement | null>(null);
+  const [showModeMenu, setShowModeMenu] = useState(false);
+  const modeMenuRef = useRef<HTMLDivElement | null>(null);
+  const [showSlashMenu, setShowSlashMenu] = useState(false);
+  const [selectedSlashIndex, setSelectedSlashIndex] = useState(0);
+  const slashMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleMenusClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (personaMenuRef.current && !personaMenuRef.current.contains(target)) {
+        setShowPersonaMenu(false);
+      }
+      if (modeMenuRef.current && !modeMenuRef.current.contains(target)) {
+        setShowModeMenu(false);
+      }
+      if (slashMenuRef.current && !slashMenuRef.current.contains(target)) {
+        setShowSlashMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleMenusClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleMenusClickOutside);
+    };
+  }, []);
 
   // Modals
   const [newProjectName, setNewProjectName] = useState('');
@@ -194,6 +254,7 @@ export default function App() {
 
   // Advanced Settings & Providers State
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'general' | 'personas' | 'mcp' | 'providers' | 'tokens' | 'diagnostics'>('general');
   const [agentsList, setAgentsList] = useState<AgentConfig[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState<string>('product-analyst');
@@ -353,6 +414,42 @@ export default function App() {
     }
   }, [messages, isSending, currentView]);
 
+  const handleDetectAgents = async (silent: boolean = false) => {
+    setIsDetectingAgents(true);
+    try {
+      const agents = await ProviderService.DetectInstalledCodingAgents();
+      setDetectedAgents(agents || []);
+    } catch (err) {
+      if (!silent) alert(`Gagal mendeteksi coding agent: ${String(err)}`);
+      else console.warn('Silent agent detection error:', err);
+    } finally {
+      setIsDetectingAgents(false);
+    }
+  };
+
+  const handleSelectPrimaryAgent = async (agentId: string) => {
+    setPrimaryProvider(agentId);
+    try {
+      await ProviderService.ConfigureProviders(agentId, fallbackProvider, fallbackEnabled);
+      setProviderSaveSuccess(`AI Provider diaktifkan: ${agentId}`);
+      await loadProviderStatus();
+      setTimeout(() => setProviderSaveSuccess(''), 3000);
+    } catch (err) {
+      alert(`Gagal mengubah AI Provider: ${String(err)}`);
+    }
+  };
+
+  const handleCopyFullDoc = async () => {
+    if (!activeDocDetails.current_version?.content) return;
+    try {
+      await navigator.clipboard.writeText(activeDocDetails.current_version.content);
+      setCopiedFullDoc(true);
+      setTimeout(() => setCopiedFullDoc(false), 2000);
+    } catch (e) {
+      console.error('Failed to copy document:', e);
+    }
+  };
+
   const loadProviderStatus = async () => {
     try {
       const res = await ProviderService.GetProviderStatus();
@@ -368,6 +465,7 @@ export default function App() {
         }
       }
       await loadTokenUsage();
+      await handleDetectAgents(true);
     } catch (err) {
       console.error('Failed to get provider status:', err);
     }
@@ -516,6 +614,74 @@ export default function App() {
     }
   };
 
+  const handleApproveRequirement = async (id: string) => {
+    try {
+      await RequirementService.ApproveRequirement(id);
+      if (activeProject) await refreshProjectEntities(activeProject.id);
+    } catch (err) {
+      alert(`Gagal approve requirement: ${String(err)}`);
+    }
+  };
+
+  const handleRejectRequirement = async (id: string) => {
+    try {
+      await RequirementService.RejectRequirement(id);
+      if (activeProject) await refreshProjectEntities(activeProject.id);
+    } catch (err) {
+      alert(`Gagal reject requirement: ${String(err)}`);
+    }
+  };
+
+  const handleUpdatePriority = async (id: string, priority: string) => {
+    try {
+      await RequirementService.UpdatePriority(id, priority);
+      if (activeProject) await refreshProjectEntities(activeProject.id);
+    } catch (err) {
+      alert(`Gagal update priority: ${String(err)}`);
+    }
+  };
+
+  const handleUpdateAssumptionStatus = async (id: string, status: string) => {
+    try {
+      await RequirementService.UpdateAssumptionStatus(id, status);
+      if (activeProject) await refreshProjectEntities(activeProject.id);
+    } catch (err) {
+      alert(`Gagal update assumption: ${String(err)}`);
+    }
+  };
+
+  const handleAnswerClarification = async (id: string) => {
+    const ans = clarificationAnswers[id]?.trim();
+    if (!ans) return;
+    try {
+      await RequirementService.AnswerClarification(id, ans);
+      setClarificationAnswers(prev => ({ ...prev, [id]: '' }));
+      if (activeProject) await refreshProjectEntities(activeProject.id);
+    } catch (err) {
+      alert(`Gagal submit jawaban klarifikasi: ${String(err)}`);
+    }
+  };
+
+  const handleExtractRequirements = async () => {
+    if (!activeProject || !activeSession || isExtractingReqs) return;
+    setIsExtractingReqs(true);
+    try {
+      await ConversationService.SendMessageWithAgent(
+        activeSession.id,
+        activeProject.id,
+        "Analisis seluruh brief, dokumen PRD, dan diskusi project yang ada saat ini. Ekstrak seluruh kebutuhan fungsional (FR-xxx) dan non-fungsional ke dalam format JSON requirements terstruktur.",
+        activeChatAgent
+      );
+      const msgs = await ConversationService.ListMessages(activeSession.id);
+      setMessages(msgs || []);
+      await refreshProjectEntities(activeProject.id);
+    } catch (err) {
+      alert(`Gagal mengekstrak requirements: ${String(err)}`);
+    } finally {
+      setIsExtractingReqs(false);
+    }
+  };
+
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjectName.trim()) return;
@@ -618,17 +784,6 @@ export default function App() {
     }
   };
 
-  const handleDetectAgents = async () => {
-    setIsDetectingAgents(true);
-    try {
-      const agents = await ProviderService.DetectInstalledCodingAgents();
-      setDetectedAgents(agents || []);
-    } catch (err) {
-      alert(`Gagal mendeteksi coding agent: ${String(err)}`);
-    } finally {
-      setIsDetectingAgents(false);
-    }
-  };
 
   const handleSaveProviderConfig = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -847,6 +1002,68 @@ export default function App() {
     }
   };
 
+  // Slash Commands Definitions
+  const slashCommands = [
+    { cmd: '/discovery', label: 'Discovery Mode', desc: 'Proaktif menggali ide, celah, & ajukan pertanyaan', icon: Search, action: 'discovery' },
+    { cmd: '/exec', label: 'Execution Mode', desc: 'Pasif, langsung hasilkan spesifikasi tanpa bertanya', icon: Zap, action: 'execution' },
+    { cmd: '/plan', label: 'Create Plan', desc: 'Susun rencana spesifikasi bertahap untuk fitur ini', icon: List, action: 'plan' },
+    { cmd: '/clarify', label: 'Force Clarifications', desc: 'Evaluasi celah konteks dan ajukan pertanyaan klarifikasi', icon: HelpCircle, action: 'clarify' },
+    { cmd: '/prd', label: 'Generate PRD', desc: 'Buat atau update draft dokumen PRD (20 Sections)', icon: FileText, action: 'prd' },
+    { cmd: '/srs', label: 'Generate SRS', desc: 'Buat atau update spesifikasi teknis SRS (22 Sections)', icon: FileCode2, action: 'srs' },
+    { cmd: '/arch', label: 'Generate Architecture', desc: 'Buat topologi C4 Mermaid & API contracts (16 Sections)', icon: Cpu, action: 'arch' },
+    { cmd: '/design', label: 'Generate Design System', desc: 'Buat token desain & screen flows (16 Sections)', icon: Layers, action: 'design' },
+    { cmd: '/validate', label: 'Run Quality Check', desc: 'Audit validasi kelengkapan & keterlacakan requirements', icon: Activity, action: 'validate' },
+    { cmd: '/clear', label: 'Clear Chat History', desc: 'Bersihkan histori sesi percakapan saat ini', icon: Trash2, action: 'clear' },
+  ];
+
+  const handleSelectSlashCommand = async (cmd: typeof slashCommands[0]) => {
+    setShowSlashMenu(false);
+    setInputMessage('');
+    if (cmd.action === 'discovery') {
+      setInteractionMode('discovery');
+    } else if (cmd.action === 'execution') {
+      setInteractionMode('execution');
+    } else if (cmd.action === 'plan') {
+      setInputMessage('/plan Buatkan rencana spesifikasi bertahap untuk fitur: ');
+    } else if (cmd.action === 'clarify') {
+      if (activeSession && activeProject) {
+        setIsSending(true);
+        try {
+          await ConversationService.SendMessageWithAgent(
+            activeSession.id,
+            activeProject.id,
+            "[MODE: DISCOVERY] Evaluasi seluruh konteks project saat ini. Identifikasi celah ambiguitas dan ajukan 1-3 pertanyaan klarifikasi penting.",
+            activeChatAgent
+          );
+          const msgs = await ConversationService.ListMessages(activeSession.id);
+          setMessages(msgs || []);
+          await refreshProjectEntities(activeProject.id);
+        } catch (err) {
+          alert(`Error: ${String(err)}`);
+        } finally {
+          setIsSending(false);
+        }
+      }
+    } else if (cmd.action === 'prd') {
+      setCurrentView('prd');
+      await handleGeneratePRD();
+    } else if (cmd.action === 'srs') {
+      setCurrentView('srs');
+      await handleGenerateSRS();
+    } else if (cmd.action === 'arch') {
+      setCurrentView('architecture');
+      await handleGenerateArchitecture();
+    } else if (cmd.action === 'design') {
+      setCurrentView('design');
+      await handleGenerateDesign();
+    } else if (cmd.action === 'validate') {
+      setActiveTab('validation');
+      await handleRunValidation();
+    } else if (cmd.action === 'clear') {
+      setMessages([]);
+    }
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!inputMessage.trim() && !attachedFile) || !activeSession || !activeProject || isSending) return;
@@ -855,6 +1072,42 @@ export default function App() {
     const currentAttachment = attachedFile;
     setInputMessage('');
     setAttachedFile(null);
+    setShowSlashMenu(false);
+
+    // Quick Command Intercepts
+    if (userText === '/discovery') {
+      setInteractionMode('discovery');
+      return;
+    }
+    if (userText === '/exec') {
+      setInteractionMode('execution');
+      return;
+    }
+    if (userText === '/prd') {
+      await handleGeneratePRD();
+      return;
+    }
+    if (userText === '/srs') {
+      await handleGenerateSRS();
+      return;
+    }
+    if (userText === '/arch') {
+      await handleGenerateArchitecture();
+      return;
+    }
+    if (userText === '/design') {
+      await handleGenerateDesign();
+      return;
+    }
+    if (userText === '/validate') {
+      await handleRunValidation();
+      return;
+    }
+    if (userText === '/clear') {
+      setMessages([]);
+      return;
+    }
+
     setIsSending(true);
 
     const displayContent = currentAttachment
@@ -870,6 +1123,9 @@ export default function App() {
     } as any;
     setMessages((prev) => [...prev, tempUserMsg]);
 
+    const modeHeader = interactionMode === 'execution' ? '[MODE: EXECUTION]' : '[MODE: DISCOVERY]';
+    const textToSend = `${modeHeader} ${userText}`;
+
     try {
       if (currentAttachment) {
         await ConversationService.SubmitAttachment(
@@ -877,14 +1133,14 @@ export default function App() {
           activeProject.id,
           currentAttachment.name,
           currentAttachment.content,
-          userText || 'Analyze attached draft document and extract structured requirements',
+          textToSend || 'Analyze attached draft document and extract structured requirements',
           activeChatAgent
         );
       } else {
         await ConversationService.SendMessageWithAgent(
           activeSession.id,
           activeProject.id,
-          userText,
+          textToSend,
           activeChatAgent
         );
       }
@@ -1131,6 +1387,44 @@ export default function App() {
     { id: 'questions' as const, label: 'Clarifications', shortLabel: 'Q&A', count: clarifications.length, icon: MessageSquare },
   ];
 
+  const pipelineSteps = [
+    {
+      id: 'chat' as const,
+      name: '1. Discovery',
+      status: requirements.filter(r => r.status === 'approved').length >= 3 ? 'completed' : 'active',
+      desc: `${requirements.length} Reqs`,
+      locked: false,
+    },
+    {
+      id: 'prd' as const,
+      name: '2. PRD',
+      status: isPRDApproved ? 'completed' : prdDetails.current_version ? 'draft' : 'pending',
+      desc: isPRDApproved ? 'Approved (20 Sec)' : prdDetails.current_version ? 'Draft Ready' : 'Pending',
+      locked: false,
+    },
+    {
+      id: 'srs' as const,
+      name: '3. SRS',
+      status: isSRSOutdated ? 'outdated' : srsDetails.document?.status === 'approved' ? 'completed' : srsDetails.current_version ? 'draft' : isPRDApproved ? 'pending' : 'locked',
+      desc: isSRSOutdated ? 'Outdated' : srsDetails.document?.status === 'approved' ? 'Approved (22 Sec)' : isPRDApproved ? (srsDetails.current_version ? 'Draft Ready' : 'Unlocked') : 'Gated',
+      locked: !isPRDApproved,
+    },
+    {
+      id: 'architecture' as const,
+      name: '4. Architecture',
+      status: isArchitectureApproved ? 'completed' : architectureDetails.current_version ? 'draft' : isPRDApproved ? 'pending' : 'locked',
+      desc: isArchitectureApproved ? 'Approved (16 Sec)' : isPRDApproved ? (architectureDetails.current_version ? 'Draft Ready' : 'Unlocked') : 'Gated',
+      locked: !isPRDApproved,
+    },
+    {
+      id: 'design' as const,
+      name: '5. Design System',
+      status: isDesignApproved ? 'completed' : designDetails.current_version ? 'draft' : isPRDApproved ? 'pending' : 'locked',
+      desc: isDesignApproved ? 'Approved (16 Sec)' : isPRDApproved ? (designDetails.current_version ? 'Draft Ready' : 'Unlocked') : 'Gated',
+      locked: !isPRDApproved,
+    },
+  ];
+
   const currentInspectorTab = inspectorTabs.find(t => t.id === activeTab) || inspectorTabs[0];
 
   return (
@@ -1146,16 +1440,13 @@ export default function App() {
               setProjectManagerTab('open');
               setIsProjectManagerOpen(true);
             }}
-            className="flex items-center gap-2 px-2 py-1 rounded-[6px] hover:bg-fill-mute text-fg transition-colors shrink-0 font-medium text-xs"
+            className="flex items-center gap-2 px-2 py-1 rounded-[6px] hover:bg-fill-mute text-fg transition-colors shrink-0"
             title="Open Project Manager"
           >
-            <div className="w-5 h-5 rounded-[5px] bg-primary flex items-center justify-center text-white font-bold text-[10.5px] shadow-2xs">
-              AR
-            </div>
-            <span className="font-semibold tracking-tight text-fg">Requirements Studio</span>
+            <SpecraLogo size={22} showWordmark={true} />
           </button>
 
-          <div className="h-4 w-px bg-border/60 mx-1 shrink-0" />
+          <div className="h-4 w-px bg-border/60 mx-2.5 shrink-0" />
 
           {/* Project Tabs Strip */}
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
@@ -1215,6 +1506,19 @@ export default function App() {
           {/* Document Actions (Export & Edit/Simpan) */}
           {currentView !== 'chat' && activeProject && (
             <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={handleCopyFullDoc}
+                disabled={!activeDocDetails.current_version?.content}
+                className={`px-2 py-1 rounded-[6px] border border-border flex items-center gap-1 text-xs transition-colors shadow-2xs disabled:opacity-40 ${
+                  copiedFullDoc ? 'bg-ok-tint text-ok font-semibold border-ok/40' : 'hover:bg-fill-mute text-fg'
+                }`}
+                title="Salin seluruh isi dokumen Markdown"
+              >
+                {copiedFullDoc ? <Check size={12} className="text-ok" /> : <Copy size={12} />}
+                <span>{copiedFullDoc ? 'Tersalin!' : 'Copy Doc'}</span>
+              </button>
+
               <button
                 onClick={handleExportDoc}
                 className="px-2 py-1 rounded-[6px] border border-border hover:bg-fill-mute text-fg flex items-center gap-1 text-xs transition-colors"
@@ -1280,7 +1584,7 @@ export default function App() {
 
           {/* Settings Studio */}
           <button
-            onClick={() => { setShowSettingsModal(true); loadGeneralSettings(); loadTokenUsage(); }}
+            onClick={() => { setShowSettingsModal(true); loadGeneralSettings(); loadTokenUsage(); handleDetectAgents(true); }}
             className="p-1.5 rounded-[6px] text-muted hover:text-fg hover:bg-fill-mute transition-colors"
             title="Studio Settings"
           >
@@ -1292,40 +1596,40 @@ export default function App() {
       {/* 2. Main Area: Sidebar + Content Sheet + Inspector */}
       <div className="mqs-main flex-1 flex min-w-0 min-height-0 overflow-hidden">
         
-        {/* Left Sidebar (.side3: 198px, sits directly on chrome ground) */}
-        <aside className="side3 w-[198px] flex flex-col justify-between shrink-0 py-2 px-2 select-none">
+        {/* Left Sidebar (.side3: 256px standard desktop rail) */}
+        <aside className="side3 w-[256px] flex flex-col justify-between shrink-0 py-2.5 px-2.5 select-none">
           <div className="space-y-3">
             {/* Group: Workspace Mode */}
             <div>
-              <div className="gl text-[11px] font-semibold uppercase tracking-wider text-muted-2 px-2 py-1">
+              <div className="gl text-[10.5px] font-semibold uppercase tracking-wider text-muted-2 px-2 py-1">
                 Workspace
               </div>
               <div className="space-y-0.5">
                 <button
                   onClick={() => { setCurrentView('chat'); setIsEditingDoc(false); }}
-                  className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center gap-2 text-xs font-medium transition-colors ${
+                  className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center gap-2 text-[12px] font-medium transition-colors ${
                     currentView === 'chat'
                       ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
                       : 'text-fg-2 hover:bg-fill-mute hover:text-fg'
                   }`}
                 >
                   <MessageSquare size={14} className={currentView === 'chat' ? 'text-primary' : 'text-muted'} />
-                  <span>Chat Discovery</span>
+                  <span className="truncate">Chat Discovery</span>
                 </button>
 
                 <button
                   onClick={() => { setCurrentView('prd'); setIsEditingDoc(false); }}
-                  className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center justify-between text-xs font-medium transition-colors ${
+                  className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center justify-between text-[12px] font-medium transition-colors ${
                     currentView === 'prd'
                       ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
                       : 'text-fg-2 hover:bg-fill-mute hover:text-fg'
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <FileText size={14} className={currentView === 'prd' ? 'text-primary' : 'text-muted'} />
-                    <span>PRD Document</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText size={14} className={currentView === 'prd' ? 'text-primary shrink-0' : 'text-muted shrink-0'} />
+                    <span className="truncate">PRD Document</span>
                   </div>
-                  <span className={`text-xs font-mono px-2 py-0.5 rounded uppercase ${
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded uppercase font-semibold shrink-0 ${
                     isPRDApproved ? 'bg-ok-tint text-ok font-semibold' : 'bg-fill text-muted font-medium'
                   }`}>
                     {prdDetails.document?.status || 'none'}
@@ -1334,72 +1638,99 @@ export default function App() {
 
                 <button
                   onClick={() => { setCurrentView('srs'); setIsEditingDoc(false); }}
-                  className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center justify-between text-xs font-medium transition-colors ${
+                  className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center justify-between text-[12px] font-medium transition-colors ${
                     currentView === 'srs'
                       ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
                       : 'text-fg-2 hover:bg-fill-mute hover:text-fg'
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <FileCode2 size={14} className={currentView === 'srs' ? 'text-primary' : 'text-muted'} />
-                    <span>SRS Document</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileCode2 size={14} className={currentView === 'srs' ? 'text-primary shrink-0' : 'text-muted shrink-0'} />
+                    <span className="truncate">SRS Document</span>
                   </div>
-                  <span className={`text-xs font-mono px-2 py-0.5 rounded uppercase ${
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded uppercase font-semibold shrink-0 ${
                     isSRSOutdated
                       ? 'bg-err-bg text-err font-semibold'
                       : srsDetails.document?.status === 'approved' 
                       ? 'bg-ok-tint text-ok font-semibold' 
                       : !isPRDApproved 
-                      ? 'bg-warn-bg text-warn font-semibold'
+                      ? 'bg-fill text-muted font-medium'
                       : 'bg-fill text-muted font-medium'
                   }`}>
-                    {isSRSOutdated ? 'Outdated' : !isPRDApproved ? 'Gated' : srsDetails.document?.status || 'draft'}
+                    {isSRSOutdated ? (
+                      'Outdated'
+                    ) : !isPRDApproved ? (
+                      <span className="flex items-center gap-1 text-[10px]" title="Terkunci: Memerlukan persetujuan PRD">
+                        <Lock size={10} className="text-muted-2" />
+                        <span>Locked</span>
+                      </span>
+                    ) : (
+                      srsDetails.document?.status || 'draft'
+                    )}
                   </span>
                 </button>
 
                 <button
                   onClick={() => { setCurrentView('architecture'); setIsEditingDoc(false); }}
-                  className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center justify-between text-xs font-medium transition-colors ${
+                  className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center justify-between text-[12px] font-medium transition-colors ${
                     currentView === 'architecture'
                       ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
                       : 'text-fg-2 hover:bg-fill-mute hover:text-fg'
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <Cpu size={14} className={currentView === 'architecture' ? 'text-primary' : 'text-muted'} />
-                    <span>Architecture</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Cpu size={14} className={currentView === 'architecture' ? 'text-primary shrink-0' : 'text-muted shrink-0'} />
+                    <span className="truncate">Architecture</span>
                   </div>
-                  <span className={`text-xs font-mono px-2 py-0.5 rounded uppercase ${
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded uppercase font-semibold shrink-0 ${
                     isArchitectureApproved 
                       ? 'bg-ok-tint text-ok font-semibold' 
                       : !isPRDApproved 
-                      ? 'bg-warn-bg text-warn font-semibold'
+                      ? 'bg-fill text-muted font-medium'
                       : 'bg-fill text-muted font-medium'
                   }`}>
-                    {isArchitectureApproved ? 'approved' : !isPRDApproved ? 'Gated' : architectureDetails.document?.status || 'draft'}
+                    {isArchitectureApproved ? (
+                      'approved'
+                    ) : !isPRDApproved ? (
+                      <span className="flex items-center gap-1 text-[10px]" title="Terkunci: Memerlukan persetujuan PRD">
+                        <Lock size={10} className="text-muted-2" />
+                        <span>Locked</span>
+                      </span>
+                    ) : (
+                      architectureDetails.document?.status || 'draft'
+                    )}
                   </span>
                 </button>
 
                 <button
                   onClick={() => { setCurrentView('design'); setIsEditingDoc(false); }}
-                  className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center justify-between text-xs font-medium transition-colors ${
+                  className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center justify-between text-[12px] font-medium transition-colors ${
                     currentView === 'design'
                       ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
                       : 'text-fg-2 hover:bg-fill-mute hover:text-fg'
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <Sparkles size={14} className={currentView === 'design' ? 'text-primary' : 'text-muted'} />
-                    <span>Design System</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Sparkles size={14} className={currentView === 'design' ? 'text-primary shrink-0' : 'text-muted shrink-0'} />
+                    <span className="truncate">Design System</span>
                   </div>
-                  <span className={`text-xs font-mono px-2 py-0.5 rounded uppercase ${
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded uppercase font-semibold shrink-0 ${
                     isDesignApproved 
                       ? 'bg-ok-tint text-ok font-semibold' 
                       : !isPRDApproved 
-                      ? 'bg-warn-bg text-warn font-semibold'
+                      ? 'bg-fill text-muted font-medium'
                       : 'bg-fill text-muted font-medium'
                   }`}>
-                    {isDesignApproved ? 'approved' : !isPRDApproved ? 'Gated' : designDetails.document?.status || 'draft'}
+                    {isDesignApproved ? (
+                      'approved'
+                    ) : !isPRDApproved ? (
+                      <span className="flex items-center gap-1 text-[10px]" title="Terkunci: Memerlukan persetujuan PRD">
+                        <Lock size={10} className="text-muted-2" />
+                        <span>Locked</span>
+                      </span>
+                    ) : (
+                      designDetails.document?.status || 'draft'
+                    )}
                   </span>
                 </button>
               </div>
@@ -1442,17 +1773,14 @@ export default function App() {
                   </div>
                 </div>
               ) : (
-                <div className="p-2.5 text-center rounded-[8px] border border-dashed border-border-dash bg-fill-soft/40 text-xs text-muted space-y-2">
-                  <p className="text-[11px]">No active project</p>
-                  <button
-                    onClick={() => {
-                      setProjectManagerTab('open');
-                      setIsProjectManagerOpen(true);
-                    }}
-                    className="px-2 py-1 bg-primary hover:bg-primary-hover text-white rounded-[5px] text-[11px] font-medium shadow-2xs"
-                  >
-                    + Open Project
-                  </button>
+                <div className="p-3 rounded-[8px] border border-border/80 bg-fill-soft/50 text-xs text-muted space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-fg-2 font-medium">
+                    <FolderKanban size={13} className="text-muted" />
+                    <span>Belum ada project aktif</span>
+                  </div>
+                  <p className="text-[11px] text-muted-2 leading-relaxed">
+                    Buka project di tab atas atau gunakan tombol pada canvas.
+                  </p>
                 </div>
               )}
             </div>
@@ -1463,7 +1791,7 @@ export default function App() {
             <div className="flex items-center justify-between text-xs px-2 py-1 rounded-[6px] border border-border/80 bg-surface shadow-2xs">
               <div className="flex items-center gap-1.5 text-fg-2">
                 <Bot size={13} className="text-primary" />
-                <span className="font-medium truncate max-w-[85px] capitalize">
+                <span className="font-medium truncate max-w-[130px] capitalize">
                   {primaryProvider.replace('-cli', '')}
                 </span>
                 {fallbackEnabled && (
@@ -1482,59 +1810,154 @@ export default function App() {
           </div>
         </aside>
 
-        {/* Central Workspace Sheet (.mqs-content) */}
-        <main className="mqs-content flex-1 flex flex-col min-w-0 min-height-0 mr-2 mb-2 rounded-[10px] border border-border bg-surface shadow-2xs overflow-hidden relative">
+        {/* Central Workspace Sheet (.mqs-content - Layered Center Stage) */}
+        <main className="mqs-content flex-1 flex flex-col min-w-0 min-height-0 mr-2 mb-2 rounded-[12px] border border-border bg-surface shadow-xs overflow-hidden relative">
+
+        {/* Global Project Pipeline Stepper Bar */}
+        {activeProject && (
+          <div className="px-4 py-2 border-b border-border bg-panel/75 flex flex-wrap items-center justify-between gap-3 shrink-0">
+            <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar">
+              {pipelineSteps.map((step, idx) => {
+                const isActive = currentView === step.id;
+                const isLocked = step.locked;
+                return (
+                  <React.Fragment key={step.id}>
+                    {idx > 0 && (
+                      <ChevronRight size={13} className="text-muted/40 shrink-0" />
+                    )}
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => !isLocked && setCurrentView(step.id as any)}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 ${
+                        isActive
+                          ? 'bg-primary-soft text-primary font-semibold border border-primary/30 shadow-2xs'
+                          : isLocked
+                          ? 'opacity-40 cursor-not-allowed text-muted'
+                          : 'text-muted hover:text-fg hover:bg-fill-mute cursor-pointer'
+                      }`}
+                      title={isLocked ? 'Prasyarat: Dokumen hulu (PRD) harus disetujui terlebih dahulu' : `Buka tahap ${step.name}`}
+                    >
+                      {step.status === 'completed' ? (
+                        <CheckCircle2 size={13} className="text-ok shrink-0" />
+                      ) : step.status === 'outdated' ? (
+                        <AlertTriangle size={13} className="text-err shrink-0" />
+                      ) : isLocked ? (
+                        <Lock size={12} className="text-muted shrink-0" />
+                      ) : (
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${
+                          isActive ? 'bg-primary animate-pulse' : 'bg-muted/60'
+                        }`} />
+                      )}
+                      <span className="font-semibold">{step.name}</span>
+                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-medium ${
+                        step.status === 'completed'
+                          ? 'bg-ok-tint text-ok font-semibold'
+                          : step.status === 'outdated'
+                          ? 'bg-err-bg text-err font-semibold'
+                          : isActive
+                          ? 'bg-primary text-white font-semibold'
+                          : 'bg-fill text-muted'
+                      }`}>
+                        {step.desc}
+                      </span>
+                    </button>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-3 text-xs text-muted shrink-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-mono">Mode:</span>
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
+                  interactionMode === 'discovery'
+                    ? 'bg-primary-soft text-primary'
+                    : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+                }`}>
+                  {interactionMode}
+                </span>
+              </div>
+              <div className="hidden lg:flex items-center gap-1.5 font-mono text-[11px]">
+                <span className="w-1.5 h-1.5 rounded-full bg-ok" />
+                <span>{currentSpecialist.name}</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* VIEW 1: CHAT DISCOVERY */}
         {currentView === 'chat' && (
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Specialist Agent Switcher Bar */}
-            {activeProject && (
-              <div className="px-4 py-2 border-b border-border bg-panel flex flex-wrap items-center justify-between gap-2 shrink-0">
-                <div className="flex items-center gap-1.5 p-1 bg-fill rounded-[8px] text-xs">
-                  {specialistAgents.map((ag) => {
-                    const isAgActive = activeChatAgent === ag.id;
-                    const AgIcon = ag.icon;
-                    return (
-                      <button
-                        key={ag.id}
-                        type="button"
-                        onClick={() => setActiveChatAgent(ag.id)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] font-medium transition-all ${
-                          isAgActive
-                            ? 'bg-surface text-fg font-semibold shadow-2xs border border-border/80'
-                            : 'text-muted hover:text-fg hover:bg-fill-mute'
-                        }`}
-                      >
-                        <AgIcon size={13} className={isAgActive ? ag.colorClass : 'text-muted-2'} />
-                        <span>{ag.name}</span>
-                        <span className="text-[10px] font-mono opacity-60">({ag.docFocus})</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="text-[11px] text-muted flex items-center gap-1.5 font-mono">
-                  <span className="w-1.5 h-1.5 rounded-full bg-ok" />
-                  <span>Target: <strong className="text-fg-2 font-semibold">{currentSpecialist.role}</strong></span>
-                </div>
-              </div>
-            )}
-
             <div className="flex-1 overflow-y-auto p-6 space-y-5">
               {!activeProject ? (
-                <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
-                  <FolderKanban size={36} className="text-slate-300 dark:text-slate-700" />
-                  <p>Pilih project di tab atas atau buka Project Manager untuk memulai.</p>
-                  <button 
-                    onClick={() => {
-                      setProjectManagerTab('open');
-                      setIsProjectManagerOpen(true);
-                    }}
-                    className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-medium shadow-xs"
-                  >
-                    Buka Project Manager
-                  </button>
+                <div className="h-full flex flex-col items-center justify-center p-6 text-center max-w-lg mx-auto">
+                  <div className="mb-4 shadow-sm hover:scale-105 transition-transform">
+                    <SpecraIcon size={56} />
+                  </div>
+                  <h3 className="text-xl font-bold text-fg mb-1 tracking-tight">
+                    Selamat Datang di <span className="font-extrabold">specra</span>
+                  </h3>
+                  <p className="text-xs text-muted max-w-md mb-6 leading-relaxed">
+                    Personal requirements engineering workspace untuk mentransformasikan ide dan brief proyek menjadi spesifikasi sistem terstruktur: PRD, SRS, Architecture, dan Design System.
+                  </p>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProjectManagerTab('open');
+                        setIsProjectManagerOpen(true);
+                      }}
+                      className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-2 transition-all"
+                    >
+                      <FolderOpen size={15} />
+                      <span>Buka Project Manager</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProjectManagerTab('create');
+                        setIsProjectManagerOpen(true);
+                      }}
+                      className="px-4 py-2.5 bg-surface hover:bg-fill-mute border border-border text-fg rounded-xl text-xs font-semibold shadow-2xs flex items-center gap-2 transition-all"
+                    >
+                      <Plus size={15} />
+                      <span>+ Buat Project Baru</span>
+                    </button>
+                  </div>
+
+                  {projects.length > 0 && (
+                    <div className="w-full mt-8 pt-6 border-t border-border/70 text-left space-y-2.5">
+                      <div className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-2">
+                        Recent Projects
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {projects.slice(0, 4).map((proj) => (
+                          <div
+                            key={proj.id}
+                            onClick={() => handleOpenProjectInTab(proj)}
+                            className="p-3 bg-fill-soft/60 hover:bg-fill-soft border border-border/80 hover:border-primary/50 rounded-xl cursor-pointer transition-all group shadow-2xs flex flex-col justify-between"
+                          >
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <FolderKanban size={14} className="text-primary shrink-0" />
+                                <span className="font-semibold text-xs text-fg group-hover:text-primary transition-colors truncate">
+                                  {proj.name}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-muted line-clamp-1 mt-1">
+                                {proj.description || 'Tidak ada deskripsi'}
+                              </p>
+                            </div>
+                            <div className="mt-2 text-[10px] text-muted-2 flex items-center gap-1 font-mono">
+                              <span>Klik untuk membuka</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-2">
@@ -1545,8 +1968,9 @@ export default function App() {
                   </p>
                 </div>
               ) : (
-                messages.map((m) => {
+                messages.map((m, idx) => {
                   const isUser = m.role === 'user';
+                  const isLastAssistant = !isUser && idx === messages.map(msg => String(msg.role)).lastIndexOf('assistant');
                   return isUser ? (
                     <div key={m.id} className="flex justify-end">
                       <div className="max-w-[75%] rounded-[8px] px-3.5 py-2.5 bg-fill text-fg border border-border/60 leading-relaxed whitespace-pre-wrap shadow-2xs text-[13px]">
@@ -1555,13 +1979,89 @@ export default function App() {
                     </div>
                   ) : (
                     <div key={m.id} className="border-l-2 border-primary pl-4 py-2 space-y-2 bg-fill-soft/40 p-3 rounded-r-[8px]">
-                      <div className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1.5">
-                        <Bot size={13} />
-                        <span>{currentSpecialist.name} ({currentSpecialist.role})</span>
+                      <div className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <Bot size={13} />
+                          <span>{currentSpecialist.name} ({currentSpecialist.role})</span>
+                        </div>
+                        <span className="text-[10px] font-mono font-normal opacity-70">
+                          {interactionMode === 'discovery' ? 'Discovery Mode' : 'Execution Mode'}
+                        </span>
                       </div>
-                      <div className="leading-relaxed text-fg-2 whitespace-pre-wrap text-[13px]">
-                        {m.content}
+                      <div className="leading-relaxed text-fg-2 text-[13px]">
+                        <MarkdownViewer content={m.content} isDark={isCurrentDark} />
                       </div>
+
+                      {/* Interactive Clarification Cards (The Q&A Loop) */}
+                      {isLastAssistant && clarifications.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-border/60 space-y-2.5">
+                          <div className="flex items-center justify-between text-xs font-semibold text-primary">
+                            <span className="flex items-center gap-1.5">
+                              <HelpCircle size={13} />
+                              <span>Clarification Needed ({clarifications.filter(c => c.status !== 'answered' && !c.answer).length} Open)</span>
+                            </span>
+                            <span className="text-[10px] font-mono text-muted">The Q&A Loop</span>
+                          </div>
+                          <div className="grid grid-cols-1 gap-2">
+                            {clarifications.map((c) => {
+                              const isAnswered = c.status === 'answered' || Boolean(c.answer);
+                              return (
+                                <div
+                                  key={c.id}
+                                  className={`p-3 rounded-xl border text-xs transition-all ${
+                                    isAnswered
+                                      ? 'bg-ok-tint/30 border-ok/30 text-fg'
+                                      : 'bg-surface border-border shadow-xs'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between mb-1.5">
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                                      isAnswered ? 'bg-ok text-white' : 'bg-primary-soft text-primary'
+                                    }`}>
+                                      {isAnswered ? 'Confirmed Answer' : 'Question to Answer'}
+                                    </span>
+                                    <span className={`text-[10px] font-mono font-medium ${
+                                      isAnswered ? 'text-ok' : 'text-warn'
+                                    }`}>
+                                      {isAnswered ? 'Resolved' : 'Pending'}
+                                    </span>
+                                  </div>
+                                  <p className="font-medium text-fg mb-2 leading-relaxed">{c.question}</p>
+                                  {isAnswered ? (
+                                    <div className="p-2 rounded-lg bg-surface/80 border border-border/60 text-xs">
+                                      <span className="text-[10px] font-bold text-ok uppercase block mb-0.5">Jawaban Tersimpan:</span>
+                                      <p className="text-fg-2">{c.answer}</p>
+                                    </div>
+                                  ) : (
+                                    <form
+                                      onSubmit={(e) => {
+                                        e.preventDefault();
+                                        handleAnswerClarification(c.id);
+                                      }}
+                                      className="flex items-center gap-1.5"
+                                    >
+                                      <input
+                                        type="text"
+                                        value={clarificationAnswers[c.id] || ''}
+                                        onChange={(e) => setClarificationAnswers(prev => ({ ...prev, [c.id]: e.target.value }))}
+                                        placeholder="Ketik jawaban klarifikasi..."
+                                        className="flex-1 px-2.5 py-1.5 text-xs bg-surface border border-border rounded-lg text-fg placeholder:text-muted focus:outline-none focus:border-primary"
+                                      />
+                                      <button
+                                        type="submit"
+                                        disabled={!clarificationAnswers[c.id]?.trim()}
+                                        className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold disabled:opacity-40 transition-colors shadow-2xs shrink-0"
+                                      >
+                                        Simpan Jawaban
+                                      </button>
+                                    </form>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })
@@ -1573,25 +2073,103 @@ export default function App() {
                   <span>{currentSpecialist.name} sedang menganalisis dan mengekstrak spesifikasi via {primaryProvider}...</span>
                 </div>
               )}
+
+              {/* AI Pipeline Readiness Recommender Card */}
+              {requirements.length >= 3 && !prdDetails.current_version && (
+                <div className="p-4 rounded-xl border border-primary/30 bg-primary-soft/40 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
+                      <Sparkles size={16} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-xs text-primary">Rekomendasi Pipeline AI</span>
+                        <span className="text-[10px] font-mono bg-ok text-white px-1.5 py-0.2 rounded font-semibold">Discovery Siap</span>
+                      </div>
+                      <p className="text-xs text-fg-2 mt-0.5 leading-relaxed">
+                        Konteks kebutuhan telah mencukupi ({requirements.length} requirement teridentifikasi). AI merekomendasikan untuk beralih ke tahap penyusunan <strong>PRD (20 Sections)</strong>.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentView('prd');
+                      handleGeneratePRD();
+                    }}
+                    disabled={isDocLoading}
+                    className="px-3.5 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-2xs transition-all shrink-0 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    {isDocLoading ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
+                    <span>Generate Draft PRD</span>
+                  </button>
+                </div>
+              )}
+
               <div ref={chatBottomRef} />
             </div>
 
-            {/* Chat Input Bar with File Attachment */}
+            {/* Unified Elevated Chat Input Container */}
             {activeProject && (
-              <div className="p-3 border-t border-border bg-panel shrink-0">
-                {/* File Attachment Preview Badge */}
+              <div className="p-3 border-t border-border/60 bg-panel/30 shrink-0 relative">
+                {/* File Attachment Pill Preview */}
                 {attachedFile && (
-                  <div className="mb-2 flex items-center gap-2 px-3 py-1 rounded-[6px] bg-primary-soft text-xs text-primary font-medium w-fit border border-primary/20">
-                    <Paperclip size={13} />
-                    <span className="font-semibold">{attachedFile.name}</span>
-                    <span className="text-[10px] font-mono opacity-70">({Math.round(attachedFile.size / 1024)} KB)</span>
+                  <div className="mb-2 p-2 bg-primary-soft/80 border border-primary/30 rounded-xl flex items-center justify-between text-xs text-primary max-w-md shadow-2xs">
+                    <div className="flex items-center gap-2 truncate">
+                      <Paperclip size={13} className="shrink-0" />
+                      <span className="font-semibold truncate">{attachedFile.name}</span>
+                      <span className="text-[10px] font-mono opacity-70">({Math.round(attachedFile.size / 1024)} KB)</span>
+                    </div>
                     <button
                       type="button"
                       onClick={() => setAttachedFile(null)}
                       className="ml-1 p-0.5 hover:bg-fill-mute rounded text-primary hover:text-err transition-colors"
+                      title="Hapus lampiran"
                     >
-                      <X size={12} />
+                      <X size={13} />
                     </button>
+                  </div>
+                )}
+
+                {/* Floating Slash Commands Popover */}
+                {showSlashMenu && (
+                  <div
+                    ref={slashMenuRef}
+                    className="absolute bottom-[calc(100%+8px)] left-4 right-4 max-w-lg bg-surface border border-border rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-border/60 animate-in fade-in slide-in-from-bottom-2"
+                  >
+                    <div className="px-3 py-2 bg-panel flex items-center justify-between text-[11px] font-semibold text-muted">
+                      <span>Perintah Cepat AI Studio</span>
+                      <span className="font-mono text-[10px] text-muted">Gunakan ↑ ↓ Enter atau klik</span>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto py-1">
+                      {slashCommands
+                        .filter(c =>
+                          c.cmd.toLowerCase().startsWith(inputMessage.toLowerCase()) ||
+                          c.label.toLowerCase().includes(inputMessage.toLowerCase().replace('/', ''))
+                        )
+                        .map((cmd, idx) => {
+                          const CmdIcon = cmd.icon;
+                          const isSelected = idx === selectedSlashIndex;
+                          return (
+                            <button
+                              key={cmd.cmd}
+                              type="button"
+                              onClick={() => handleSelectSlashCommand(cmd)}
+                              onMouseEnter={() => setSelectedSlashIndex(idx)}
+                              className={`w-full px-3 py-2 text-left flex items-center justify-between gap-2 text-xs transition-colors ${
+                                isSelected ? 'bg-primary-soft text-primary font-medium' : 'hover:bg-fill-mute text-fg'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <CmdIcon size={14} className={isSelected ? 'text-primary' : 'text-muted'} />
+                                <span className="font-mono font-bold">{cmd.cmd}</span>
+                                <span className="text-muted text-[11px]">— {cmd.label}</span>
+                              </div>
+                              <span className="text-[10px] text-muted truncate max-w-[140px]">{cmd.desc}</span>
+                            </button>
+                          );
+                        })}
+                    </div>
                   </div>
                 )}
 
@@ -1604,34 +2182,211 @@ export default function App() {
                   className="hidden" 
                 />
 
-                <form onSubmit={handleSendMessage} className="flex items-center gap-2 border border-border rounded-[8px] px-3 py-1.5 bg-surface focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all shadow-2xs">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    title="Upload draft specification (.md, .txt, .json)"
-                    className="p-1 text-muted hover:text-primary rounded hover:bg-fill-mute transition-colors shrink-0"
-                  >
-                    <Paperclip size={15} />
-                  </button>
+                {/* Unified Elevated Input Console Card */}
+                <div className="bg-surface border border-border rounded-2xl shadow-sm focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all p-2 space-y-2">
+                  
+                  {/* Top Mini Toolbar: Persona Selector & Mode Selector Pills */}
+                  <div className="flex items-center justify-between gap-2 px-1 border-b border-border/40 pb-1.5">
+                    <div className="flex items-center gap-2">
+                      {/* Persona Selector Pill */}
+                      <div className="relative" ref={personaMenuRef}>
+                        <button
+                          type="button"
+                          onClick={() => setShowPersonaMenu(!showPersonaMenu)}
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-panel hover:bg-fill-mute text-fg border border-border/80 text-xs font-semibold shadow-2xs transition-colors"
+                          title="Ganti Specialist AI Agent"
+                        >
+                          {(() => {
+                            const CurrIcon = currentSpecialist.icon;
+                            return <CurrIcon size={13} className={currentSpecialist.colorClass} />;
+                          })()}
+                          <span>{currentSpecialist.name}</span>
+                          <ChevronDown size={11} className="text-muted" />
+                        </button>
 
-                  <input 
-                    type="text"
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    placeholder={`Konsultasi dengan ${currentSpecialist.name} (${currentSpecialist.docFocus}) atau upload draft .md...`}
-                    className="flex-1 bg-transparent text-[13px] font-normal outline-none text-fg placeholder:text-muted"
-                    disabled={isSending}
-                  />
+                        {/* Persona Dropdown Menu (Adaptive Upward) */}
+                        {showPersonaMenu && (
+                          <div className="absolute bottom-full left-0 mb-2 w-64 bg-surface border border-border rounded-xl shadow-xl z-50 py-1 divide-y divide-border/50 animate-in fade-in slide-in-from-bottom-2">
+                            <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted bg-panel/50">
+                              Pilih Persona Spesialis
+                            </div>
+                            {specialistAgents.map((ag) => {
+                              const AgIcon = ag.icon;
+                              const isAgActive = activeChatAgent === ag.id;
+                              return (
+                                <button
+                                  key={ag.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveChatAgent(ag.id);
+                                    setShowPersonaMenu(false);
+                                  }}
+                                  className={`w-full px-3 py-2 text-left flex items-start gap-2.5 text-xs transition-colors ${
+                                    isAgActive ? 'bg-primary-soft text-primary font-semibold' : 'hover:bg-fill-mute text-fg'
+                                  }`}
+                                >
+                                  <AgIcon size={14} className={`mt-0.5 shrink-0 ${isAgActive ? ag.colorClass : 'text-muted'}`} />
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-semibold">{ag.name}</span>
+                                      <span className="text-[9.5px] font-mono px-1 rounded bg-fill text-muted">
+                                        {ag.docFocus}
+                                      </span>
+                                    </div>
+                                    <p className="text-[10.5px] text-muted line-clamp-1">{ag.role}</p>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
 
-                  <button 
-                    type="submit"
-                    title="Kirim"
-                    className="px-3 py-1.5 rounded-[6px] bg-primary hover:bg-primary-hover text-white transition-colors disabled:opacity-40 flex items-center justify-center shrink-0 shadow-2xs"
-                    disabled={(!inputMessage.trim() && !attachedFile) || isSending}
-                  >
-                    {isSending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
-                  </button>
-                </form>
+                      {/* Interaction Mode Pill */}
+                      <div className="relative" ref={modeMenuRef}>
+                        <button
+                          type="button"
+                          onClick={() => setShowModeMenu(!showModeMenu)}
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold shadow-2xs transition-colors ${
+                            interactionMode === 'discovery'
+                              ? 'bg-primary-soft text-primary border-primary/30'
+                              : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                          }`}
+                          title="Ganti Mode Interaksi AI"
+                        >
+                          {interactionMode === 'discovery' ? (
+                            <Search size={12} className="text-primary" />
+                          ) : (
+                            <Zap size={12} className="text-amber-500" />
+                          )}
+                          <span className="capitalize">{interactionMode} Mode</span>
+                          <ChevronDown size={11} className="opacity-70" />
+                        </button>
+
+                        {/* Mode Dropdown Menu (Adaptive Upward) */}
+                        {showModeMenu && (
+                          <div className="absolute bottom-full left-0 mb-2 w-64 bg-surface border border-border rounded-xl shadow-xl z-50 py-1 divide-y divide-border/50 animate-in fade-in slide-in-from-bottom-2">
+                            <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted bg-panel/50">
+                              Mode Interaksi AI
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setInteractionMode('discovery');
+                                setShowModeMenu(false);
+                              }}
+                              className={`w-full px-3 py-2 text-left flex items-start gap-2.5 text-xs transition-colors ${
+                                interactionMode === 'discovery' ? 'bg-primary-soft text-primary font-semibold' : 'hover:bg-fill-mute text-fg'
+                              }`}
+                            >
+                              <Search size={14} className="mt-0.5 text-primary shrink-0" />
+                              <div>
+                                <div className="font-semibold">Discovery Mode (Default)</div>
+                                <p className="text-[10.5px] text-muted leading-tight">Proaktif menggali ide, menemukan celah, & mengajukan pertanyaan klarifikasi.</p>
+                              </div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setInteractionMode('execution');
+                                setShowModeMenu(false);
+                              }}
+                              className={`w-full px-3 py-2 text-left flex items-start gap-2.5 text-xs transition-colors ${
+                                interactionMode === 'execution' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold' : 'hover:bg-fill-mute text-fg'
+                              }`}
+                            >
+                              <Zap size={14} className="mt-0.5 text-amber-500 shrink-0" />
+                              <div>
+                                <div className="font-semibold">Execution Mode</div>
+                                <p className="text-[10.5px] text-muted leading-tight">Pasif, langsung menyusun spesifikasi dari konteks tanpa bertanya lagi.</p>
+                              </div>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Quick Slash Hint */}
+                    <div className="text-[10.5px] font-mono text-muted hidden sm:flex items-center gap-1">
+                      <span>Ketik</span>
+                      <kbd className="px-1.5 py-0.5 bg-fill border border-border rounded text-[10px] text-fg font-semibold">/</kbd>
+                      <span>untuk perintah</span>
+                    </div>
+                  </div>
+
+                  {/* Input Row: Attachment + Input Field + Send Button */}
+                  <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      title="Lampirkan file draft spesifikasi (.md, .txt, .json)"
+                      className="w-8 h-8 flex items-center justify-center text-muted hover:text-primary rounded-lg hover:bg-fill-mute transition-colors shrink-0"
+                    >
+                      <Paperclip size={15} />
+                    </button>
+
+                    <input 
+                      type="text"
+                      value={inputMessage}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setInputMessage(val);
+                        if (val.startsWith('/')) {
+                          setShowSlashMenu(true);
+                          setSelectedSlashIndex(0);
+                        } else {
+                          setShowSlashMenu(false);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        const filtered = slashCommands.filter(c =>
+                          c.cmd.toLowerCase().startsWith(inputMessage.toLowerCase()) ||
+                          c.label.toLowerCase().includes(inputMessage.toLowerCase().replace('/', ''))
+                        );
+                        if (showSlashMenu && filtered.length > 0) {
+                          if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            setSelectedSlashIndex(prev => (prev + 1) % filtered.length);
+                          } else if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            setSelectedSlashIndex(prev => (prev - 1 + filtered.length) % filtered.length);
+                          } else if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const selected = filtered[selectedSlashIndex] || filtered[0];
+                            if (selected) {
+                              handleSelectSlashCommand(selected);
+                            }
+                          } else if (e.key === 'Escape') {
+                            setShowSlashMenu(false);
+                          }
+                        }
+                      }}
+                      placeholder={
+                        interactionMode === 'discovery'
+                          ? `Diskusikan ide dengan ${currentSpecialist.name}, atau ketik / untuk perintah...`
+                          : `Berikan instruksi dokumen langsung ke ${currentSpecialist.name} (Execution Mode)...`
+                      }
+                      className="flex-1 bg-transparent text-[13px] font-normal outline-none text-fg placeholder:text-muted px-1 py-1"
+                      disabled={isSending}
+                    />
+
+                    <button 
+                      type="submit"
+                      title="Kirim Pesan"
+                      className="px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary-hover text-white transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 shrink-0 shadow-2xs font-semibold text-xs"
+                      disabled={(!inputMessage.trim() && !attachedFile) || isSending}
+                    >
+                      {isSending ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <>
+                          <span>Kirim</span>
+                          <Send size={12} />
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
               </div>
             )}
           </div>
@@ -1677,9 +2432,39 @@ export default function App() {
                 </div>
 
                 {activeDocDetails.current_version && (
-                  <span className="text-xs font-mono text-muted bg-surface border border-border px-2 py-0.5 rounded-[5px]">
-                    Version: v{activeDocDetails.current_version.version_number}
-                  </span>
+                  <>
+                    <span className="text-xs font-mono text-muted bg-surface border border-border px-2 py-0.5 rounded-[5px]">
+                      Version: v{activeDocDetails.current_version.version_number}
+                    </span>
+
+                    {/* View Mode Switcher: Formatted Preview vs Raw Markdown */}
+                    <div className="flex items-center gap-0.5 bg-surface border border-border rounded-lg p-0.5 text-xs shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => setDocDisplayMode('preview')}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                          docDisplayMode === 'preview'
+                            ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
+                            : 'text-muted hover:text-fg hover:bg-fill-mute'
+                        }`}
+                      >
+                        <Eye size={12} />
+                        <span>Preview Mode</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDocDisplayMode('source')}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                          docDisplayMode === 'source'
+                            ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
+                            : 'text-muted hover:text-fg hover:bg-fill-mute'
+                        }`}
+                      >
+                        <Code size={12} />
+                        <span>Raw Markdown</span>
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -1884,10 +2669,29 @@ export default function App() {
                   )}
                 </div>
               ) : (
-                <div className="max-w-prose mx-auto prose dark:prose-invert text-fg">
-                  <div className="whitespace-pre-wrap font-sans text-[13px] leading-relaxed">
-                    {activeDocDetails.current_version.content}
-                  </div>
+                <div className="max-w-5xl mx-auto w-full px-4 py-2">
+                  {docDisplayMode === 'preview' ? (
+                    <MarkdownViewer content={activeDocDetails.current_version.content} isDark={isCurrentDark} />
+                  ) : (
+                    <div className="border border-border rounded-xl bg-surface overflow-hidden shadow-2xs">
+                      <div className="px-3.5 py-2 bg-panel border-b border-border flex items-center justify-between text-xs">
+                        <span className="font-mono text-muted text-[11px]">
+                          Markdown Source (v{activeDocDetails.current_version.version_number})
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleCopyFullDoc}
+                          className="flex items-center gap-1 text-[11px] text-primary hover:underline font-medium"
+                        >
+                          {copiedFullDoc ? <Check size={11} className="text-ok" /> : <Copy size={11} />}
+                          <span>{copiedFullDoc ? 'Tersalin' : 'Salin Semua'}</span>
+                        </button>
+                      </div>
+                      <pre className="p-4 overflow-x-auto font-mono text-xs leading-relaxed bg-fill text-fg-2 whitespace-pre-wrap">
+                        <code>{activeDocDetails.current_version.content}</code>
+                      </pre>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1897,10 +2701,10 @@ export default function App() {
 
       {/* 3. Context / Inspector Panel (Right Pane - w-80 inside mqs-main) */}
       {showInspector && activeProject && (
-        <aside className="w-80 mr-2 mb-2 rounded-[10px] border border-border bg-surface shadow-2xs flex flex-col overflow-hidden shrink-0">
+        <aside className="w-80 mr-2 mb-2 rounded-[12px] border border-border/80 bg-panel/60 shadow-2xs flex flex-col overflow-hidden shrink-0 backdrop-blur-xs">
           
           {/* Inspector Header: Selected Title on Left, 3-Dot Dropdown on Right (mq-studio style) */}
-          <div className="h-10 px-3.5 border-b border-border flex items-center justify-between shrink-0 relative bg-panel">
+          <div className="h-11 px-3.5 border-b border-border flex items-center justify-between shrink-0 relative bg-surface/80 backdrop-blur-xs">
             <div className="flex items-center gap-2">
               <currentInspectorTab.icon size={15} className="text-primary" />
               <span className="font-semibold text-xs text-fg tracking-tight">
@@ -1917,8 +2721,8 @@ export default function App() {
                 onClick={() => setShowInspectorMenu(!showInspectorMenu)}
                 className={`p-1.5 rounded-md transition-colors ${
                   showInspectorMenu
-                    ? 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-100'
-                    : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    ? 'bg-fill text-fg'
+                    : 'hover:bg-fill text-muted hover:text-fg'
                 }`}
                 title="Switch Inspector View"
               >
@@ -1926,8 +2730,8 @@ export default function App() {
               </button>
 
               {showInspectorMenu && (
-                <div className="absolute right-0 top-full mt-1.5 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl p-1 z-30 space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
-                  <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                <div className="absolute right-0 top-full mt-1.5 w-56 bg-surface border border-border rounded-lg shadow-xl p-1 z-30 space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted">
                     Inspector Views
                   </div>
                   {inspectorTabs.map((tab) => {
@@ -1943,23 +2747,23 @@ export default function App() {
                         }}
                         className={`w-full flex items-center justify-between px-2.5 py-2 rounded-md text-xs transition-colors ${
                           isTabActive
-                            ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold'
-                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                            ? 'bg-primary-soft text-primary font-semibold'
+                            : 'text-fg/80 hover:bg-fill'
                         }`}
                       >
                         <div className="flex items-center gap-2">
-                          <TabIcon size={14} className={isTabActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'} />
+                          <TabIcon size={14} className={isTabActive ? 'text-primary' : 'text-muted'} />
                           <span>{tab.label}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-medium ${
                             isTabActive 
-                              ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' 
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                              ? 'bg-primary text-white' 
+                              : 'bg-fill text-muted'
                           }`}>
                             {tab.count}
                           </span>
-                          {isTabActive && <Check size={13} className="text-indigo-600 dark:text-indigo-400" />}
+                          {isTabActive && <Check size={13} className="text-primary" />}
                         </div>
                       </button>
                     );
@@ -1973,39 +2777,168 @@ export default function App() {
             
             {/* TAB 1: REQUIREMENTS */}
             {activeTab === 'requirements' && (
-              requirements.length === 0 ? (
-                <div className="text-center py-8 text-xs text-slate-400">Belum ada requirement terekstraksi.</div>
-              ) : (
-                requirements.map((req) => (
-                  <div key={req.id} className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded">
-                        {req.requirement_key}
+              <div className="space-y-3">
+                {/* Header Actions: Quick Stats + Manual Extraction Trigger */}
+                <div className="flex items-center justify-between pb-1 border-b border-border">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-fg">
+                      Requirements ({requirements.length})
+                    </span>
+                    {requirements.length > 0 && (
+                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-ok-tint text-ok font-bold">
+                        {requirements.filter(r => r.status === 'approved').length} Appr
                       </span>
-                      <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
-                        req.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                      }`}>
-                        {req.status}
-                      </span>
-                    </div>
-                    <h4 className="text-xs font-semibold text-slate-800 dark:text-slate-100">{req.title}</h4>
-                    <p className="text-xs text-slate-600 dark:text-slate-300">{req.description}</p>
+                    )}
                   </div>
-                ))
-              )
+                  <button
+                    type="button"
+                    onClick={handleExtractRequirements}
+                    disabled={isExtractingReqs}
+                    className="px-2 py-1 rounded bg-primary hover:bg-primary-hover text-white text-[11px] font-medium flex items-center gap-1 disabled:opacity-50 transition-colors shadow-2xs"
+                    title="Analisis dokumen & chat untuk mengekstrak requirements"
+                  >
+                    <Sparkles size={11} className={isExtractingReqs ? 'animate-spin' : ''} />
+                    <span>{isExtractingReqs ? 'Ekstrak...' : 'Ekstrak AI'}</span>
+                  </button>
+                </div>
+
+                {requirements.length === 0 ? (
+                  <div className="flex flex-col items-center text-center py-6 px-3 space-y-4">
+                    <div className="size-11 rounded-xl bg-primary-soft/60 border border-border flex items-center justify-center text-primary shadow-2xs">
+                      <ListOrdered size={22} />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-semibold text-fg">Belum Ada Requirement</h4>
+                      <p className="text-[11px] leading-relaxed text-muted max-w-[240px]">
+                        Kirim prompt atau klik tombol di bawah agar AI mengekstrak kebutuhan fungsional secara otomatis.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleExtractRequirements}
+                      disabled={isExtractingReqs}
+                      className="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
+                    >
+                      <Sparkles size={13} className={isExtractingReqs ? 'animate-spin' : ''} />
+                      <span>{isExtractingReqs ? 'Mengekstrak...' : 'Ekstrak Requirements Otomatis'}</span>
+                    </button>
+
+                    {/* Illustrated Skeleton Placeholders */}
+                    <div className="w-full space-y-2 pt-1 opacity-60 pointer-events-none">
+                      <div className="p-2.5 rounded-lg border border-dashed border-border bg-surface/50 text-left space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono font-bold text-primary px-1.5 py-0.5 rounded bg-primary-soft">
+                            FR-001
+                          </span>
+                          <span className="text-[9px] uppercase font-semibold text-muted px-1.5 py-0.2 rounded bg-fill">
+                            Must-Have
+                          </span>
+                        </div>
+                        <div className="h-2.5 w-3/4 bg-border/60 rounded"></div>
+                        <div className="h-2 w-full bg-border/40 rounded"></div>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg border border-dashed border-border bg-surface/30 text-left space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono font-bold text-primary px-1.5 py-0.5 rounded bg-primary-soft">
+                            SYS-001
+                          </span>
+                          <span className="text-[9px] uppercase font-semibold text-muted px-1.5 py-0.2 rounded bg-fill">
+                            IEEE 830
+                          </span>
+                        </div>
+                        <div className="h-2.5 w-2/3 bg-border/60 rounded"></div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  requirements.map((req) => (
+                    <div key={req.id} className="p-3 bg-surface border border-border rounded-xl shadow-2xs space-y-2">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="font-mono text-xs font-bold text-primary bg-primary-soft px-1.5 py-0.5 rounded">
+                          {req.requirement_key}
+                        </span>
+
+                        <div className="flex items-center gap-1">
+                          {/* MoSCoW Priority Selector */}
+                          <select
+                            value={req.priority || 'Must Have'}
+                            onChange={(e) => handleUpdatePriority(req.id, e.target.value)}
+                            className="text-[10px] font-semibold bg-fill border border-border rounded px-1.5 py-0.5 text-fg cursor-pointer focus:outline-none"
+                            title="Ubah MoSCoW Priority"
+                          >
+                            <option value="Must Have">Must Have</option>
+                            <option value="Should Have">Should Have</option>
+                            <option value="Could Have">Could Have</option>
+                            <option value="Won't Have">Won't Have</option>
+                          </select>
+
+                          <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
+                            req.status === 'approved' 
+                              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400' 
+                              : req.status === 'rejected'
+                              ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400'
+                              : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400'
+                          }`}>
+                            {req.status}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-xs font-semibold text-fg leading-snug">{req.title}</h4>
+                        <p className="text-xs text-muted leading-relaxed mt-0.5">{req.description}</p>
+                      </div>
+
+                      {/* Actions: Approve & Reject Buttons */}
+                      <div className="flex items-center justify-between pt-1.5 border-t border-border text-[11px]">
+                        <span className="text-[10px] font-mono text-muted uppercase">
+                          {req.category || 'functional'}
+                        </span>
+
+                        <div className="flex items-center gap-1">
+                          {req.status !== 'approved' && (
+                            <button
+                              type="button"
+                              onClick={() => handleApproveRequirement(req.id)}
+                              className="px-2 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-medium text-[10.5px] flex items-center gap-1 transition-colors"
+                              title="Setujui requirement ini"
+                            >
+                              <Check size={11} />
+                              <span>Approve</span>
+                            </button>
+                          )}
+                          {req.status !== 'rejected' && (
+                            <button
+                              type="button"
+                              onClick={() => handleRejectRequirement(req.id)}
+                              className="px-2 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-medium text-[10.5px] flex items-center gap-1 transition-colors"
+                              title="Tolak requirement ini"
+                            >
+                              <X size={11} />
+                              <span>Reject</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             )}
 
             {/* TAB 2: VALIDATION FINDINGS */}
             {activeTab === 'validation' && (
               <div className="space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
-                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <div className="flex items-center justify-between pb-2 border-b border-border">
+                  <span className="text-xs font-semibold text-fg">
                     Inspection Findings ({findings.length})
                   </span>
                   <button
                     onClick={handleRunValidation}
                     disabled={isValidating}
-                    className="px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-medium flex items-center gap-1 disabled:opacity-50"
+                    className="px-2 py-1 rounded bg-primary hover:bg-primary-hover text-white text-[11px] font-medium flex items-center gap-1 disabled:opacity-50"
                   >
                     <RefreshCw size={11} className={isValidating ? 'animate-spin' : ''} />
                     <span>Run Check</span>
@@ -2013,8 +2946,8 @@ export default function App() {
                 </div>
 
                 {findings.length === 0 ? (
-                  <div className="text-center py-8 text-xs text-slate-400">
-                    <CheckCircle2 size={28} className="mx-auto text-emerald-500 mb-1.5" />
+                  <div className="text-center py-8 text-xs text-muted space-y-2">
+                    <CheckCircle2 size={28} className="mx-auto text-ok" />
                     <span>Tidak ada isu validasi atau konflik ditemukan!</span>
                   </div>
                 ) : (
@@ -2051,25 +2984,25 @@ export default function App() {
             {/* TAB 3: TRACEABILITY MATRIX */}
             {activeTab === 'traceability' && (
               <div className="space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800 text-xs">
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">
+                <div className="flex items-center justify-between pb-2 border-b border-border text-xs">
+                  <span className="font-semibold text-fg">
                     PRD ➔ SRS Traceability
                   </span>
-                  <GitBranch size={13} className="text-indigo-500" />
+                  <GitBranch size={13} className="text-primary" />
                 </div>
 
                 {traceabilityMatrix.length === 0 ? (
-                  <div className="text-center py-8 text-xs text-slate-400">
+                  <div className="text-center py-8 text-xs text-muted">
                     Belum ada mapping requirement tercatat.
                   </div>
                 ) : (
                   traceabilityMatrix.map((item, idx) => (
                     <div 
                       key={idx}
-                      className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm space-y-2 text-xs"
+                      className="p-3 bg-surface border border-border rounded-lg shadow-2xs space-y-2 text-xs"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs font-bold text-indigo-600">
+                        <span className="font-mono text-xs font-bold text-primary">
                           {item.requirement_key}
                         </span>
                         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
@@ -2080,10 +3013,10 @@ export default function App() {
                           {item.covered_in_srs ? 'Mapped in SRS' : 'Orphan (Not in SRS)'}
                         </span>
                       </div>
-                      <div className="font-medium text-slate-800 dark:text-slate-200">
+                      <div className="font-medium text-fg">
                         {item.title}
                       </div>
-                      <div className="text-[11px] text-slate-400 flex items-center justify-between">
+                      <div className="text-[11px] text-muted flex items-center justify-between">
                         <span>Priority: {item.priority}</span>
                         <span className="capitalize">Status: {item.status}</span>
                       </div>
@@ -2095,31 +3028,127 @@ export default function App() {
 
             {/* TAB 4: ASSUMPTIONS */}
             {activeTab === 'assumptions' && (
-              assumptions.length === 0 ? (
-                <div className="text-center py-8 text-xs text-slate-400">Tidak ada asumsi aktif.</div>
-              ) : (
-                assumptions.map((a) => (
-                  <div key={a.id} className="p-3 bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/40 rounded-lg space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-amber-600">{a.status}</span>
-                    <p className="text-xs text-slate-600 dark:text-slate-300">{a.description}</p>
-                  </div>
-                ))
-              )
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-1 border-b border-border text-xs font-semibold text-fg">
+                  <span>Assumptions ({assumptions.length})</span>
+                  {assumptions.length > 0 && (
+                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-ok-tint text-ok font-bold">
+                      {assumptions.filter(a => a.status === 'confirmed').length} Confirmed
+                    </span>
+                  )}
+                </div>
+
+                {assumptions.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-muted">Tidak ada asumsi aktif.</div>
+                ) : (
+                  assumptions.map((a) => (
+                    <div key={a.id} className="p-3 bg-surface border border-border rounded-xl space-y-2 text-xs shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className={`text-[10px] uppercase font-bold px-1.5 py-0.2 rounded ${
+                          a.status === 'confirmed'
+                            ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400'
+                            : a.status === 'rejected'
+                            ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400'
+                            : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400'
+                        }`}>
+                          {a.status}
+                        </span>
+
+                        <div className="flex items-center gap-1">
+                          {a.status !== 'confirmed' && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateAssumptionStatus(a.id, 'confirmed')}
+                              className="px-2 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold transition-colors flex items-center gap-0.5"
+                              title="Tandai asumsi ini sebagai valid/terkonfirmasi"
+                            >
+                              <Check size={10} />
+                              <span>Confirm</span>
+                            </button>
+                          )}
+                          {a.status !== 'rejected' && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateAssumptionStatus(a.id, 'rejected')}
+                              className="px-2 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[10px] font-semibold transition-colors flex items-center gap-0.5"
+                              title="Tolak asumsi ini"
+                            >
+                              <X size={10} />
+                              <span>Reject</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-fg leading-relaxed">{a.description}</p>
+                    </div>
+                  ))
+                )}
+              </div>
             )}
 
-            {/* TAB 5: QUESTIONS */}
+            {/* TAB 5: QUESTIONS (CLARIFICATIONS) */}
             {activeTab === 'questions' && (
-              clarifications.length === 0 ? (
-                <div className="text-center py-8 text-xs text-slate-400">Tidak ada pertanyaan terbuka.</div>
-              ) : (
-                clarifications.map((c) => (
-                  <div key={c.id} className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-indigo-500">Clarification</span>
-                    <p className="text-xs text-slate-700 dark:text-slate-300">{c.question}</p>
-                    {c.answer && <div className="text-xs text-emerald-600 font-medium">Ans: {c.answer}</div>}
-                  </div>
-                ))
-              )
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-1 border-b border-border text-xs font-semibold text-fg">
+                  <span>Clarifications ({clarifications.length})</span>
+                  {clarifications.length > 0 && (
+                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-ok-tint text-ok font-bold">
+                      {clarifications.filter(c => c.status === 'answered' || c.answer).length} Answered
+                    </span>
+                  )}
+                </div>
+
+                {clarifications.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-muted">Tidak ada pertanyaan terbuka.</div>
+                ) : (
+                  clarifications.map((c) => (
+                    <div key={c.id} className="p-3 bg-surface border border-border rounded-xl space-y-2.5 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-primary bg-primary-soft px-1.5 py-0.5 rounded">
+                          Clarification
+                        </span>
+                        <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-semibold ${
+                          c.status === 'answered' || c.answer ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700'
+                        }`}>
+                          {c.status || (c.answer ? 'answered' : 'open')}
+                        </span>
+                      </div>
+                      
+                      <p className="text-xs text-fg leading-relaxed">{c.question}</p>
+
+                      {c.answer ? (
+                        <div className="p-2 rounded-lg bg-fill text-xs space-y-0.5 border border-border/80">
+                          <span className="text-[10px] font-bold text-ok uppercase">Jawaban Anda:</span>
+                          <p className="text-fg text-xs leading-relaxed">{c.answer}</p>
+                        </div>
+                      ) : (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleAnswerClarification(c.id);
+                          }}
+                          className="flex items-center gap-1.5 pt-1"
+                        >
+                          <input
+                            type="text"
+                            value={clarificationAnswers[c.id] || ''}
+                            onChange={(e) => setClarificationAnswers(prev => ({ ...prev, [c.id]: e.target.value }))}
+                            placeholder="Tulis klarifikasi jawaban..."
+                            className="flex-1 px-2.5 py-1 text-xs bg-fill border border-border rounded-lg text-fg focus:outline-none focus:border-primary"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!clarificationAnswers[c.id]?.trim()}
+                            className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold disabled:opacity-40 transition-colors shrink-0 shadow-2xs"
+                          >
+                            Kirim
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
             )}
           </div>
 
@@ -2387,114 +3416,90 @@ export default function App() {
         </div>
       )}
 
-      {/* Advanced Settings & System Diagnostics Modal */}
+      {/* Advanced Settings & System Diagnostics Modal (Two-Pane Master-Detail) */}
       {showSettingsModal && (
-        <div className="fixed inset-0 bg-black/45 backdrop-blur-xs z-50 flex items-center justify-center p-3 md:p-5">
-          <div className="bg-surface border border-border rounded-[14px] p-7 w-full max-w-7xl h-[92vh] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+        <div className="fixed inset-0 bg-black/45 backdrop-blur-xs z-50 flex items-center justify-center p-3 md:p-4">
+          <div className="bg-surface border border-border rounded-[14px] w-[988px] max-w-[95vw] h-[672px] max-h-[88vh] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-100">
             
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-border pb-3.5 shrink-0">
+            {/* 1. Modal Header Bar (h-14 / 56px) */}
+            <div className="h-14 px-6 border-b border-border flex items-center justify-between shrink-0 bg-surface">
               <div className="flex items-center gap-2.5">
-                <Settings size={22} className="text-primary" />
-                <h3 className="font-bold text-base text-fg">
-                  AI Requirements Studio Settings
+                <SpecraIcon size={20} />
+                <h3 className="font-bold text-base text-fg tracking-tight">
+                  specra Settings
                 </h3>
               </div>
               <button 
                 onClick={() => setShowSettingsModal(false)} 
-                className="p-1.5 text-muted hover:text-fg hover:bg-fill rounded-lg transition-colors"
+                className="w-8 h-8 flex items-center justify-center text-muted hover:text-fg hover:bg-fill rounded-md transition-colors"
+                title="Tutup (Esc)"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
-            {/* Modal Tabs Navigation */}
-            <div className="flex border-b border-border gap-2 pb-3 text-sm shrink-0 overflow-x-auto no-scrollbar">
-              <button
-                type="button"
-                onClick={() => { setSettingsTab('general'); loadGeneralSettings(); }}
-                className={`px-3.5 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
-                  settingsTab === 'general'
-                    ? 'bg-primary-soft text-primary shadow-2xs'
-                    : 'text-muted hover:text-fg hover:bg-fill'
-                }`}
-              >
-                <Sliders size={16} />
-                <span>General & Appearance</span>
-              </button>
+            {/* 2. Two-Pane Split Container */}
+            <div className="flex-1 flex min-h-0 overflow-hidden">
+              {/* Left Pane: Master Sidebar Navigation (w-60 / 240px) */}
+              <aside className="w-60 shrink-0 bg-panel/75 border-r border-border p-3 flex flex-col justify-between overflow-y-auto select-none">
+                <nav className="space-y-1">
+                  {[
+                    { id: 'general', label: 'General & Appearance', icon: Sliders },
+                    { id: 'personas', label: 'Specialist Personas', icon: Sparkles },
+                    { id: 'mcp', label: 'MCP Connections', icon: Database, badge: mcpList.length },
+                    { id: 'providers', label: 'Coding Agents & LLM', icon: Bot },
+                    { id: 'tokens', label: 'Token Telemetry', icon: BarChart2 },
+                    { id: 'diagnostics', label: 'Diagnostics & Security', icon: Activity },
+                  ].map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = settingsTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => {
+                          setSettingsTab(tab.id as any);
+                          if (tab.id === 'general') loadGeneralSettings();
+                          if (tab.id === 'personas' || tab.id === 'mcp') loadAgentsAndMCP();
+                          if (tab.id === 'tokens') loadTokenUsage();
+                        }}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all w-full text-left ${
+                          isActive
+                            ? 'bg-surface text-primary font-semibold shadow-2xs border border-border'
+                            : 'text-fg-2 hover:bg-fill hover:text-fg font-medium'
+                        }`}
+                      >
+                        <Icon size={16} className={isActive ? 'text-primary' : 'text-muted'} />
+                        <span className="truncate">{tab.label}</span>
+                        {tab.badge !== undefined && (
+                          <span className={`ml-auto text-xs px-1.5 py-0.5 rounded font-mono ${
+                            isActive ? 'bg-primary-soft text-primary font-bold' : 'bg-fill text-muted'
+                          }`}>
+                            {tab.badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </nav>
+                <div className="pt-3 border-t border-border/60 text-[11px] text-muted-2 px-2">
+                  Studio Engine v1.2 • Local-First
+                </div>
+              </aside>
 
-              <button
-                type="button"
-                onClick={() => { setSettingsTab('personas'); loadAgentsAndMCP(); }}
-                className={`px-3.5 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
-                  settingsTab === 'personas'
-                    ? 'bg-primary-soft text-primary shadow-2xs'
-                    : 'text-muted hover:text-fg hover:bg-fill'
-                }`}
-              >
-                <Sparkles size={16} />
-                <span>Specialist Personas & Skills</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => { setSettingsTab('mcp'); loadAgentsAndMCP(); }}
-                className={`px-3.5 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
-                  settingsTab === 'mcp'
-                    ? 'bg-primary-soft text-primary shadow-2xs'
-                    : 'text-muted hover:text-fg hover:bg-fill'
-                }`}
-              >
-                <Database size={16} />
-                <span>MCP Connections ({mcpList.length})</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSettingsTab('providers')}
-                className={`px-3.5 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
-                  settingsTab === 'providers'
-                    ? 'bg-primary-soft text-primary shadow-2xs'
-                    : 'text-muted hover:text-fg hover:bg-fill'
-                }`}
-              >
-                <Bot size={16} />
-                <span>Coding Agents & Providers</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => { setSettingsTab('tokens'); loadTokenUsage(); }}
-                className={`px-3.5 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
-                  settingsTab === 'tokens'
-                    ? 'bg-primary-soft text-primary shadow-2xs'
-                    : 'text-muted hover:text-fg hover:bg-fill'
-                }`}
-              >
-                <BarChart2 size={16} />
-                <span>Token Usage & Logs</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSettingsTab('diagnostics')}
-                className={`px-3.5 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
-                  settingsTab === 'diagnostics'
-                    ? 'bg-primary-soft text-primary shadow-2xs'
-                    : 'text-muted hover:text-fg hover:bg-fill'
-                }`}
-              >
-                <Activity size={16} />
-                <span>Diagnostics & Security</span>
-              </button>
-            </div>
-
-            {/* Modal Body Container */}
-            <div className="flex-1 overflow-y-auto no-scrollbar space-y-5 pr-1 mt-3">
+              {/* Right Pane: Detail Content Sheet */}
+              <main className="flex-1 min-w-0 overflow-y-auto p-6 space-y-6 bg-surface">
 
             {/* TAB -1: GENERAL & APPEARANCE SETTINGS */}
             {settingsTab === 'general' && (
-              <div className="space-y-5 text-[13px]">
+              <div className="space-y-6 text-[13px]">
+                <div>
+                  <h4 className="text-lg font-semibold text-fg">General & Appearance</h4>
+                  <p className="text-xs text-muted mt-0.5">
+                    Kelola tema warna tampilan, skala font sistem, direktori workspace, dan preferensi output dokumen AI.
+                  </p>
+                </div>
+
                 {generalSaveSuccess && (
                   <div className="p-3 bg-ok-tint border border-ok/30 rounded-lg text-ok flex items-center gap-2 font-medium">
                     <CheckCircle2 size={16} />
@@ -2849,7 +3854,13 @@ export default function App() {
 
             {/* TAB 0: SPECIALIST PERSONAS & SKILLS */}
             {settingsTab === 'personas' && (
-              <div className="space-y-5 text-xs">
+              <div className="space-y-6 text-xs">
+                <div>
+                  <h4 className="text-lg font-semibold text-fg">Specialist Personas & Skills</h4>
+                  <p className="text-xs text-muted mt-0.5">
+                    Konfigurasi prompt 4 agen spesialis requirements engineering dan kelola library custom prompt directives.
+                  </p>
+                </div>
                 {agentSaveSuccess && (
                   <div className="p-3.5 bg-ok-tint border border-ok/30 rounded-xl text-ok flex items-center gap-2 font-medium">
                     <CheckCircle2 size={16} />
@@ -2984,79 +3995,157 @@ export default function App() {
                         />
                       </div>
 
-                      {/* Skills Library for this Persona */}
-                      <div className="pt-2 border-t border-border">
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <label className="block text-xs font-bold text-fg">
-                              Specialized Skills Catalog ({currentSkills.length} Active for {currentAgent.name})
-                            </label>
-                            <p className="text-[11.5px] text-muted">
-                              Klik pada kartu skill untuk mengaktifkan atau menonaktifkan skill pada persona ini.
-                            </p>
-                          </div>
-                        </div>
+                      {/* Skills Library for this Persona (Active Skills Only + Add Skill Dropdown) */}
+                      {(() => {
+                        const activeSkillsList = currentSkills.map(sId => 
+                          skillsCatalog.find(sk => sk.id === sId || sk.name === sId) || {
+                            id: sId,
+                            name: sId,
+                            category: 'general',
+                            description: 'Active specialized prompt directive',
+                            prompt: '',
+                            custom: false
+                          }
+                        );
+                        const unattachedSkills = skillsCatalog.filter(
+                          sk => !currentSkills.includes(sk.id) && !currentSkills.includes(sk.name)
+                        );
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 mt-2">
-                          {skillsCatalog.length === 0 ? (
-                            <div className="col-span-2 text-center py-6 text-muted text-xs border border-dashed border-border rounded-xl">
-                              Memuat katalog skill...
-                            </div>
-                          ) : (
-                            skillsCatalog.map((sk) => {
-                              const isAttached = currentSkills.includes(sk.id) || currentSkills.includes(sk.name);
-                              return (
-                                <div 
-                                  key={sk.id}
-                                  onClick={() => handleToggleAgentSkill(currentAgent as AgentConfig, sk.id)}
-                                  className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
-                                    isAttached
-                                      ? 'bg-ok-tint/30 border-ok/50 shadow-2xs'
-                                      : 'bg-surface border-border hover:border-border-soft'
-                                  }`}
+                        return (
+                          <div className="pt-2 border-t border-border space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div>
+                                <label className="block text-xs font-bold text-fg flex items-center gap-1.5">
+                                  <Sparkles size={14} className="text-primary" />
+                                  Specialized Skills ({currentSkills.length} Active for {currentAgent.name})
+                                </label>
+                                <p className="text-[11.5px] text-muted">
+                                  Framework metodologi dan prompt directives yang diinjeksikan langsung saat berkonsultasi dengan persona ini.
+                                </p>
+                              </div>
+
+                              {/* Dropdown "+ Add Skill to Persona" */}
+                              <div className="relative" ref={addSkillDropdownRef}>
+                                <button
+                                  type="button"
+                                  onClick={() => setShowAddSkillDropdown(!showAddSkillDropdown)}
+                                  className="px-3 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors shrink-0"
                                 >
-                                  <div className="flex items-start justify-between gap-2 mb-1">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="font-bold text-xs text-fg">{sk.name}</span>
-                                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-fill text-muted uppercase font-medium">
-                                        {sk.category || 'general'}
-                                      </span>
-                                      {sk.custom && (
-                                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-tone-violet-bg text-tone-violet border border-tone-violet/30 font-semibold">
-                                          Custom Skill
-                                        </span>
-                                      )}
+                                  <Plus size={13} />
+                                  <span>+ Add Skill</span>
+                                  <ChevronDown size={13} />
+                                </button>
+
+                                {showAddSkillDropdown && (
+                                  <div className="absolute right-0 top-full mt-1.5 w-80 bg-surface border border-border rounded-xl shadow-xl p-1.5 z-40 max-h-72 overflow-y-auto space-y-1 animate-in fade-in zoom-in-95 duration-100">
+                                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted flex items-center justify-between">
+                                      <span>Katalog Skill Tersedia</span>
+                                      <span>{unattachedSkills.length} Opsi</span>
                                     </div>
-                                    <div className="flex items-center gap-1 shrink-0">
-                                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
-                                        isAttached ? 'bg-ok text-white' : 'bg-fill text-muted'
-                                      }`}>
-                                        {isAttached ? 'Active' : 'Disabled'}
-                                      </span>
-                                      {sk.custom && (
+
+                                    {unattachedSkills.length === 0 ? (
+                                      <div className="px-3 py-4 text-center text-xs text-muted">
+                                        Semua skill dalam katalog sudah terpasang pada persona ini!
+                                      </div>
+                                    ) : (
+                                      unattachedSkills.map((sk) => (
                                         <button
+                                          key={sk.id}
                                           type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDeleteCustomSkill(sk.id, sk.name);
+                                          onClick={() => {
+                                            handleToggleAgentSkill(currentAgent as AgentConfig, sk.id);
+                                            setShowAddSkillDropdown(false);
                                           }}
-                                          className="p-1 text-muted hover:text-err rounded hover:bg-fill transition-colors"
-                                          title="Delete custom skill"
+                                          className="w-full text-left p-2 rounded-lg hover:bg-fill transition-colors flex flex-col gap-0.5 group"
                                         >
-                                          <Trash2 size={13} />
+                                          <div className="flex items-center justify-between gap-1">
+                                            <span className="font-semibold text-xs text-fg group-hover:text-primary transition-colors truncate">
+                                              {sk.name}
+                                            </span>
+                                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-fill text-muted uppercase shrink-0 font-medium">
+                                              {sk.category || 'general'}
+                                            </span>
+                                          </div>
+                                          <p className="text-[11px] text-muted leading-tight line-clamp-1">
+                                            {sk.description || 'Tidak ada deskripsi.'}
+                                          </p>
                                         </button>
-                                      )}
+                                      ))
+                                    )}
+
+                                    <div className="pt-1.5 border-t border-border mt-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setShowAddSkillDropdown(false);
+                                          setIsNewSkillModalOpen(true);
+                                        }}
+                                        className="w-full px-2.5 py-1.5 rounded-lg text-xs font-semibold text-primary hover:bg-primary-soft/60 flex items-center justify-center gap-1.5 transition-colors"
+                                      >
+                                        <Plus size={13} />
+                                        <span>+ Create New Custom Skill...</span>
+                                      </button>
                                     </div>
                                   </div>
-                                  <p className="text-[11.5px] text-muted leading-relaxed line-clamp-2">
-                                    {sk.description || 'Tidak ada deskripsi.'}
-                                  </p>
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
-                      </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Active Skills List */}
+                            {activeSkillsList.length === 0 ? (
+                              <div className="text-center py-6 px-4 text-muted text-xs border border-dashed border-border rounded-xl bg-surface/40 space-y-1.5">
+                                <Sparkles size={20} className="mx-auto text-muted/60" />
+                                <p className="font-medium text-fg">Belum Ada Skill Aktif</p>
+                                <p className="text-[11.5px] max-w-sm mx-auto">
+                                  Persona ini belum memiliki skill khusus. Klik tombol <strong>+ Add Skill</strong> di atas untuk memasang skill dari katalog.
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                {activeSkillsList.map((sk) => (
+                                  <div
+                                    key={sk.id}
+                                    className="p-3 bg-surface border border-border hover:border-border-soft rounded-xl shadow-2xs flex flex-col justify-between space-y-2"
+                                  >
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="font-bold text-xs text-fg">{sk.name}</span>
+                                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-fill text-muted uppercase font-medium">
+                                          {sk.category || 'general'}
+                                        </span>
+                                        {sk.custom && (
+                                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-tone-violet-bg text-tone-violet border border-tone-violet/30 font-semibold">
+                                            Custom
+                                          </span>
+                                        )}
+                                      </div>
+                                      
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleAgentSkill(currentAgent as AgentConfig, sk.id)}
+                                        title="Lepas skill dari persona ini"
+                                        className="p-1 rounded-md text-muted hover:text-err hover:bg-fill transition-colors shrink-0"
+                                      >
+                                        <X size={14} />
+                                      </button>
+                                    </div>
+
+                                    <p className="text-[11.5px] text-muted leading-relaxed line-clamp-2">
+                                      {sk.description || 'Tidak ada deskripsi.'}
+                                    </p>
+                                    
+                                    {sk.prompt && (
+                                      <div className="text-[10.5px] font-mono text-fg-2 bg-fill/60 p-1.5 rounded border border-border/60 truncate">
+                                        Directive: {sk.prompt}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Connected MCP Tools for this Persona */}
                       <div className="pt-2 border-t border-border">
@@ -3104,6 +4193,47 @@ export default function App() {
                           )}
                         </div>
                       </div>
+
+                      {/* Custom Skills Repository (if any custom skills exist) */}
+                      {skillsCatalog.some(s => s.custom) && (
+                        <div className="pt-2 border-t border-border">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <label className="block text-xs font-bold text-fg flex items-center gap-1.5">
+                                <Sparkles size={14} className="text-tone-violet" />
+                                Custom Skills Repository ({skillsCatalog.filter(s => s.custom).length})
+                              </label>
+                              <p className="text-[11.5px] text-muted">
+                                Skill kustom yang Anda buat. Dapat dipasang ke persona manapun melalui menu <strong>+ Add Skill</strong> di atas.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                            {skillsCatalog.filter(s => s.custom).map((csk) => (
+                              <div key={csk.id} className="p-3 bg-surface border border-tone-violet/30 rounded-xl flex items-center justify-between">
+                                <div className="space-y-0.5 min-w-0 pr-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-bold text-xs text-fg truncate">{csk.name}</span>
+                                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-fill text-muted uppercase">
+                                      {csk.category}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-muted truncate">{csk.description}</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCustomSkill(csk.id, csk.name)}
+                                  className="p-1.5 text-muted hover:text-err rounded-md hover:bg-fill transition-colors shrink-0"
+                                  title="Hapus skill kustom permanen"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
@@ -3223,7 +4353,13 @@ export default function App() {
 
             {/* TAB 0.5: MCP CONNECTIONS MANAGER */}
             {settingsTab === 'mcp' && (
-              <div className="space-y-5 text-xs">
+              <div className="space-y-6 text-xs">
+                <div>
+                  <h4 className="text-lg font-semibold text-fg">Model Context Protocol (MCP)</h4>
+                  <p className="text-xs text-muted mt-0.5">
+                    Hubungkan eksternal tool & context providers dengan scoping Global atau spesifik per persona spesialis.
+                  </p>
+                </div>
                 {mcpSaveSuccess && (
                   <div className="p-3.5 bg-ok-tint border border-ok/30 rounded-xl text-ok flex items-center gap-2 font-medium">
                     <CheckCircle2 size={16} />
@@ -3450,7 +4586,13 @@ export default function App() {
 
             {/* TAB 1: CODING AGENTS & PROVIDERS */}
             {settingsTab === 'providers' && (
-              <div className="space-y-5 text-xs">
+              <div className="space-y-6 text-xs">
+                <div>
+                  <h4 className="text-lg font-semibold text-fg">Coding Agents & AI Providers</h4>
+                  <p className="text-xs text-muted mt-0.5">
+                    Pilih mesin eksekusi AI utama (Antigravity CLI, OpenCode, atau Gemini REST API) dengan Zero-Mock policy.
+                  </p>
+                </div>
                 {/* 1.1 Device Agent Detection Section */}
                 <div className="p-3.5 bg-fill-soft rounded-lg border border-border space-y-3">
                   <div className="flex items-center justify-between">
@@ -3465,7 +4607,7 @@ export default function App() {
                     </div>
                     <button
                       type="button"
-                      onClick={handleDetectAgents}
+                      onClick={() => handleDetectAgents(false)}
                       disabled={isDetectingAgents}
                       className="px-3 py-1.5 rounded-md bg-primary hover:bg-primary-hover text-white font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50 shrink-0 shadow-2xs"
                     >
@@ -3509,14 +4651,14 @@ export default function App() {
                             <div className="flex items-center gap-1.5 pt-1">
                               <button
                                 type="button"
-                                onClick={() => setPrimaryProvider(agent.id)}
-                                className={`px-2.5 py-1 rounded text-xs font-medium border ${
+                                onClick={() => handleSelectPrimaryAgent(agent.id)}
+                                className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors ${
                                   primaryProvider === agent.id 
-                                    ? 'bg-primary text-white border-primary' 
+                                    ? 'bg-primary text-white border-primary shadow-2xs font-semibold' 
                                     : 'border-border hover:bg-fill text-muted hover:text-fg'
                                 }`}
                               >
-                                {primaryProvider === agent.id ? 'Primary Active' : 'Set as Primary'}
+                                {primaryProvider === agent.id ? 'Primary Active ✓' : 'Set as Primary'}
                               </button>
                               <button
                                 type="button"
@@ -3685,7 +4827,13 @@ export default function App() {
 
             {/* TAB 2: TOKEN USAGE & AUDIT LOGS */}
             {settingsTab === 'tokens' && (
-              <div className="space-y-4 text-xs">
+              <div className="space-y-6 text-xs">
+                <div>
+                  <h4 className="text-lg font-semibold text-fg">Token Usage & Telemetry</h4>
+                  <p className="text-xs text-muted mt-0.5">
+                    Pantau statistik penggunaan token, estimasi biaya komputasi, dan riwayat request ke AI provider.
+                  </p>
+                </div>
                 {/* 2.1 Metrics Summary Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
                   <div className="p-3 bg-fill-soft border border-border rounded-lg">
@@ -3797,114 +4945,171 @@ export default function App() {
 
             {/* TAB 3: DIAGNOSTICS & KEYRING */}
             {settingsTab === 'diagnostics' && (
-              <div className="space-y-4 text-xs">
-                {/* Diagnostics Section */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
-                      <Activity size={14} className="text-primary" />
-                      Health & Latency Diagnostics (SYS-AI-011)
-                    </h4>
-                    <button
-                      type="button"
-                      onClick={handleRunDiagnostics}
-                      disabled={isRunningDiag}
-                      className="px-2.5 py-1 text-xs font-medium rounded bg-fill hover:bg-fill-soft text-fg flex items-center gap-1.5 transition-colors disabled:opacity-50"
-                    >
-                      {isRunningDiag ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                      <span>Jalankan Diagnostik</span>
-                    </button>
+              <div className="space-y-5 text-[13px]">
+                <div>
+                  <h4 className="text-lg font-semibold text-fg">Diagnostics & Security</h4>
+                  <p className="text-xs text-muted mt-0.5">
+                    Validasi kesehatan mesin CLI, uji latensi respon, dan kelola kredensial API key di OS Keyring.
+                  </p>
+                </div>
+
+                {/* Card 1: Health & Latency Diagnostics */}
+                <div className="p-4 bg-fill-soft/50 rounded-xl border border-border space-y-3.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h5 className="font-semibold text-sm text-fg flex items-center gap-2">
+                        <Activity size={16} className="text-primary" />
+                        Health & Latency Diagnostics
+                      </h5>
+                      <p className="text-xs text-muted mt-0.5">
+                        Uji validasi ketersediaan Antigravity CLI, OpenCode, status SQLite, dan OS Keyring.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`w-2 h-2 rounded-full ${diagResults ? 'bg-ok' : 'bg-muted-2'}`} />
+                      <button
+                        type="button"
+                        onClick={handleRunDiagnostics}
+                        disabled={isRunningDiag}
+                        className="px-3 py-1.5 text-xs font-medium rounded-md bg-surface hover:bg-fill text-fg border border-border flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-2xs"
+                      >
+                        {isRunningDiag ? <Loader2 size={13} className="animate-spin text-primary" /> : <RefreshCw size={13} />}
+                        <span>Jalankan Diagnostik</span>
+                      </button>
+                    </div>
                   </div>
 
                   {diagResults ? (
-                    <div className="p-3 bg-surface border border-border rounded-lg text-xs space-y-1.5 font-mono">
-                      <div className="flex justify-between">
-                        <span className="text-muted">Duration:</span>
+                    <div className="p-3.5 bg-surface border border-border/80 rounded-lg text-xs space-y-2 font-mono">
+                      <div className="flex justify-between items-center py-0.5 border-b border-border/40">
+                        <span className="text-muted">Duration</span>
                         <span className="text-ok font-bold">{diagResults.duration_ms} ms</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted">Antigravity CLI:</span>
-                        <span className={diagResults.cli_available ? 'text-ok' : 'text-err'}>
+                      <div className="flex justify-between items-center py-0.5 border-b border-border/40">
+                        <span className="text-muted">Antigravity CLI</span>
+                        <span className={diagResults.cli_available ? 'text-ok font-semibold' : 'text-err font-semibold'}>
                           {diagResults.cli_available ? `Found (v${diagResults.cli_version})` : diagResults.cli_error}
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted">OpenCode CLI:</span>
-                        <span className={diagResults.opencode_available ? 'text-ok' : 'text-muted'}>
+                      <div className="flex justify-between items-center py-0.5 border-b border-border/40">
+                        <span className="text-muted">OpenCode CLI</span>
+                        <span className={diagResults.opencode_available ? 'text-ok font-semibold' : 'text-muted'}>
                           {diagResults.opencode_available ? 'Installed & Ready' : 'Not Detected'}
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted">OS Keyring:</span>
-                        <span className="text-primary">{diagResults.keyring_health}</span>
+                      <div className="flex justify-between items-center py-0.5 border-b border-border/40">
+                        <span className="text-muted">OS Keyring</span>
+                        <span className="text-primary font-semibold">{diagResults.keyring_health}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted">Storage:</span>
+                      <div className="flex justify-between items-center py-0.5">
+                        <span className="text-muted">Storage Engine</span>
                         <span className="text-fg">{diagResults.storage_strategy}</span>
                       </div>
                     </div>
                   ) : (
-                    <div className="text-xs text-muted italic">
-                      Klik "Jalankan Diagnostik" untuk memvalidasi Antigravity CLI, OpenCode, SQLite database, dan OS Keyring.
+                    <div className="p-3 bg-surface/60 border border-dashed border-border rounded-lg text-xs text-muted flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-muted-2" />
+                      <span>Belum ada hasil uji. Klik "Jalankan Diagnostik" untuk memvalidasi performa dan integritas sistem.</span>
                     </div>
                   )}
                 </div>
 
-                {/* Secure OS Credential Store Section */}
-                <div className="space-y-3 pt-2 border-t border-border">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
-                    <Key size={14} className="text-primary" />
-                    Secure OS Credential Store (FR-055, SRS Section 12.1)
-                  </h4>
-                  <form onSubmit={handleSaveApiKey} className="space-y-2">
-                    <div className="text-[11px] text-muted">
-                      Kunci API disimpan terenkripsi di Windows Credential Manager (<code className="font-mono bg-fill px-1 py-0.5 rounded text-fg">zalando/go-keyring</code>).
-                    </div>
-                    <div className="flex gap-2">
-                      <input
-                        type="password"
-                        value={apiKeyInput}
-                        onChange={(e) => setApiKeyInput(e.target.value)}
-                        placeholder="Simpan Google Gemini / OpenCode API Key..."
-                        className="flex-1 border border-border rounded-md px-3 py-2 text-xs bg-surface text-fg placeholder:text-muted outline-none focus:border-primary"
-                      />
+                {/* Card 2: Secure OS Credential Store (API Key) */}
+                <div className="p-4 bg-fill-soft/50 rounded-xl border border-border space-y-3.5">
+                  <div>
+                    <h5 className="font-semibold text-sm text-fg flex items-center gap-2">
+                      <Key size={16} className="text-primary" />
+                      Secure OS Credential Store
+                    </h5>
+                    <p className="text-xs text-muted mt-0.5">
+                      Kunci API disimpan terenkripsi di OS Keyring (Apple Keychain / Windows Credential Manager).
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleSaveApiKey} className="space-y-3">
+                    <div className="flex gap-2 items-center">
+                      <div className="relative flex-1">
+                        <input
+                          type={showApiKey ? 'text' : 'password'}
+                          value={apiKeyInput}
+                          onChange={(e) => setApiKeyInput(e.target.value)}
+                          placeholder="Simpan Google Gemini / OpenCode API Key..."
+                          className="w-full border border-border rounded-lg pl-3 pr-10 py-2 text-xs bg-surface font-mono text-fg placeholder:text-muted outline-none focus:border-primary shadow-2xs transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowApiKey(!showApiKey)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-fg p-1 rounded transition-colors"
+                          title={showApiKey ? 'Sembunyikan Kunci' : 'Perlihatkan Kunci'}
+                        >
+                          {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
+                      </div>
                       <button
                         type="submit"
-                        className="px-3.5 py-2 text-xs font-medium rounded-md bg-primary hover:bg-primary-hover text-white shrink-0 shadow-2xs transition-colors"
+                        className="px-4 py-2 text-xs font-semibold rounded-lg bg-primary hover:bg-primary-hover text-white shrink-0 shadow-2xs transition-colors"
                       >
                         Simpan ke Keyring
                       </button>
                     </div>
+
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-2">
+                      <Lock size={12} className="text-ok shrink-0" />
+                      <span>Kunci API dienkripsi secara hardware/OS level. Tidak pernah ditulis ke disk atau database SQLite.</span>
+                    </div>
+
                     {keySaveMsg && (
-                      <div className="text-xs text-ok font-medium flex items-center gap-1">
-                        <CheckCircle2 size={13} /> {keySaveMsg}
+                      <div className="p-2.5 bg-ok-tint border border-ok/30 rounded-lg text-xs text-ok font-medium flex items-center gap-1.5">
+                        <CheckCircle2 size={14} />
+                        <span>{keySaveMsg}</span>
                       </div>
                     )}
                   </form>
                 </div>
 
-                {/* Storage Strategy */}
-                <div className="space-y-2 border-t border-border pt-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
-                    <Database size={14} className="text-primary" />
-                    Local Storage & Privacy (FR-005, FR-006)
-                  </h4>
-                  <div className="text-xs text-muted space-y-1">
-                    <div>• SQLite Database: <span className="font-mono text-fg">ModernC Pure-Go SQLite (WAL mode, CGO-free)</span></div>
-                    <div>• Workspace Documents: <span className="font-mono text-fg">AI-Requirements-Studio/projects/{'{project_id}'} (Isolated PRD.md & SRS.md)</span></div>
+                {/* Card 3: Storage & Environment Info */}
+                <div className="p-4 bg-fill-soft/50 rounded-xl border border-border space-y-3">
+                  <div>
+                    <h5 className="font-semibold text-sm text-fg flex items-center gap-2">
+                      <Database size={16} className="text-primary" />
+                      Local Storage & Privacy Strategy
+                    </h5>
+                    <p className="text-xs text-muted mt-0.5">
+                      Arsitektur penyimpanan lokal tanpa kebocoran data ke cloud pihak ketiga.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 text-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-2.5 bg-surface border border-border/80 rounded-lg">
+                      <span className="text-muted font-medium">SQLite Database</span>
+                      <code className="font-mono text-[11px] bg-fill px-2 py-0.5 rounded border border-border/60 text-fg">
+                        ModernC Pure-Go SQLite (WAL mode, CGO-free)
+                      </code>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-2.5 bg-surface border border-border/80 rounded-lg">
+                      <span className="text-muted font-medium">Workspace Documents</span>
+                      <code className="font-mono text-[11px] bg-fill px-2 py-0.5 rounded border border-border/60 text-fg">
+                        ~/AI-Requirements-Studio/projects/{'{id}'}
+                      </code>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
+              </main>
             </div>
 
-            {/* Footer */}
-            <div className="flex justify-end pt-3 border-t border-border">
+            {/* 3. Modal Footer Bar (h-14 / 56px) */}
+            <div className="h-14 px-6 border-t border-border flex items-center justify-between shrink-0 bg-surface">
+              <div className="flex items-center gap-2 text-xs text-muted">
+                <Lock size={13} className="text-ok shrink-0" />
+                <span className="text-[11.5px]">Kredensial dienkripsi di OS Keyring • Data tersimpan lokal di SQLite</span>
+              </div>
               <button 
                 type="button" 
                 onClick={() => setShowSettingsModal(false)} 
-                className="px-4 py-1.5 text-xs font-medium rounded-md bg-fill text-fg hover:bg-fill-soft transition-colors border border-border"
+                className="px-4 py-2 text-xs font-semibold rounded-lg bg-fill text-fg hover:bg-fill-mute transition-colors border border-border shadow-2xs"
               >
                 Tutup
               </button>

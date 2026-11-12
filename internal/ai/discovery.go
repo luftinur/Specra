@@ -72,12 +72,24 @@ func BuildDiscoveryPrompt(
 		}
 	}
 
+	modeDirectives := "INTERACTION MODE: DISCOVERY (Proactively identify gaps, detect ambiguities, and formulate 1-3 targeted clarification questions)."
+	if strings.Contains(userMessage, "[MODE: EXECUTION]") {
+		modeDirectives = "INTERACTION MODE: EXECUTION (Pasif & eksekutorial. Do NOT ask clarification questions - leave clarifications empty []. Synthesize all confirmed requirements and provide direct, actionable specifications)."
+	}
+
+	webRefDirectives := ""
+	if strings.Contains(userMessage, "http://") || strings.Contains(userMessage, "https://") {
+		webRefDirectives = "\nWEB REFERENCE HARNESSING: External URLs or web design references detected in user message. Analyze and harness the visual patterns, color palette tokens, typography, and atomic layout conventions from these references into the requirements and design constraints.\n"
+	}
+
 	prompt := fmt.Sprintf(`Role: %s for AI Requirements Studio.
 You assist users in requirement discovery from project briefs into structured software specifications.
+%s
+%s
 Your goals:
 1. Understand product vision, goals, and problem statements.
 2. Identify functional/non-functional requirements with MoSCoW priorities (Must Have, Should Have, Could Have, Won't Have).
-3. Identify ambiguous or missing information and formulate 1-2 focused clarification questions.
+3. If in Discovery Mode, identify ambiguous or missing information and formulate 1-2 focused clarification questions. If in Execution Mode, provide direct answers without asking questions.
 4. Detect unconfirmed assumptions.
 5. Provide a friendly conversational analysis summary.
 
@@ -114,7 +126,7 @@ You must reply ONLY with a valid JSON object matching this schema:
     }
   ]
 }
-`, role, reqContext, assumpContext, clarContext, userMessage, role)
+`, role, modeDirectives, webRefDirectives, reqContext, assumpContext, clarContext, userMessage, role)
 
 	return prompt
 }

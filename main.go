@@ -80,7 +80,7 @@ func main() {
 
 	// 6. Create Wails v3 Application
 	app := application.New(application.Options{
-		Name:        "AI Requirements Studio",
+		Name:        "specra",
 		Description: "Local-first, chat-first requirements engineering desktop workspace",
 		Services: []application.Service{
 			application.NewService(projectService),
@@ -101,7 +101,7 @@ func main() {
 
 	// 7. Create Main Desktop Window (1200x800 for comfortable 3-pane layout)
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:  "AI Requirements Studio",
+		Title:  "specra",
 		Width:  1280,
 		Height: 800,
 		BackgroundColour: application.NewRGB(248, 250, 252), // slate-50

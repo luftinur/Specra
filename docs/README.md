@@ -2,6 +2,9 @@
 
 Folder ini menyimpan salinan lengkap seluruh dokumen perencanaan (*plans*), spesifikasi, audit, walkthrough hasil pengujian, serta riwayat konteks (*transcript logs*) dari sesi interaksi pengembangan **AI Requirements Studio**.
 
+Seluruh aturan baku bagi AI Agent terkait sinkronisasi artefak dan riwayat percakapan diatur secara formal di:  
+👉 **[`AGENTS.md`](../AGENTS.md)**
+
 ---
 
 ## 📁 Struktur Direktori
@@ -18,17 +21,38 @@ docs/
 │   ├── plan_mq_studio_design_system.md                # Adaptasi design system MQ-Studio
 │   ├── plan_general_settings_and_darkmode.md          # General settings & full dark mode
 │   ├── plan_custom_skills_mcp_scoping_modal_scaling.md# Custom skills & MCP scoping
+│   ├── plan_github_push_private_main.md               # Rencana push ke remote GitHub
+│   ├── plan_agents_rules_and_environment_continuity.md# Aturan baku AI Agent & kontinuitas dev macOS
+│   ├── plan_sidebar_two_lines_and_typography_refinement.md# Rencana sidebar 2-baris & typography refinement
+│   ├── plan_settings_modal_two_pane_refactor.md       # Rekonstruksi Settings Modal Two-Pane Master-Detail
+│   ├── plan_workspace_and_canvas_experience_refactor.md# Rekonstruksi Canvas Empty State, 3-Pane Depth, & Input Bar
+│   ├── plan_skills_ux_and_right_inspector_wiring.md   # Refactor UX Skills Persona & Interaktivitas Right Inspector
+│   ├── plan_agentic_modes_and_slash_commands.md       # Slash Commands (/plan dsb), Clarification Cards & Interaction Modes
+│   ├── plan_agentic_pipeline_and_unified_console.md   # Unified Console, Pipeline Stepper & Interactive Q&A Loop
+│   ├── plan_mermaid_blocks_and_preview_mode.md        # Blok Mermaid Interaktif, Visual Preview & Copy Button
+│   ├── plan_specra_logo_and_icon.md                   # Identitas Visual, SVG App Icon & Wordmark specra
 │   └── walkthrough.md                                 # Rangkuman komprehensif & hasil testing
 └── context_history/
-    └── transcript.jsonl                               # Log riwayat lengkap interaksi agentic coding
+    ├── transcript_01_windows.jsonl                    # Log riwayat sesi awal pengembangan di Windows (1.963 steps)
+    └── transcript_02_macos.jsonl                      # Log riwayat sesi migrasi & setup dev di macOS
 ```
 
 ---
 
 ## 📑 Daftar Dokumen Utama
 
-1. **[walkthrough.md](file:///E:/dev-agent-assistant/docs/artifacts/walkthrough.md)**: Rangkuman arsitektur, perjalanan implementasi 6 fase, dan tabel verifikasi hasil testing.
-2. **[plan_custom_skills_mcp_scoping_modal_scaling.md](file:///E:/dev-agent-assistant/docs/artifacts/plan_custom_skills_mcp_scoping_modal_scaling.md)**: Rencana teknis Custom Skill library, scoping MCP Server (Global vs Persona), dan modal upscaling.
-3. **[plan_general_settings_and_darkmode.md](file:///E:/dev-agent-assistant/docs/artifacts/plan_general_settings_and_darkmode.md)**: Rencana implementasi General Settings, 3 color themes (Warm Stone, Obsidian Slate, System Auto), dan font scaling.
-4. **[plan_mq_studio_design_system.md](file:///E:/dev-agent-assistant/docs/artifacts/plan_mq_studio_design_system.md)**: Adaptasi token styling dan layout shell ala MQ-Studio.
-5. **[business_orchestration_plan.md](file:///E:/dev-agent-assistant/docs/artifacts/business_orchestration_plan.md)**: Spesifikasi orkestrasi 4 Specialist Personas (*Product Analyst*, *System Analyst*, *Software Architect*, *UI/UX Agent*).
+1. **[`AGENTS.md`](../AGENTS.md)**: Pedoman wajib AI Coding Agent, aturan zero-mock, dan SOP sinkronisasi artefak & riwayat.
+2. **[`walkthrough.md`](./artifacts/walkthrough.md)**: Rangkuman arsitektur, perjalanan implementasi menyeluruh (Fase 1-11), dan tabel verifikasi hasil testing.
+3. **[`plan_specra_logo_and_icon.md`](./artifacts/plan_specra_logo_and_icon.md)**: Rencana teknis Identitas Visual, SVG App Icon (512x512 squircle), Wordmark `specra`, dan regenerasi aset native desktop.
+4. **[`plan_mermaid_blocks_and_preview_mode.md`](./artifacts/plan_mermaid_blocks_and_preview_mode.md)**: Rencana teknis Blok Mermaid Interaktif, Visual Preview SVG, Zoom/Pan, Code Toggle & One-Click Copy Button.
+4. **[`plan_agentic_pipeline_and_unified_console.md`](./artifacts/plan_agentic_pipeline_and_unified_console.md)**: Rencana teknis Fase 12: Unified Prompt Console, Pipeline Stepper, Interactive Q&A Loop Cards, dan AI Readiness Recommender.
+5. **[`plan_agentic_modes_and_slash_commands.md`](./artifacts/plan_agentic_modes_and_slash_commands.md)**: Rencana teknis Agentic Interaction Modes, Slash Commands System (/plan, /discovery, /exec, /prd), dan Interactive Clarification Cards dalam Chat Bubble.
+6. **[`plan_skills_ux_and_right_inspector_wiring.md`](./artifacts/plan_skills_ux_and_right_inspector_wiring.md)**: Rencana teknis Skills UX Refinement (Dropdown per Persona) dan Interaktivitas Right Inspector (Requirements, Validation, Assumptions, Clarifications).
+7. **[`plan_workspace_and_canvas_experience_refactor.md`](./artifacts/plan_workspace_and_canvas_experience_refactor.md)**: Rekonstruksi Canvas Empty State, Elevasi 3-Pane, Pill Tab Agen, dan Elevated Chat Input.
+8. **[`plan_settings_modal_two_pane_refactor.md`](./artifacts/plan_settings_modal_two_pane_refactor.md)**: Rekonstruksi Settings Modal menjadi Two-Pane Master-Detail standar desktop.
+9. **[`plan_sidebar_two_lines_and_typography_refinement.md`](./artifacts/plan_sidebar_two_lines_and_typography_refinement.md)**: Rencana ekspansi lebar sidebar ke 256px dan penataan typography 1 baris lega.
+9. **[`plan_agents_rules_and_environment_continuity.md`](./artifacts/plan_agents_rules_and_environment_continuity.md)**: Rencana peresmian `AGENTS.md`, pemisahan transkrip riwayat per sesi, dan setup toolchain macOS.
+10. **[`plan_custom_skills_mcp_scoping_modal_scaling.md`](./artifacts/plan_custom_skills_mcp_scoping_modal_scaling.md)**: Rencana teknis Custom Skill library, scoping MCP Server (Global vs Persona), dan modal upscaling.
+11. **[`plan_general_settings_and_darkmode.md`](./artifacts/plan_general_settings_and_darkmode.md)**: Rencana implementasi General Settings, 3 color themes (Warm Stone, Obsidian Slate, System Auto), dan font scaling.
+12. **[`plan_mq_studio_design_system.md`](./artifacts/plan_mq_studio_design_system.md)**: Adaptasi token styling dan layout shell ala MQ-Studio.
+13. **[`business_orchestration_plan.md`](./artifacts/business_orchestration_plan.md)**: Spesifikasi orkestrasi 4 Specialist Personas (*Product Analyst*, *System Analyst*, *Software Architect*, *UI/UX Agent*).
