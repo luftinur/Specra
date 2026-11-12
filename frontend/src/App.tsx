@@ -469,12 +469,15 @@ export default function App() {
     return () => mediaQuery.removeEventListener('change', handleSystemChange);
   }, []);
 
+  const activeProjectTokenRef = useRef(0);
+
   // 2. When activeProject changes, load conversation session & all project assets
   useEffect(() => {
+    const token = ++activeProjectTokenRef.current;
     if (activeProject) {
-      loadSessionAndData(activeProject.id);
-      loadDocumentDetails(activeProject.id);
-      loadValidationAndTraceability(activeProject.id);
+      loadSessionAndData(activeProject.id, token);
+      loadDocumentDetails(activeProject.id, token);
+      loadValidationAndTraceability(activeProject.id, token);
     } else {
       setActiveSession(null);
       setMessages([]);
@@ -655,12 +658,14 @@ export default function App() {
     }
   };
 
-  const loadSessionAndData = async (projectId: string) => {
+  const loadSessionAndData = async (projectId: string, token?: number) => {
     try {
       const session = await ConversationService.GetSession(projectId);
+      if (token !== undefined && token !== activeProjectTokenRef.current) return;
       setActiveSession(session);
       if (session) {
         const msgs = await ConversationService.ListMessages(session.id);
+        if (token !== undefined && token !== activeProjectTokenRef.current) return;
         setMessages(msgs || []);
       }
       await refreshProjectEntities(projectId);
@@ -682,9 +687,10 @@ export default function App() {
     }
   };
 
-  const loadDocumentDetails = async (projectId: string) => {
+  const loadDocumentDetails = async (projectId: string, token?: number) => {
     try {
       const prd = await DocumentService.GetDocumentDetails(projectId, 'prd');
+      if (token !== undefined && token !== activeProjectTokenRef.current) return;
       if (prd) {
         setPrdDetails({
           document: prd.document,
@@ -694,6 +700,7 @@ export default function App() {
         });
       }
       const srs = await DocumentService.GetDocumentDetails(projectId, 'srs');
+      if (token !== undefined && token !== activeProjectTokenRef.current) return;
       if (srs) {
         setSrsDetails({
           document: srs.document,
@@ -703,6 +710,7 @@ export default function App() {
         });
       }
       const arch = await DocumentService.GetDocumentDetails(projectId, 'architecture');
+      if (token !== undefined && token !== activeProjectTokenRef.current) return;
       if (arch) {
         setArchitectureDetails({
           document: arch.document,
@@ -712,6 +720,7 @@ export default function App() {
         });
       }
       const design = await DocumentService.GetDocumentDetails(projectId, 'design');
+      if (token !== undefined && token !== activeProjectTokenRef.current) return;
       if (design) {
         setDesignDetails({
           document: design.document,
@@ -725,11 +734,13 @@ export default function App() {
     }
   };
 
-  const loadValidationAndTraceability = async (projectId: string) => {
+  const loadValidationAndTraceability = async (projectId: string, token?: number) => {
     try {
       const f = await ValidationService.GetLatestFindings(projectId);
+      if (token !== undefined && token !== activeProjectTokenRef.current) return;
       setFindings(f || []);
       const m = await ValidationService.GetTraceabilityMatrix(projectId);
+      if (token !== undefined && token !== activeProjectTokenRef.current) return;
       setTraceabilityMatrix(m || []);
     } catch (err) {
       console.error('Failed to load validation:', err);
@@ -1231,7 +1242,7 @@ export default function App() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!inputMessage.trim() && !attachedFile) || !activeSession || !activeProject || isSending) return;
+    if ((!inputMessage.trim() && !attachedFile) || !activeSession || !activeProject || isSending || autoPipelineRunning) return;
 
     const userText = inputMessage.trim();
     const currentAttachment = attachedFile;

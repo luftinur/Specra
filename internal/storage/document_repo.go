@@ -64,10 +64,16 @@ func (r *DocumentRepository) GetOrCreate(ctx context.Context, projectID string, 
 }
 
 func (r *DocumentRepository) AddVersion(ctx context.Context, docID string, content string, sourceVerID *string) (*domain.DocumentVersion, error) {
-	// Find next version number
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Find next version number inside transaction
 	queryVer := `SELECT COALESCE(MAX(version_number), 0) + 1 FROM document_versions WHERE document_id = ?`
 	var nextVer int
-	if err := r.db.QueryRowContext(ctx, queryVer, docID).Scan(&nextVer); err != nil {
+	if err := tx.QueryRowContext(ctx, queryVer, docID).Scan(&nextVer); err != nil {
 		return nil, fmt.Errorf("failed to determine next version number: %w", err)
 	}
 
@@ -82,15 +88,19 @@ func (r *DocumentRepository) AddVersion(ctx context.Context, docID string, conte
 	insertQuery := `INSERT INTO document_versions 
 	                (id, document_id, version_number, content, content_hash, source_version_id, created_at)
 	                VALUES (?, ?, ?, ?, ?, ?, ?)`
-	_, err := r.db.ExecContext(ctx, insertQuery, verID, docID, nextVer, content, contentHash, sourceVerID, now)
+	_, err = tx.ExecContext(ctx, insertQuery, verID, docID, nextVer, content, contentHash, sourceVerID, now)
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert document version: %w", err)
 	}
 
 	// Update document's current_version_id and updated_at
 	updateDocQuery := `UPDATE documents SET current_version_id = ?, updated_at = ? WHERE id = ?`
-	if _, err := r.db.ExecContext(ctx, updateDocQuery, verID, now, docID); err != nil {
+	if _, err := tx.ExecContext(ctx, updateDocQuery, verID, now, docID); err != nil {
 		return nil, fmt.Errorf("failed to update document current version: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit document version transaction: %w", err)
 	}
 
 	return &domain.DocumentVersion{

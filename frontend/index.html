@@ -5,6 +5,26 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>specra</title>
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('theme_mode') || 'system';
+          var isDark = theme === 'dark' || (theme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+          var scale = localStorage.getItem('font_scale');
+          if (scale && scale !== 'auto' && scale !== '100%') {
+            var zoomMap = { '85%': '0.85', '90%': '0.90', '100%': '1.0', '110%': '1.10', '115%': '1.15' };
+            if (zoomMap[scale]) {
+              document.documentElement.style.zoom = zoomMap[scale];
+            }
+          }
+        } catch(e) {}
+      })();
+    </script>
   </head>
   <body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50">
     <div id="root"></div>

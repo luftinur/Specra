@@ -3,8 +3,10 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"ai-requirements-studio/internal/ai"
@@ -393,6 +395,31 @@ func TestAgentRegistry_PersonasAndMCP(t *testing.T) {
 	if !foundArchSkill {
 		t.Fatalf("expected custom skill to be resolved for Software Architect")
 	}
+
+	// 5. Concurrency Race & Deadlock Stress Test
+	var wg sync.WaitGroup
+	for i := 0; i < 30; i++ {
+		wg.Add(3)
+		idx := i
+		go func() {
+			defer wg.Done()
+			_ = registry.SaveSkill(domain.SkillConfig{
+				ID:       fmt.Sprintf("concurrent-skill-%d", idx),
+				Name:     fmt.Sprintf("Skill %d", idx),
+				Custom:   true,
+				Category: "general",
+			})
+		}()
+		go func() {
+			defer wg.Done()
+			_ = registry.GetSkillsForAgent("software-architect")
+		}()
+		go func() {
+			defer wg.Done()
+			_ = registry.DeleteSkill(fmt.Sprintf("concurrent-skill-%d", idx))
+		}()
+	}
+	wg.Wait()
 
 	// Cleanup
 	_ = registry.DeleteMCPServer("mcp-github")

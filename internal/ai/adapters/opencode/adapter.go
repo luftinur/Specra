@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	"ai-requirements-studio/internal/ai"
@@ -16,11 +17,22 @@ import (
 )
 
 type Adapter struct {
+	mu             sync.RWMutex
 	executablePath string
 	baseURL        string
 	model          string
 	apiKey         string
 	httpClient     *http.Client
+}
+
+func sanitizeModelName(name string) string {
+	trimmed := strings.TrimSpace(name)
+	trimmed = strings.ReplaceAll(trimmed, "\n", "")
+	trimmed = strings.ReplaceAll(trimmed, "\r", "")
+	for strings.HasPrefix(trimmed, "--") {
+		trimmed = strings.TrimPrefix(trimmed, "-")
+	}
+	return trimmed
 }
 
 func NewAdapter(customPath, baseURL, model, apiKey string) *Adapter {
@@ -33,7 +45,7 @@ func NewAdapter(customPath, baseURL, model, apiKey string) *Adapter {
 	return &Adapter{
 		executablePath: customPath,
 		baseURL:        strings.TrimRight(baseURL, "/"),
-		model:          model,
+		model:          sanitizeModelName(model),
 		apiKey:         apiKey,
 		httpClient:     &http.Client{Timeout: 90 * time.Second},
 	}
@@ -48,6 +60,8 @@ func (a *Adapter) Name() string {
 }
 
 func (a *Adapter) Type() domain.ProviderType {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
 	if a.baseURL != "" {
 		return domain.ProviderAPI
 	}
@@ -55,14 +69,18 @@ func (a *Adapter) Type() domain.ProviderType {
 }
 
 func (a *Adapter) SetConfig(baseURL, model, apiKey string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.baseURL = strings.TrimRight(baseURL, "/")
 	if model != "" {
-		a.model = model
+		a.model = sanitizeModelName(model)
 	}
 	a.apiKey = apiKey
 }
 
 func (a *Adapter) GetModel() string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
 	return a.model
 }
 
@@ -178,9 +196,9 @@ func (a *Adapter) generateCLI(ctx context.Context, req ai.GenerateRequest, start
 	}
 
 	args := []string{"run", "--format", "json"}
-	targetModel := req.Model
+	targetModel := sanitizeModelName(req.Model)
 	if targetModel == "" {
-		targetModel = a.model
+		targetModel = a.GetModel()
 	}
 	if targetModel != "" && targetModel != "default" {
 		args = append(args, "-m", targetModel)

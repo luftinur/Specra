@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"ai-requirements-studio/internal/domain"
@@ -170,9 +171,16 @@ func TestWorkspaceManager(t *testing.T) {
 		t.Errorf("content mismatch")
 	}
 
-	// Security: Prevent path traversal
+	// Security: Prevent path traversal in documents
 	err = wm.WriteDocument(pID, "../../escaped.txt", []byte("danger"))
 	if err == nil {
 		t.Errorf("expected path traversal violation, got nil")
+	}
+
+	// Security: Prevent path traversal in projectID
+	evilDir := wm.ProjectDir("../../../system32")
+	cleanRoot := filepath.Clean(tmpDir)
+	if !strings.HasPrefix(evilDir, filepath.Join(cleanRoot, "projects")) {
+		t.Errorf("expected evil projectDir to remain confined within projects dir, got: %s", evilDir)
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"ai-requirements-studio/internal/ai"
@@ -15,9 +16,20 @@ import (
 )
 
 type Adapter struct {
+	mu         sync.RWMutex
 	model      string
 	apiKey     string
 	httpClient *http.Client
+}
+
+func sanitizeModelName(name string) string {
+	trimmed := strings.TrimSpace(name)
+	trimmed = strings.ReplaceAll(trimmed, "\n", "")
+	trimmed = strings.ReplaceAll(trimmed, "\r", "")
+	for strings.HasPrefix(trimmed, "--") {
+		trimmed = strings.TrimPrefix(trimmed, "-")
+	}
+	return trimmed
 }
 
 func NewAdapter(model, apiKey string) *Adapter {
@@ -25,7 +37,7 @@ func NewAdapter(model, apiKey string) *Adapter {
 		model = "gemini-1.5-pro"
 	}
 	return &Adapter{
-		model:      model,
+		model:      sanitizeModelName(model),
 		apiKey:     apiKey,
 		httpClient: &http.Client{Timeout: 90 * time.Second},
 	}
@@ -44,8 +56,10 @@ func (a *Adapter) Type() domain.ProviderType {
 }
 
 func (a *Adapter) SetConfig(model, apiKey string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	if model != "" {
-		a.model = model
+		a.model = sanitizeModelName(model)
 	}
 	if apiKey != "" {
 		a.apiKey = apiKey
@@ -53,7 +67,15 @@ func (a *Adapter) SetConfig(model, apiKey string) {
 }
 
 func (a *Adapter) GetModel() string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
 	return a.model
+}
+
+func (a *Adapter) getCredentials() (string, string) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.model, a.apiKey
 }
 
 func (a *Adapter) ListModels(ctx context.Context) ([]domain.ModelInfo, error) {
@@ -124,14 +146,16 @@ func (a *Adapter) ListModels(ctx context.Context) ([]domain.ModelInfo, error) {
 }
 
 func (a *Adapter) CheckAvailability(ctx context.Context) error {
-	if a.apiKey == "" {
+	_, key := a.getCredentials()
+	if key == "" {
 		return fmt.Errorf("gemini api key not configured")
 	}
 	return nil
 }
 
 func (a *Adapter) CheckAuthentication(ctx context.Context) error {
-	if a.apiKey == "" {
+	_, key := a.getCredentials()
+	if key == "" {
 		return fmt.Errorf("gemini api key missing")
 	}
 	return nil
@@ -139,15 +163,16 @@ func (a *Adapter) CheckAuthentication(ctx context.Context) error {
 
 func (a *Adapter) Generate(ctx context.Context, req ai.GenerateRequest) (*ai.GenerateResponse, error) {
 	start := time.Now()
-	if a.apiKey == "" {
+	defaultModel, apiKey := a.getCredentials()
+	if apiKey == "" {
 		return nil, fmt.Errorf("gemini api key is not set. please configure it in settings")
 	}
 
-	targetModel := req.Model
+	targetModel := sanitizeModelName(req.Model)
 	if targetModel == "" {
-		targetModel = a.model
+		targetModel = defaultModel
 	}
-	endpoint := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", targetModel, a.apiKey)
+	endpoint := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", targetModel, apiKey)
 
 	userText := req.Prompt
 	if req.System != "" {

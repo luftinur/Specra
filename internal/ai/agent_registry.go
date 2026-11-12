@@ -286,15 +286,16 @@ func (r *AgentRegistry) SaveSkill(skill domain.SkillConfig) error {
 	r.mu.Lock()
 	skill.Custom = true
 	r.skills[skill.ID] = skill
+
+	customList := make([]domain.SkillConfig, 0)
+	for _, sk := range r.skills {
+		if sk.Custom {
+			customList = append(customList, sk)
+		}
+	}
 	r.mu.Unlock()
 
 	if r.providerRepo != nil {
-		customList := make([]domain.SkillConfig, 0)
-		for _, sk := range r.skills {
-			if sk.Custom {
-				customList = append(customList, sk)
-			}
-		}
 		bytes, err := json.Marshal(customList)
 		if err == nil {
 			_ = r.providerRepo.SetSetting(context.Background(), "custom_skills", string(bytes))
@@ -306,15 +307,16 @@ func (r *AgentRegistry) SaveSkill(skill domain.SkillConfig) error {
 func (r *AgentRegistry) DeleteSkill(id string) error {
 	r.mu.Lock()
 	delete(r.skills, id)
+
+	customList := make([]domain.SkillConfig, 0)
+	for _, sk := range r.skills {
+		if sk.Custom {
+			customList = append(customList, sk)
+		}
+	}
 	r.mu.Unlock()
 
 	if r.providerRepo != nil {
-		customList := make([]domain.SkillConfig, 0)
-		for _, sk := range r.skills {
-			if sk.Custom {
-				customList = append(customList, sk)
-			}
-		}
 		bytes, err := json.Marshal(customList)
 		if err == nil {
 			_ = r.providerRepo.SetSetting(context.Background(), "custom_skills", string(bytes))
@@ -326,7 +328,12 @@ func (r *AgentRegistry) DeleteSkill(id string) error {
 func (r *AgentRegistry) GetSkillsForAgent(agentID string) []domain.SkillConfig {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	agent, ok := r.GetAgent(agentID)
+
+	normalized := r.normalizeID(agentID)
+	agent, ok := r.agents[normalized]
+	if !ok {
+		agent, ok = r.agents[agentID]
+	}
 	if !ok {
 		return []domain.SkillConfig{}
 	}

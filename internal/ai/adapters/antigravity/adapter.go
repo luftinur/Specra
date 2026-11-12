@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	"ai-requirements-studio/internal/ai"
@@ -28,9 +29,20 @@ type CLIResponsePayload struct {
 }
 
 type Adapter struct {
+	mu             sync.RWMutex
 	executablePath string
 	version        string
 	model          string
+}
+
+func sanitizeModelName(name string) string {
+	trimmed := strings.TrimSpace(name)
+	trimmed = strings.ReplaceAll(trimmed, "\n", "")
+	trimmed = strings.ReplaceAll(trimmed, "\r", "")
+	for strings.HasPrefix(trimmed, "--") {
+		trimmed = strings.TrimPrefix(trimmed, "-")
+	}
+	return trimmed
 }
 
 func NewAdapter(customPath string) *Adapter {
@@ -41,10 +53,14 @@ func NewAdapter(customPath string) *Adapter {
 }
 
 func (a *Adapter) SetConfig(model string) {
-	a.model = strings.TrimSpace(model)
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.model = sanitizeModelName(model)
 }
 
 func (a *Adapter) GetModel() string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
 	return a.model
 }
 
@@ -128,9 +144,9 @@ func (a *Adapter) Generate(ctx context.Context, req ai.GenerateRequest) (*ai.Gen
 		"--disable-slash-commands",
 	}
 
-	targetModel := req.Model
+	targetModel := sanitizeModelName(req.Model)
 	if targetModel == "" {
-		targetModel = a.model
+		targetModel = a.GetModel()
 	}
 	if targetModel != "" {
 		args = append(args, "--model", targetModel)

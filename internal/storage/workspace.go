@@ -22,7 +22,16 @@ func (wm *WorkspaceManager) RootDir() string {
 }
 
 func (wm *WorkspaceManager) ProjectDir(projectID string) string {
-	return filepath.Join(wm.rootDir, "projects", projectID)
+	cleanID := filepath.Base(filepath.Clean(projectID))
+	if cleanID == "." || cleanID == "/" || cleanID == "\\" || cleanID == ".." || cleanID == "" {
+		cleanID = "default"
+	}
+	projectsBase := filepath.Clean(filepath.Join(wm.rootDir, "projects"))
+	target := filepath.Clean(filepath.Join(projectsBase, cleanID))
+	if rel, err := filepath.Rel(projectsBase, target); err != nil || (len(rel) >= 2 && rel[:2] == "..") {
+		return filepath.Join(projectsBase, "default")
+	}
+	return target
 }
 
 func (wm *WorkspaceManager) InitProjectWorkspace(projectID string) error {

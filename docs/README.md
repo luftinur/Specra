@@ -38,6 +38,7 @@ docs/
 │   ├── plan_adaptive_edge_scaling_and_viewport_containment.md# Kunci 4 tepi viewport & fix pergeseran zoom HiDPI
 │   ├── plan_fix_windows_cli_length_and_auto_pipeline.md# Fix limit argumen CLI Windows via stdin pipe & Auto Pipeline
 │   ├── plan_dynamic_cli_model_detection.md            # Deteksi model dinamis CLI (agy, opencode, gemini) & model selector
+│   ├── plan_comprehensive_security_race_and_hydration_audit.md # Audit security, race conditions, hydration/FOUC & E2E
 │   └── walkthrough.md                                 # Rangkuman komprehensif & hasil testing
 └── context_history/
     ├── transcript_01_windows.jsonl                    # Log riwayat sesi awal pengembangan di Windows (1.963 steps)
