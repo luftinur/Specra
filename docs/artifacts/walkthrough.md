@@ -1,154 +1,67 @@
-# Walkthrough: Fase 13 — Mermaid Blocks, Document Preview Mode, Auto-Detect Agents & Adaptive Dropdowns
+# Walkthrough: Deteksi Model Dinamis & Pemilihan Model Coding Agent CLI
 
-Fase 13 telah selesai diimplementasikan penuh untuk menghadirkan pengalaman visual kelas studio bagi diagram arsitektur dan alur spesifikasi sistem, auto-deteksi biner coding agent lokal, dan penyempurnaan interaksi konsol.
-
----
-
-## 1. Fitur Baru yang Diimplementasikan
-
-### A. Interactive Mermaid Diagram Blocks (`<MermaidBlock />`)
-- **Visual Preview Mode**:
-  - Merender diagram Mermaid menjadi visual SVG interaktif beresolusi tinggi menggunakan pustaka `mermaid`.
-  - Otomatis menyesuaikan tema aplikasi (*Warm Stone Light* vs *Obsidian Slate Dark*) melalui injeksi token warna CSS dinamis.
-- **Deteksi Tipe Diagram Otomatis**:
-  - Otomatis mendeteksi header diagram: `Flowchart`, `C4 Architecture`, `Sequence Diagram`, `Class Diagram`, `State Diagram`, `Entity-Relationship`, `Gantt Chart`, `Pie Chart`, `Mindmap`, `Git Graph`.
-  - Ditampilkan dalam badge pill modern pada header diagram.
-- **Segmented View Mode Switcher**:
-  - `[👁️ Visual]`: Menampilkan visual diagram SVG yang bersih.
-  - `[< > Code]`: Menampilkan sintaks kode mentah Mermaid di dalam dark card dengan font monospace.
-- **One-Click Copy Button**:
-  - Tombol `[📋 Copy Mermaid]` di setiap diagram.
-  - Klik langsung menyalin kode Mermaid ke clipboard sistem dan memberikan indikator `[✓ Copied!]` selama 2 detik.
-- **Zoom & Pan Controls**:
-  - Tombol `Zoom In (+)` dan `Zoom Out (-)` dengan rentang skala 40% – 250% dan indikator persentase zoom.
-  - Tombol `Reset Zoom` untuk mengembalikan ke skala 100%.
-- **Graceful Error Fallback**:
-  - Jika LLM menghasilkan sintaks Mermaid yang sedikit kurang tepat, komponen tidak mengalami crash melainkan menampilkan banner peringatan informatif dan otomatis menyajikan tampilan kode sumber agar pengguna tetap dapat menyalin atau memperbaikinya.
-
-### B. Rich Markdown Viewer (`<MarkdownViewer />`)
-- Merender teks spesifikasi terstruktur dengan tipografi MQ-Studio:
-  - Headings (H1, H2, H3, H4) dengan pembatas garis elegan.
-  - Tabel responsif bergaris bersih dengan header berlatar panel dan sel zebra hover.
-  - Bullet lists, numbered lists, blockquotes berciri aksen primer, dan link interaktif.
-  - Blok kode non-mermaid dilengkapi badge bahasa dan tombol copy kode mandiri.
-- Terintegrasi di:
-  1. **Document Workspace**: PRD (20 Sections), SRS (22 Sections), Architecture (16 Sections), dan Design System (16 Sections).
-  2. **Chat Discovery**: Bubble pesan asisten AI kini otomatis merender diagram Mermaid dan format Markdown secara interaktif!
-
-### C. Document Workspace Controls
-- **Segmented View Switcher**: Pilihan `[👁️ Preview Mode]` vs `[< > Raw Markdown]` di banner kontrol dokumen.
-- **One-Click Full Doc Copy**: Tombol `[📋 Copy Doc]` di toolbar atas untuk menyalin seluruh isi dokumen markdown dengan satu klik.
-- **Pelebaran Kontainer**: Ukuran panggung dokumen diperluas dari `max-w-prose` (sempit) ke `max-w-5xl mx-auto w-full px-4` agar diagram lebar C4 dan tabel arsitektur tidak terhimpit.
-
-### D. Auto-Detect Installed Coding Agents by Default
-- Saat aplikasi dimuat atau saat membuka Settings Modal, fungsi `handleDetectAgents(true)` berjalan otomatis di latar belakang.
-- Daftar coding agent yang terpasang di komputer lokal (`Antigravity CLI`, `OpenCode`, dll.) langsung muncul pada tab AI Providers tanpa perlu menekan tombol deteksi secara manual.
-- Tombol `Set as Primary` langsung mengonfigurasi dan menyimpan provider aktif ke backend SQLite secara instan dengan indikator `Primary Active ✓`.
-
-### E. Adaptive Upward Dropdowns
-- Orientasi pembukaan dropdown menu Persona Selector (`Product Analyst`) dan Interaction Mode (`Discovery Mode`) di bottom Unified Prompt Console telah diubah dari `top-full mt-1` (ke bawah) menjadi **`bottom-full mb-2`** (ke atas).
-- Menghilangkan masalah dropdown terpotong batas bawah layar (*clipped*), sehingga menu melayang lega di atas console bar.
-
-### F. Pure Vector Wordmark & Squircle App Icon Refinement (`specra`)
-- **Wordmark Geometris Murni (All-Lowercase `specra`):**
-  - Mengonversi implementasi wordmark dari tag `<text>` menjadi **Pure SVG Vector Paths (`<path d="...">`)**.
-  - Huruf **`a`**: *Single-story geometric pure* (lingkaran mangkuk penuh dengan tiang vertikal tegak lurus di kanan), serasi konsisten dengan mangkuk `p`, `e`, dan `c`.
-  - Huruf **`s`**: Kurva simetris dengan potongan terminal 90° horizontal presisi.
-  - Huruf **`p`**: Stem vertikal turun stabil ke bawah baseline dengan circular counter sempurna.
-  - Huruf **`e` & `c`**: Mangkuk lingkaran terbuka dengan horizontal crossbar pada `e` sejajar garis tengah.
-  - Huruf **`r`**: Lengkungan terminal arch terpotong bersih.
-  - Bebas dependensi font sistem dan 100% konsisten di semua platform.
-- **SVG App Icon 512×512 Squircle:**
-  - Palet Deep Slate / Dark Charcoal (`#12151A` ➔ `#0F1115` ➔ `#0A0B0E`) dengan kontras rasio WCAG AAA.
-  - Ambient top specular glow, stroke inner border 3.5px, monogram `s` tebal (*weight 800*, stroke 54px) ber-depth drop shadow, dan engineering spectrum accent node dot (`#6366F1` ➔ `#38BDF8`).
-- **Integrasi UI & Perbaikan TypeScript:**
-  - `SpecraWordmark` kini terintegrasi di Settings Modal Header Bar (`<SpecraIcon size={20} /> <SpecraWordmark height={16} />`) dan TitleBar.
-  - Menyelesaikan warning/error `TS6133` unused import sehingga `npm run build` 100% clean.
-
-### G. Smart JSON Boundary Extraction & Micro-TOON Parser (`toonformat.dev`)
-- **Perbaikan Respon OpenCode CLI:**
-  - `ParseDiscoveryOutput` ditingkatkan dengan **Smart Boundary Extractor**: mendeteksi blok ```json ... ``` atau kurung kurawal terluar `{ ... }` di mana saja dalam output.
-  - Menghilangkan bug di mana bubble chat menampilkan kode JSON mentah saat AI menyertakan kalimat pembuka (*preamble*).
-  - Teks percakapan (`reply`) diekstrak bersih ke chat bubble, dan entitas requirements tersimpan mulus ke database.
-- **Implementasi Micro-TOON di Go ([`internal/ai/toon.go`](file:///E:/dev-agent-assistant/internal/ai/toon.go)):**
-  - Encoder & Decoder representasi TOON (Token-Oriented Object Notation) untuk serialisasi efisien pada LLM prompts.
-  - Hasil benchmark unit test membuktikan **penghematan token sebesar 38,2% hingga 50%+** dibanding JSON standar.
-  - Decoder TOON terintegrasi langsung ke dalam `ParseDiscoveryOutput`.
-
-### H. Decoupling MQ-Studio, Slash Auto-Scroll, Export All Docs, Chat Q&A Deduplication & Adaptive HiDPI Scaling
-- **CLI Subprocess Sandboxing (`cmd.Dir`)**:
-  - `GenerateRequest` kini membawa `WorkDir: s.workspace.ProjectDir(projectID)`.
-  - Adapter `antigravity` dan `opencode` kini menyetel `cmd.Dir = req.WorkDir`. Agen CLI mengeksekusi terisolasi di direktori proyek pengguna tanpa membaca repositori pengembang (`AGENTS.md` atau `_ref_ui/`).
-- **Domain Isolation Directives**:
-  - `BuildDiscoveryPrompt` dan generator dokumen (PRD, SRS, Architecture, Design) diperbarui dengan aturan isolasi ketat yang melarang pembocoran kerangka internal developer ke dokumen kebutuhan pengguna.
-- **Slash Commands Popover Buttery Smooth & Auto-Scroll**:
-  - Filter kueri slash commands dipusatkan menggunakan `useMemo`.
-  - `slashItemRefs` dan `useEffect` otomatis memicu `scrollIntoView({ block: 'nearest', behavior: 'smooth' })` saat `selectedSlashIndex` berganti via ArrowDown/ArrowUp.
-  - Ditambahkan `onMouseDown={(e) => e.preventDefault()}` dan `overscroll-contain` sehingga klik tidak mencabut fokus kursor dari input teks dan scroll dropup tidak menggerakkan chat di belakangnya.
-- **Fitur "Export All Documents" (PRD, SRS, Architecture, Design)**:
-  - Ditambahkan fungsi backend `ExportAllDocuments(projectID, targetDir)`.
-  - Tombol `Export All (.md)` kini tersedia di Header Bar baik dari halaman Dokumen maupun langsung saat berada di tampilan **Chat**.
-- **Deduplikasi Kartu Konfirmasi Chat**:
-  - Di dalam bubble chat, hanya pertanyaan klarifikasi berstatus pending/terbuka yang di-render (`clarifications.filter(c => c.status !== 'answered' && !c.answer)`). Pertanyaan yang sudah dijawab otomatis hilang dari bubble chat dan tersimpan rapi di Right Inspector.
-- **Adaptive 4-Edge Viewport Containment & Scroll Lock**:
-  - Mengeliminasi kelas `w-screen` (`100vw`) dan `h-screen` (`100vh`) yang memicu engine Chromium memperbesar kontainer menjadi 115vw × 115vh saat zoom aktif.
-  - Mengunci shell aplikasi dengan `position: fixed; inset: 0; width: 100%; height: 100%; max-width: 100%; max-height: 100%; overflow: hidden;` pada `#root` dan `body`.
-  - Mengunci koordinat scroll dokumen ke `(0, 0)` secara konsisten sehingga ke-4 tepi (*top, bottom, left, right*) selalu menempel presisi di batas jendela native tanpa terpotong atau terdorong keluar layar.
-  - Memperbarui `getAdaptiveZoomFactor` di [`frontend/src/lib/uiScale.ts`](file:///E:/dev-agent-assistant/frontend/src/lib/uiScale.ts) dengan algoritma kalkulasi dua sumbu (*width & height*) agar skala optimal layar tidak pernah melebihi batas vertikal maupun horizontal laptop HiDPI (3072×1920 @ 175%).
-- **Chat Text Selection (`user-select: text`)**:
-  - Menghapus kelas `select-none` dari root aplikasi `.m3`.
-  - Mengaktifkan kelas `select-text` pada seluruh bubble percakapan (user prompt, jawaban asisten AI, dan blok Markdown) sehingga teks dapat diblok, diseleksi, dan disalin (`Ctrl + C`) layaknya aplikasi chat pada umumnya.
-- **Normalisasi Respon OpenCode CLI (Chat Bersih, Bukan JSON)**:
-  - Memperbaiki parser `internal/ai/adapters/opencode/adapter.go` untuk mengekstrak stream event NDJSON multi-line (`part.text`, `content`, `text`, `message`).
-  - Memperkuat `ParseDiscoveryOutput` di `internal/ai/discovery.go` dengan alias unwrap (`reply`, `message`, `content`, `response`) sehingga jika LLM mengembalikan JSON terstruktur, teks percakapan natural tetap diekstrak bersih ke bubble chat dan tidak pernah menampilkan kurung kurawal `{ ... }` JSON mentah.
-  - **Perbaikan Limit Argumen Windows CLI (`The filename or extension is too long`)**:
-  - Menyelesaikan error kode 206 kernel Windows saat menyusun dokumen turunan panjang (seperti SRS atau Architecture dari PRD 20 Sections).
-  - Adapter `antigravity` dan `opencode` kini menyalurkan prompt AI via `cmd.Stdin = strings.NewReader(req.Prompt)` daripada argumen baris perintah `-p`.
-  - Skema JSON panjang disimpan ke berkas sementara OS temp (`temp-schema-*.json`) dan dihapus otomatis setelah eksekusi selesai (`defer os.Remove(...)`).
-  - Panjang perintah `CreateProcess` menyusut menjadi hanya ~50 karakter sehingga bebas dari limit 32.767 karakter Windows OS.
-- **Autonomous Requirements Pipeline Orchestrator ("Auto Pipeline")**:
-  - Tombol aksi cerdas **`[ ⚡ Auto Pipeline ]`** kini terintegrasi langsung di Header Stepper Bar.
-  - Menjalankan alur beruntun otomatis dari hulu ke hilir:
-    1. **Discovery & MoSCoW Extraction**: Mengekstrak kebutuhan awal dari brief.
-    2. **Clarification Gating**: Otomatis berhenti sementara jika AI memerlukan jawaban klarifikasi penting dari pengguna. Setelah dijawab, pipeline otomatis berlanjut.
-    3. **Beruntun Otomatis**: Menyusun dan meng-approve **PRD (20 Sections)** ➔ **SRS IEEE 830 (22 Sections)** ➔ **C4 Architecture (16 Sections)** ➔ **Design System (16 Sections)**.
-    4. **Celebration & Export**: Menampilkan banner penyelesaian lengkap dengan tombol instan `[ 📥 Export All (.md) ]`.
-- **Penyederhanaan Tampilan Pengaturan (Dropdown-Based)**:
-    - Mengganti grid kartu mockup besar dengan **`<select>` dropdown elegan dan ringkas** pada tab *General & Appearance*.
-    - Dropdown Tema: `Light (Warm Stone)`, `Dark (Obsidian Slate)`, dan `System / Auto`.
-    - Dropdown Skala UI: `Auto (Adaptive HiDPI)`, `90% (Compact)`, `100% (Default)`, `105%`, `110%`, `115%`, `120%`, `125%`.
-    - Tombol pintasan global keyboard tetap aktif: `Ctrl +`, `Ctrl -`, `Ctrl 0`.
-  - **Pencegahan Layout Overflow & Optimalisasi Ruang Kolom Utama**:
-    - Lebar sidebar kiri disesuaikan dari 256px ke **230px**.
-    - Lebar inspector kanan disesuaikan dari 320px (`w-80`) ke **288px (`w-72`)**.
-    - Dimensi Settings Modal disesuaikan ke `w-[920px] max-w-[94vw] h-[640px] max-h-[88vh]` sehingga tidak pernah terpotong atau overflow keluar batas layar.
-    - Kolom panggung utama (`.mqs-content`) tetap luas, seimbang, dan bebas dari horizontal overflow.
-  - Akses cepat ke General & Appearance disediakan dari:
-    1. Tombol ikon Settings di pojok kanan TitleBar.
-    2. Tombol baris baru **`General & Appearance`** di bagian bawah (*footer*) Left Sidebar dengan indikator status skala aktif.
-  - Ditambahkan pintasan keyboard zoom global: `Ctrl +` (Zoom In), `Ctrl -` (Zoom Out), dan `Ctrl 0` (Reset Zoom).
+## 1. Ringkasan Implementasi
+Kami telah menyelesaikan implementasi deteksi model dinamis untuk Coding Agent CLI (`antigravity` / `agy`, `opencode`, dan `gemini`) sehingga pengguna kini dapat melihat model apa saja yang terdeteksi secara otomatis di mesin lokal dan memilih model mana yang ingin digunakan.
 
 ---
 
-## 2. Hasil Verifikasi & Pengujian
+## 2. Fitur yang Diselesaikan
 
-1. **Frontend Compilation (TypeScript Strict Mode)**:
-   ```bash
-   cd frontend && npm run build
-   # Output: ✓ built in 3.03s (0 TypeScript errors)
-   ```
-2. **Backend Unit & End-to-End Tests**:
-   ```bash
+### A. Dynamic Model Discovery Engine
+1. **Google Antigravity CLI (`agy`)**:
+   - Mendeteksi ketersediaan executable `agy` via `exec.LookPath`.
+   - Mengambil model yang aktif via `agy models` non-interaktif secara real (*Zero-Mock*).
+   - Mem-parsing baris output tabular (ID dan Display Name), mengabaikan header/fetching logs:
+     - `gemini-3.8-flash-high` (*Gemini 3.8 Flash High*)
+     - `gemini-3.8-flash-medium` (*Gemini 3.8 Flash Medium*)
+     - `gemini-3.8-flash-low` (*Gemini 3.8 Flash Low*)
+     - `claude-sonnet-4-6` (*Claude Sonnet 4.6 Thinking*)
+     - `claude-opus-4-6-thinking` (*Claude Opus 4.6 Thinking*)
+     - `gpt-oss-120b-medium` (*GPT-OSS 120B Medium*)
+   - Meneruskan flag resmi `--model <selected_model>` ke subproses CLI saat generate dokumen maupun chat.
+
+2. **OpenCode AI Agent (`opencode`)**:
+   - Mendeteksi model via `opencode models` CLI atau endpoint `GET /models` jika HTTP base URL dikonfigurasi.
+   - Menguraikan model seperti `opencode/beam-free`, `opencode/flint-40b-free`, `opencode/deepseek-v4.1-flash-free`, dll.
+   - Meneruskan `-m <model>` ke perintah `opencode run`.
+
+3. **Google Gemini (Direct REST API)**:
+   - Mendukung penarikan daftar model resmi langsung via endpoint Google AI Studio jika API key tersedia.
+   - Fallback cerdas ke model pilihan standar (`gemini-2.5-flash`, `gemini-2.5-pro`, `gemini-1.5-pro`, `gemini-1.5-flash`).
+
+### B. Penyimpanan & Integrasi Service (`internal/services/provider_service.go`)
+- Model pilihan disimpan secara persisten di database SQLite lokal (`agy_model`, `opencode_model`, `gemini_model`).
+- Nilai model direstore otomatis saat startup aplikasi via `restoreSettings()`.
+- Menyediakan endpoint backend:
+  - `ConfigureAntigravity(model string)`
+  - `GetProviderModels(providerID string)`
+  - `DetectInstalledCodingAgents()` (menyertakan `AvailableModels` dan `SelectedModel`).
+
+### C. Antarmuka Pengguna (Frontend UI)
+1. **Kartu Detected Agents (Settings -> Coding Agents & LLM)**:
+   - Menampilkan badge jumlah model yang berhasil dideteksi (misal: `Model CLI (6 terdeteksi)`).
+   - Menghadirkan `<select>` dropdown model aktif langsung di dalam kartu agent yang terinstal.
+   - Mengubah dropdown langsung mengonfigurasi model aktif agent tersebut.
+2. **Form Konfigurasi Spesifik Provider**:
+   - Kartu konfigurasi dedicated untuk Google Antigravity CLI dengan dropdown pilihan model + tombol **Refresh Models**.
+   - Kartu konfigurasi OpenCode dengan sinkronisasi model dinamis.
+   - Kartu konfigurasi Gemini Direct dengan dropdown model resmi.
+3. **Pill Status Engine di Header & Sidebar**:
+   - Menampilkan model yang sedang aktif di samping provider (misal: `antigravity · gemini-3.8-flash-high`).
+   - Dapat diklik langsung untuk membuka tab **Coding Agents & LLM**.
+
+---
+
+## 3. Hasil Pengujian & Verifikasi
+
+1. **Go Unit & Service Test Suite**:
+   ```powershell
    go test -v ./internal/...
-   # Output: PASS (13 test suites, 100% pass)
    ```
-3. **TOON Token Efficiency Benchmark**:
-   ```bash
-   go test -v ./internal/ai -run TestTOON
-   # Output: JSON: 1116 chars (~293 tokens) vs TOON: 689 chars (~181 tokens) -> Savings: 38.23%
+   **Hasil:** Seluruh 13 test suite (`internal`, `internal/ai`, `internal/security`, `internal/services`, `internal/storage`) lulus 100% (`PASS`).
+
+2. **Frontend TypeScript & Vite Production Build**:
+   ```powershell
+   npm --prefix frontend run build
    ```
-4. **Native Windows Desktop Binary**:
-   ```bash
-   wails3 task build
-   # Output: bin/ai-requirements-studio.exe (22.5 MB) berhasil dibangun
-   ```
+   **Hasil:** `tsc` dan `vite build` selesai sukses tanpa ada error tipe maupun warning kompilasi (`0 errors`).

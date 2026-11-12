@@ -80,7 +80,8 @@ import type {
   AgentConfig,
   MCPServerConfig,
   GeneralSettings,
-  SkillConfig
+  SkillConfig,
+  ModelInfo
 } from "../bindings/ai-requirements-studio/internal/domain/models";
 
 export default function App() {
@@ -100,9 +101,10 @@ export default function App() {
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [clarifications, setClarifications] = useState<Clarification[]>([]);
   const [assumptions, setAssumptions] = useState<Assumption[]>([]);
-  const [providerStatus, setProviderStatus] = useState<{ available: boolean; version: string }>({
+  const [providerStatus, setProviderStatus] = useState<{ available: boolean; version: string; model?: string }>({
     available: false,
     version: '...',
+    model: '',
   });
 
   // Document State
@@ -284,11 +286,15 @@ export default function App() {
   const [primaryProvider, setPrimaryProvider] = useState<string>('antigravity-cli');
   const [fallbackProvider, setFallbackProvider] = useState<string>('opencode');
   const [fallbackEnabled, setFallbackEnabled] = useState<boolean>(true);
+  const [agyModel, setAgyModel] = useState<string>('');
+  const [agyModelsList, setAgyModelsList] = useState<ModelInfo[]>([]);
   const [opencodeBaseURL, setOpencodeBaseURL] = useState<string>('');
   const [opencodeModel, setOpencodeModel] = useState<string>('default');
   const [opencodeApiKey, setOpencodeApiKey] = useState<string>('');
+  const [opencodeModelsList, setOpencodeModelsList] = useState<ModelInfo[]>([]);
   const [geminiModel, setGeminiModel] = useState<string>('gemini-1.5-pro');
   const [geminiApiKey, setGeminiApiKey] = useState<string>('');
+  const [geminiModelsList, setGeminiModelsList] = useState<ModelInfo[]>([]);
   const [tokenSummary, setTokenSummary] = useState<TokenUsageSummary | null>(null);
   const [executionLogs, setExecutionLogs] = useState<ProviderExecution[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
@@ -495,11 +501,62 @@ export default function App() {
     try {
       const agents = await ProviderService.DetectInstalledCodingAgents();
       setDetectedAgents(agents || []);
+      if (agents) {
+        const agy = agents.find(a => a.id === 'antigravity-cli');
+        if (agy?.available_models && agy.available_models.length > 0) {
+          setAgyModelsList(agy.available_models);
+          if (agy.selected_model) setAgyModel(agy.selected_model);
+        }
+        const oc = agents.find(a => a.id === 'opencode');
+        if (oc?.available_models && oc.available_models.length > 0) {
+          setOpencodeModelsList(oc.available_models);
+          if (oc.selected_model) setOpencodeModel(oc.selected_model);
+        }
+      }
     } catch (err) {
       if (!silent) alert(`Gagal mendeteksi coding agent: ${String(err)}`);
       else console.warn('Silent agent detection error:', err);
     } finally {
       setIsDetectingAgents(false);
+    }
+  };
+
+  const handleAgentModelChange = async (agentId: string, modelId: string) => {
+    try {
+      if (agentId === 'antigravity-cli') {
+        setAgyModel(modelId);
+        await ProviderService.ConfigureAntigravity(modelId);
+      } else if (agentId === 'opencode') {
+        setOpencodeModel(modelId);
+        await ProviderService.ConfigureOpenCode(opencodeBaseURL, modelId, opencodeApiKey);
+      }
+      setDetectedAgents(prev => prev.map(a => a.id === agentId ? { ...a, selected_model: modelId } : a));
+      setProviderSaveSuccess(`Model untuk ${agentId} diperbarui: ${modelId || '(Default)'}`);
+      await loadProviderStatus();
+      setTimeout(() => setProviderSaveSuccess(''), 3000);
+    } catch (err) {
+      alert(`Gagal menyimpan model agent: ${String(err)}`);
+    }
+  };
+
+  const handleRefreshProviderModels = async (providerId: string) => {
+    try {
+      const models = await ProviderService.GetProviderModels(providerId);
+      if (models && models.length > 0) {
+        if (providerId === 'antigravity-cli') {
+          setAgyModelsList(models);
+        } else if (providerId === 'opencode') {
+          setOpencodeModelsList(models);
+        } else if (providerId === 'gemini-direct') {
+          setGeminiModelsList(models);
+        }
+        setProviderSaveSuccess(`Berhasil memuat ${models.length} model untuk ${providerId}`);
+        setTimeout(() => setProviderSaveSuccess(''), 3000);
+      } else {
+        alert(`Tidak ada model yang ditemukan untuk ${providerId}`);
+      }
+    } catch (err) {
+      alert(`Gagal memuat model: ${String(err)}`);
     }
   };
 
@@ -533,10 +590,15 @@ export default function App() {
         if (res.primary_provider) setPrimaryProvider(res.primary_provider);
         if (res.fallback_provider) setFallbackProvider(res.fallback_provider);
         if (res.fallback_enabled !== undefined) setFallbackEnabled(Boolean(res.fallback_enabled));
-        if (res.providers && res.providers[0]) {
+        if (res.agy_model) setAgyModel(res.agy_model);
+        if (res.opencode_model) setOpencodeModel(res.opencode_model);
+        if (res.gemini_model) setGeminiModel(res.gemini_model);
+        const primaryObj = (res.providers as any[])?.find((p: any) => p.id === res.primary_provider) || (res.providers as any[])?.[0];
+        if (primaryObj) {
           setProviderStatus({
-            available: res.providers[0].available,
-            version: res.providers[0].version || '1.5.5',
+            available: primaryObj.available,
+            version: primaryObj.version || '1.5.5',
+            model: (primaryObj.model as string) || (res.agy_model as string) || '',
           });
         }
       }
@@ -865,6 +927,9 @@ export default function App() {
     if (e) e.preventDefault();
     try {
       await ProviderService.ConfigureProviders(primaryProvider, fallbackProvider, fallbackEnabled);
+      if (agyModel) {
+        await ProviderService.ConfigureAntigravity(agyModel);
+      }
       if (opencodeBaseURL || opencodeModel !== 'default' || opencodeApiKey) {
         await ProviderService.ConfigureOpenCode(opencodeBaseURL, opencodeModel, opencodeApiKey);
       }
@@ -1781,9 +1846,15 @@ export default function App() {
           )}
 
           {/* AI Provider Status Pill */}
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] bg-fill-soft border border-border/60 text-[11px] font-mono">
+          <div 
+            onClick={() => { setSettingsTab('providers'); setShowSettingsModal(true); loadGeneralSettings(); loadTokenUsage(); handleDetectAgents(true); }}
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] bg-fill-soft border border-border/60 text-[11px] font-mono cursor-pointer hover:border-primary/50 transition-colors"
+            title={`Active Engine: ${primaryProvider}${providerStatus.model ? ` (${providerStatus.model})` : ''} - Klik untuk kelola`}
+          >
             <span className={`w-1.5 h-1.5 rounded-full ${providerStatus.available ? 'bg-ok' : 'bg-err'}`} />
-            <span className="text-muted">{providerStatus.version}</span>
+            <span className="text-muted">
+              {providerStatus.model ? `${primaryProvider.replace('-cli', '')} · ${providerStatus.model}` : providerStatus.version}
+            </span>
           </div>
 
           {/* Inspector Toggle */}
@@ -4825,6 +4896,29 @@ export default function App() {
                             </div>
                           )}
 
+                          {agent.installed && agent.available_models && agent.available_models.length > 0 && (
+                            <div className="pt-1 border-t border-border/50 space-y-1">
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-muted font-medium flex items-center gap-1">
+                                  <Bot size={12} className="text-primary" />
+                                  Model CLI ({agent.available_models.length} terdeteksi):
+                                </span>
+                              </div>
+                              <select
+                                value={agent.selected_model || (agent.id === 'antigravity-cli' ? agyModel : (agent.id === 'opencode' ? opencodeModel : ''))}
+                                onChange={(e) => handleAgentModelChange(agent.id, e.target.value)}
+                                className="w-full border border-border rounded px-2 py-1 text-xs bg-surface text-fg font-mono outline-none focus:border-primary"
+                              >
+                                <option value="">(Default CLI Model)</option>
+                                {agent.available_models.map((m) => (
+                                  <option key={m.id} value={m.id}>
+                                    {m.display_name && m.display_name !== m.id ? `${m.display_name} (${m.id})` : m.id}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
                           {agent.installed && (
                             <div className="flex items-center gap-1.5 pt-1">
                               <button
@@ -4910,12 +5004,74 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* 1.3 OpenCode & Local LLM Specific Config */}
+                  {/* 1.3 Antigravity CLI Specific Config */}
                   <div className="p-3.5 bg-surface border border-border rounded-lg space-y-3">
-                    <h4 className="font-semibold text-fg flex items-center gap-1.5">
-                      <Terminal size={14} className="text-primary" />
-                      OpenCode / OpenAI-Compatible Configuration
-                    </h4>
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-fg flex items-center gap-1.5">
+                        <Bot size={14} className="text-primary" />
+                        Google Antigravity CLI (agy) Configuration
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => handleRefreshProviderModels('antigravity-cli')}
+                        className="text-[11px] text-primary hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                      >
+                        <RefreshCw size={11} /> Refresh Models
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] text-muted mb-1">
+                          Model Identifier (agy --model)
+                        </label>
+                        {agyModelsList.length > 0 ? (
+                          <select
+                            value={agyModel}
+                            onChange={(e) => setAgyModel(e.target.value)}
+                            className="w-full border border-border rounded-md px-3 py-1.5 text-xs bg-surface text-fg outline-none focus:border-primary font-mono"
+                          >
+                            <option value="">(Default: gemini-3.8-flash-high)</option>
+                            {agyModelsList.map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.display_name && m.display_name !== m.id ? `${m.display_name} (${m.id})` : m.id}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={agyModel}
+                            onChange={(e) => setAgyModel(e.target.value)}
+                            placeholder="gemini-3.8-flash-high"
+                            className="w-full border border-border rounded-md px-3 py-1.5 text-xs bg-transparent outline-none focus:border-primary font-mono text-fg"
+                          />
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-muted mb-1">Status Subproses CLI</label>
+                        <div className="text-xs font-mono text-muted py-1.5 flex items-center gap-1.5">
+                          <CheckCircle2 size={12} className="text-ok" />
+                          <span>Piped Stdin Safe Execution</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 1.4 OpenCode & Local LLM Specific Config */}
+                  <div className="p-3.5 bg-surface border border-border rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-fg flex items-center gap-1.5">
+                        <Terminal size={14} className="text-primary" />
+                        OpenCode / OpenAI-Compatible Configuration
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => handleRefreshProviderModels('opencode')}
+                        className="text-[11px] text-primary hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                      >
+                        <RefreshCw size={11} /> Refresh Models
+                      </button>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-[11px] text-muted mb-1">
@@ -4933,13 +5089,26 @@ export default function App() {
                         <label className="block text-[11px] text-muted mb-1">
                           Model Identifier
                         </label>
-                        <input
-                          type="text"
-                          value={opencodeModel}
-                          onChange={(e) => setOpencodeModel(e.target.value)}
-                          placeholder="default / llama3"
-                          className="w-full border border-border rounded-md px-3 py-1.5 text-xs bg-transparent outline-none focus:border-primary font-mono text-fg"
-                        />
+                        {opencodeModelsList.length > 0 ? (
+                          <select
+                            value={opencodeModel}
+                            onChange={(e) => setOpencodeModel(e.target.value)}
+                            className="w-full border border-border rounded-md px-3 py-1.5 text-xs bg-surface text-fg outline-none focus:border-primary font-mono"
+                          >
+                            <option value="default">default</option>
+                            {opencodeModelsList.map((m) => (
+                              <option key={m.id} value={m.id}>{m.id}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={opencodeModel}
+                            onChange={(e) => setOpencodeModel(e.target.value)}
+                            placeholder="default / llama3"
+                            className="w-full border border-border rounded-md px-3 py-1.5 text-xs bg-transparent outline-none focus:border-primary font-mono text-fg"
+                          />
+                        )}
                       </div>
                       <div>
                         <label className="block text-[11px] text-muted mb-1">
@@ -4956,22 +5125,44 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* 1.4 Gemini Direct Config */}
+                  {/* 1.5 Gemini Direct Config */}
                   <div className="p-3.5 bg-surface border border-border rounded-lg space-y-3">
-                    <h4 className="font-semibold text-fg flex items-center gap-1.5">
-                      <Key size={14} className="text-primary" />
-                      Google Gemini Direct API Configuration
-                    </h4>
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-fg flex items-center gap-1.5">
+                        <Key size={14} className="text-primary" />
+                        Google Gemini Direct API Configuration
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => handleRefreshProviderModels('gemini-direct')}
+                        className="text-[11px] text-primary hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                      >
+                        <RefreshCw size={11} /> Refresh Models
+                      </button>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[11px] text-muted mb-1">Model</label>
-                        <input
-                          type="text"
+                        <label className="block text-[11px] text-muted mb-1">Model Resmi Gemini</label>
+                        <select
                           value={geminiModel}
                           onChange={(e) => setGeminiModel(e.target.value)}
-                          placeholder="gemini-1.5-pro"
-                          className="w-full border border-border rounded-md px-3 py-1.5 text-xs bg-transparent outline-none focus:border-primary font-mono text-fg"
-                        />
+                          className="w-full border border-border rounded-md px-3 py-1.5 text-xs bg-surface text-fg outline-none focus:border-primary font-mono"
+                        >
+                          {geminiModelsList.length > 0 ? (
+                            geminiModelsList.map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.display_name && m.display_name !== m.id ? `${m.display_name} (${m.id})` : m.id}
+                              </option>
+                            ))
+                          ) : (
+                            <>
+                              <option value="gemini-2.5-flash">Gemini 2.5 Flash (Fast & Capable)</option>
+                              <option value="gemini-2.5-pro">Gemini 2.5 Pro (State-of-the-art Reasoning)</option>
+                              <option value="gemini-1.5-pro">Gemini 1.5 Pro (Long Context)</option>
+                              <option value="gemini-1.5-flash">Gemini 1.5 Flash (Ultra Fast)</option>
+                            </>
+                          )}
+                        </select>
                       </div>
                       <div>
                         <label className="block text-[11px] text-muted mb-1">API Key (Windows Keyring)</label>

@@ -62,6 +62,69 @@ func (a *Adapter) SetConfig(baseURL, model, apiKey string) {
 	a.apiKey = apiKey
 }
 
+func (a *Adapter) GetModel() string {
+	return a.model
+}
+
+func (a *Adapter) ListModels(ctx context.Context) ([]domain.ModelInfo, error) {
+	// If HTTP baseURL is set, query the /models endpoint
+	if a.baseURL != "" {
+		req, err := http.NewRequestWithContext(ctx, "GET", a.baseURL+"/models", nil)
+		if err == nil {
+			if a.apiKey != "" {
+				req.Header.Set("Authorization", "Bearer "+a.apiKey)
+			}
+			resp, err := a.httpClient.Do(req)
+			if err == nil {
+				defer resp.Body.Close()
+				if resp.StatusCode == http.StatusOK {
+					var payload struct {
+						Data []struct {
+							ID string `json:"id"`
+						} `json:"data"`
+					}
+					if err := json.NewDecoder(resp.Body).Decode(&payload); err == nil && len(payload.Data) > 0 {
+						var models []domain.ModelInfo
+						for _, item := range payload.Data {
+							if item.ID != "" {
+								models = append(models, domain.ModelInfo{
+									ID:          item.ID,
+									DisplayName: item.ID,
+								})
+							}
+						}
+						return models, nil
+					}
+				}
+			}
+		}
+	}
+
+	// Otherwise query via opencode models CLI
+	cmd := exec.CommandContext(ctx, a.executablePath, "models")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to query opencode models: %w (output: %s)", err, string(out))
+	}
+
+	lines := strings.Split(string(out), "\n")
+	var models []domain.ModelInfo
+	for _, rawLine := range lines {
+		line := strings.TrimSpace(rawLine)
+		if line == "" || strings.HasPrefix(line, "DESCRIPTION") || strings.HasPrefix(line, "USAGE") || strings.HasPrefix(line, "GLOBAL") {
+			continue
+		}
+		// In opencode models, models are typically "provider/model-id"
+		if strings.Contains(line, "/") || strings.Contains(line, "-") || strings.Contains(line, ".") {
+			models = append(models, domain.ModelInfo{
+				ID:          line,
+				DisplayName: line,
+			})
+		}
+	}
+	return models, nil
+}
+
 func (a *Adapter) CheckAvailability(ctx context.Context) error {
 	// 1. If HTTP endpoint is configured, check HTTP endpoint
 	if a.baseURL != "" {
@@ -115,8 +178,12 @@ func (a *Adapter) generateCLI(ctx context.Context, req ai.GenerateRequest, start
 	}
 
 	args := []string{"run", "--format", "json"}
-	if a.model != "" && a.model != "default" {
-		args = append(args, "-m", a.model)
+	targetModel := req.Model
+	if targetModel == "" {
+		targetModel = a.model
+	}
+	if targetModel != "" && targetModel != "default" {
+		args = append(args, "-m", targetModel)
 	}
 
 	cmd := exec.CommandContext(ctx, a.executablePath, args...)

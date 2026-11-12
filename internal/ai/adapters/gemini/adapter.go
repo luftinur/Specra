@@ -52,6 +52,77 @@ func (a *Adapter) SetConfig(model, apiKey string) {
 	}
 }
 
+func (a *Adapter) GetModel() string {
+	return a.model
+}
+
+func (a *Adapter) ListModels(ctx context.Context) ([]domain.ModelInfo, error) {
+	defaultModels := []domain.ModelInfo{
+		{ID: "gemini-2.5-flash", DisplayName: "Gemini 2.5 Flash (Fast & Capable)"},
+		{ID: "gemini-2.5-pro", DisplayName: "Gemini 2.5 Pro (State-of-the-art Reasoning)"},
+		{ID: "gemini-1.5-pro", DisplayName: "Gemini 1.5 Pro (Long Context)"},
+		{ID: "gemini-1.5-flash", DisplayName: "Gemini 1.5 Flash (Ultra Fast)"},
+	}
+
+	if a.apiKey == "" {
+		return defaultModels, nil
+	}
+
+	endpoint := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models?key=%s", a.apiKey)
+	req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
+	if err != nil {
+		return defaultModels, nil
+	}
+
+	resp, err := a.httpClient.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		if resp != nil {
+			_ = resp.Body.Close()
+		}
+		return defaultModels, nil
+	}
+	defer resp.Body.Close()
+
+	var payload struct {
+		Models []struct {
+			Name                       string   `json:"name"`
+			DisplayName                string   `json:"displayName"`
+			SupportedGenerationMethods []string `json:"supportedGenerationMethods"`
+		} `json:"models"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil || len(payload.Models) == 0 {
+		return defaultModels, nil
+	}
+
+	var models []domain.ModelInfo
+	for _, m := range payload.Models {
+		canGenerate := false
+		for _, method := range m.SupportedGenerationMethods {
+			if method == "generateContent" {
+				canGenerate = true
+				break
+			}
+		}
+		if canGenerate {
+			id := strings.TrimPrefix(m.Name, "models/")
+			displayName := m.DisplayName
+			if displayName == "" {
+				displayName = id
+			}
+			models = append(models, domain.ModelInfo{
+				ID:          id,
+				DisplayName: displayName,
+			})
+		}
+	}
+
+	if len(models) == 0 {
+		return defaultModels, nil
+	}
+	return models, nil
+}
+
 func (a *Adapter) CheckAvailability(ctx context.Context) error {
 	if a.apiKey == "" {
 		return fmt.Errorf("gemini api key not configured")
@@ -72,7 +143,11 @@ func (a *Adapter) Generate(ctx context.Context, req ai.GenerateRequest) (*ai.Gen
 		return nil, fmt.Errorf("gemini api key is not set. please configure it in settings")
 	}
 
-	endpoint := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", a.model, a.apiKey)
+	targetModel := req.Model
+	if targetModel == "" {
+		targetModel = a.model
+	}
+	endpoint := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", targetModel, a.apiKey)
 
 	userText := req.Prompt
 	if req.System != "" {

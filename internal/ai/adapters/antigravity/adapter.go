@@ -30,6 +30,7 @@ type CLIResponsePayload struct {
 type Adapter struct {
 	executablePath string
 	version        string
+	model          string
 }
 
 func NewAdapter(customPath string) *Adapter {
@@ -37,6 +38,56 @@ func NewAdapter(customPath string) *Adapter {
 		customPath = "agy"
 	}
 	return &Adapter{executablePath: customPath}
+}
+
+func (a *Adapter) SetConfig(model string) {
+	a.model = strings.TrimSpace(model)
+}
+
+func (a *Adapter) GetModel() string {
+	return a.model
+}
+
+func (a *Adapter) ListModels(ctx context.Context) ([]domain.ModelInfo, error) {
+	cmd := exec.CommandContext(ctx, a.executablePath, "models")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list models via agy models: %w (output: %s)", err, string(out))
+	}
+
+	lines := strings.Split(string(out), "\n")
+	var models []domain.ModelInfo
+	for _, rawLine := range lines {
+		line := strings.TrimSpace(rawLine)
+		if line == "" || strings.HasPrefix(line, "Fetching") || strings.HasPrefix(line, "Usage:") {
+			continue
+		}
+		parts := strings.Split(line, "\t")
+		if len(parts) >= 2 {
+			id := strings.TrimSpace(parts[0])
+			name := strings.TrimSpace(parts[1])
+			if id != "" {
+				models = append(models, domain.ModelInfo{
+					ID:          id,
+					DisplayName: name,
+				})
+			}
+		} else {
+			fields := strings.Fields(line)
+			if len(fields) > 0 {
+				id := fields[0]
+				name := id
+				if len(fields) > 1 {
+					name = strings.Join(fields[1:], " ")
+				}
+				models = append(models, domain.ModelInfo{
+					ID:          id,
+					DisplayName: name,
+				})
+			}
+		}
+	}
+	return models, nil
 }
 
 func (a *Adapter) ID() string {
@@ -77,8 +128,12 @@ func (a *Adapter) Generate(ctx context.Context, req ai.GenerateRequest) (*ai.Gen
 		"--disable-slash-commands",
 	}
 
-	if req.Model != "" {
-		args = append(args, "--model", req.Model)
+	targetModel := req.Model
+	if targetModel == "" {
+		targetModel = a.model
+	}
+	if targetModel != "" {
+		args = append(args, "--model", targetModel)
 	}
 
 	var tempSchemaFile string

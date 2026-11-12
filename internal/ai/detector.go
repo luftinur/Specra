@@ -105,10 +105,90 @@ func DetectInstalledCodingAgents(ctx context.Context) ([]domain.DetectedAgent, e
 			} else {
 				detected.Version = "Installed (Version flag unhandled)"
 			}
+
+			// Dynamically discover models supported by this agent
+			detected.AvailableModels = detectAgentModels(ctx, agent.ID, agent.Executable)
 		}
 
 		results = append(results, detected)
 	}
 
 	return results, nil
+}
+
+func detectAgentModels(ctx context.Context, agentID, executable string) []domain.ModelInfo {
+	mCtx, cancel := context.WithTimeout(ctx, 4*time.Second)
+	defer cancel()
+
+	var models []domain.ModelInfo
+
+	switch agentID {
+	case "antigravity-cli":
+		cmd := exec.CommandContext(mCtx, executable, "models")
+		out, err := cmd.CombinedOutput()
+		if err == nil {
+			for _, rawLine := range strings.Split(string(out), "\n") {
+				line := strings.TrimSpace(rawLine)
+				if line == "" || strings.HasPrefix(line, "Fetching") || strings.HasPrefix(line, "Usage:") {
+					continue
+				}
+				parts := strings.Split(line, "\t")
+				if len(parts) >= 2 {
+					id := strings.TrimSpace(parts[0])
+					name := strings.TrimSpace(parts[1])
+					if id != "" {
+						models = append(models, domain.ModelInfo{ID: id, DisplayName: name})
+					}
+				} else {
+					fields := strings.Fields(line)
+					if len(fields) > 0 {
+						id := fields[0]
+						name := id
+						if len(fields) > 1 {
+							name = strings.Join(fields[1:], " ")
+						}
+						models = append(models, domain.ModelInfo{ID: id, DisplayName: name})
+					}
+				}
+			}
+		}
+	case "opencode":
+		cmd := exec.CommandContext(mCtx, executable, "models")
+		out, err := cmd.CombinedOutput()
+		if err == nil {
+			for _, rawLine := range strings.Split(string(out), "\n") {
+				line := strings.TrimSpace(rawLine)
+				if line == "" || strings.HasPrefix(line, "DESCRIPTION") || strings.HasPrefix(line, "USAGE") || strings.HasPrefix(line, "GLOBAL") {
+					continue
+				}
+				if strings.Contains(line, "/") || strings.Contains(line, "-") || strings.Contains(line, ".") {
+					models = append(models, domain.ModelInfo{ID: line, DisplayName: line})
+				}
+			}
+		}
+	case "ollama":
+		cmd := exec.CommandContext(mCtx, executable, "list")
+		out, err := cmd.CombinedOutput()
+		if err == nil {
+			lines := strings.Split(string(out), "\n")
+			for i, rawLine := range lines {
+				if i == 0 { // Skip header: NAME ID SIZE MODIFIED
+					continue
+				}
+				fields := strings.Fields(rawLine)
+				if len(fields) > 0 {
+					name := fields[0]
+					models = append(models, domain.ModelInfo{ID: name, DisplayName: name})
+				}
+			}
+		}
+	case "claude-code":
+		models = []domain.ModelInfo{
+			{ID: "claude-3-7-sonnet", DisplayName: "Claude 3.7 Sonnet (Hybrid Thinking)"},
+			{ID: "claude-3-5-sonnet", DisplayName: "Claude 3.5 Sonnet (Standard)"},
+			{ID: "claude-3-5-haiku", DisplayName: "Claude 3.5 Haiku (Fast)"},
+		}
+	}
+
+	return models
 }

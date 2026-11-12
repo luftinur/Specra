@@ -37,6 +37,7 @@ docs/
 │   ├── plan_decouple_mq_studio_and_fix_slash_scroll.md# Decoupling MQ-Studio & fix slash dropup auto-scroll
 │   ├── plan_adaptive_edge_scaling_and_viewport_containment.md# Kunci 4 tepi viewport & fix pergeseran zoom HiDPI
 │   ├── plan_fix_windows_cli_length_and_auto_pipeline.md# Fix limit argumen CLI Windows via stdin pipe & Auto Pipeline
+│   ├── plan_dynamic_cli_model_detection.md            # Deteksi model dinamis CLI (agy, opencode, gemini) & model selector
 │   └── walkthrough.md                                 # Rangkuman komprehensif & hasil testing
 └── context_history/
     ├── transcript_01_windows.jsonl                    # Log riwayat sesi awal pengembangan di Windows (1.963 steps)

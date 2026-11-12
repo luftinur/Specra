@@ -159,6 +159,12 @@ const (
 	ProviderCLI ProviderType = "cli"
 )
 
+type ModelInfo struct {
+	ID          string `json:"id"`
+	DisplayName string `json:"display_name"`
+	Description string `json:"description,omitempty"`
+}
+
 type AIProviderConfig struct {
 	ID             string       `json:"id"`
 	ProviderType   ProviderType `json:"provider_type"`
@@ -170,13 +176,15 @@ type AIProviderConfig struct {
 }
 
 type DetectedAgent struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Executable  string `json:"executable"`
-	Installed   bool   `json:"installed"`
-	Version     string `json:"version"`
-	Path        string `json:"path"`
-	Description string `json:"description"`
+	ID              string      `json:"id"`
+	Name            string      `json:"name"`
+	Executable      string      `json:"executable"`
+	Installed       bool        `json:"installed"`
+	Version         string      `json:"version"`
+	Path            string      `json:"path"`
+	Description     string      `json:"description"`
+	AvailableModels []ModelInfo `json:"available_models"`
+	SelectedModel   string      `json:"selected_model"`
 }
 
 type TokenUsageSummary struct {

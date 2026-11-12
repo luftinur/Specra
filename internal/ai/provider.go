@@ -42,3 +42,7 @@ type AIProvider interface {
 	CheckAuthentication(ctx context.Context) error
 	Generate(ctx context.Context, req GenerateRequest) (*GenerateResponse, error)
 }
+
+type ModelDiscoverer interface {
+	ListModels(ctx context.Context) ([]domain.ModelInfo, error)
+}

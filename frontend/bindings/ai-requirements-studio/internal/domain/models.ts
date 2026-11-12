@@ -57,6 +57,8 @@ export interface DetectedAgent {
     "version": string;
     "path": string;
     "description": string;
+    "available_models": ModelInfo[] | null;
+    "selected_model": string;
 }
 
 export interface Document {
@@ -222,6 +224,12 @@ export enum MoSCoWPriority {
     PriorityCouldHave = "Could Have",
     PriorityWontHave = "Won\'t Have",
 };
+
+export interface ModelInfo {
+    "id": string;
+    "display_name": string;
+    "description"?: string;
+}
 
 export interface Project {
     "id": string;

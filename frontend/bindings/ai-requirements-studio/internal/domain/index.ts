@@ -23,6 +23,7 @@ export type {
     GeneralSettings,
     MCPServerConfig,
     Message,
+    ModelInfo,
     Project,
     ProviderExecution,
     Requirement,

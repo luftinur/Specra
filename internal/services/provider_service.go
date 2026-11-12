@@ -57,7 +57,14 @@ func (s *ProviderService) restoreSettings() {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	// Restore API keys from Windows Credential Manager
+	// Restore API keys and configured models from Keyring/DB
+	if s.agyAdapter != nil {
+		model, _ := s.repo.GetSetting(ctx, "agy_model")
+		if model != "" {
+			s.agyAdapter.SetConfig(model)
+		}
+	}
+
 	if s.opencodeAdapter != nil {
 		ocKey, _ := s.credManager.GetAPIKey("opencode")
 		baseURL, _ := s.repo.GetSetting(ctx, "opencode_base_url")
@@ -88,7 +95,26 @@ func (s *ProviderService) restoreSettings() {
 func (s *ProviderService) DetectInstalledCodingAgents() ([]domain.DetectedAgent, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()
-	return ai.DetectInstalledCodingAgents(ctx)
+	agents, err := ai.DetectInstalledCodingAgents(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Attach current selected models from database
+	if s.repo != nil {
+		agyModel, _ := s.repo.GetSetting(ctx, "agy_model")
+		ocModel, _ := s.repo.GetSetting(ctx, "opencode_model")
+		for i := range agents {
+			switch agents[i].ID {
+			case "antigravity-cli":
+				agents[i].SelectedModel = agyModel
+			case "opencode":
+				agents[i].SelectedModel = ocModel
+			}
+		}
+	}
+
+	return agents, nil
 }
 
 func (s *ProviderService) GetProviderStatus() (map[string]any, error) {
@@ -97,6 +123,19 @@ func (s *ProviderService) GetProviderStatus() (map[string]any, error) {
 
 	primary, fallback, fallbackEnabled := s.orchestrator.GetConfig()
 
+	agyModel := ""
+	if s.agyAdapter != nil {
+		agyModel = s.agyAdapter.GetModel()
+	}
+	ocModel := ""
+	if s.opencodeAdapter != nil {
+		ocModel = s.opencodeAdapter.GetModel()
+	}
+	gemModel := ""
+	if s.geminiAdapter != nil {
+		gemModel = s.geminiAdapter.GetModel()
+	}
+
 	providers := []map[string]any{
 		{
 			"id":        "antigravity-cli",
@@ -104,6 +143,7 @@ func (s *ProviderService) GetProviderStatus() (map[string]any, error) {
 			"type":      "cli",
 			"available": false,
 			"version":   "unknown",
+			"model":     agyModel,
 		},
 		{
 			"id":        "opencode",
@@ -111,6 +151,7 @@ func (s *ProviderService) GetProviderStatus() (map[string]any, error) {
 			"type":      "cli/http",
 			"available": false,
 			"version":   "unknown",
+			"model":     ocModel,
 		},
 		{
 			"id":        "gemini-direct",
@@ -118,6 +159,7 @@ func (s *ProviderService) GetProviderStatus() (map[string]any, error) {
 			"type":      "cloud",
 			"available": false,
 			"version":   "API",
+			"model":     gemModel,
 		},
 	}
 
@@ -148,11 +190,46 @@ func (s *ProviderService) GetProviderStatus() (map[string]any, error) {
 	}
 
 	return map[string]any{
-		"primary_provider": primary,
+		"primary_provider":  primary,
 		"fallback_provider": fallback,
-		"fallback_enabled": fallbackEnabled,
-		"providers":        providers,
+		"fallback_enabled":  fallbackEnabled,
+		"providers":         providers,
+		"agy_model":         agyModel,
+		"opencode_model":    ocModel,
+		"gemini_model":      gemModel,
 	}, nil
+}
+
+func (s *ProviderService) ConfigureAntigravity(model string) error {
+	if s.agyAdapter != nil {
+		s.agyAdapter.SetConfig(model)
+	}
+	if s.repo != nil {
+		ctx := context.Background()
+		_ = s.repo.SetSetting(ctx, "agy_model", model)
+	}
+	return nil
+}
+
+func (s *ProviderService) GetProviderModels(providerID string) ([]domain.ModelInfo, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
+	defer cancel()
+
+	switch providerID {
+	case "antigravity-cli":
+		if s.agyAdapter != nil {
+			return s.agyAdapter.ListModels(ctx)
+		}
+	case "opencode":
+		if s.opencodeAdapter != nil {
+			return s.opencodeAdapter.ListModels(ctx)
+		}
+	case "gemini-direct":
+		if s.geminiAdapter != nil {
+			return s.geminiAdapter.ListModels(ctx)
+		}
+	}
+	return []domain.ModelInfo{}, nil
 }
 
 func (s *ProviderService) ConfigureProviders(primaryID, fallbackID string, fallbackEnabled bool) error {

@@ -12,6 +12,10 @@ import * as ai$0 from "../ai/models.js";
 // @ts-ignore: Unused imports
 import * as domain$0 from "../domain/models.js";
 
+export function ConfigureAntigravity(model: string): $CancellablePromise<void> {
+    return $Call.ByID(3824824824, model);
+}
+
 export function ConfigureGemini(model: string, apiKey: string): $CancellablePromise<void> {
     return $Call.ByID(3500063709, model, apiKey);
 }
@@ -42,6 +46,10 @@ export function GetGeneralSettings(): $CancellablePromise<domain$0.GeneralSettin
 
 export function GetMCPServersForAgent(agentID: string): $CancellablePromise<domain$0.MCPServerConfig[] | null> {
     return $Call.ByID(2184555110, agentID);
+}
+
+export function GetProviderModels(providerID: string): $CancellablePromise<domain$0.ModelInfo[] | null> {
+    return $Call.ByID(297999149, providerID);
 }
 
 export function GetProviderStatus(): $CancellablePromise<{ [_ in string]?: any } | null> {
