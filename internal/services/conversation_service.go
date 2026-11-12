@@ -173,8 +173,14 @@ func (s *ConversationService) SendMessageWithAgent(conversationID, projectID, co
 	}
 
 	// 5. Pure Real AI Execution - NO MOCKS, FAIL-FAST
+	workDir := ""
+	if s.workspace != nil {
+		workDir = s.workspace.ProjectDir(projectID)
+	}
+
 	resp, err := s.orchestrator.Execute(ctx, ai.GenerateRequest{
 		ProjectID: projectID,
+		WorkDir:   workDir,
 		Role:      roleName,
 		Prompt:    prompt,
 	})

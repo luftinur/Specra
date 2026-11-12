@@ -14,6 +14,7 @@ type TokenUsage struct {
 
 type GenerateRequest struct {
 	ProjectID  string         `json:"project_id"`
+	WorkDir    string         `json:"work_dir,omitempty"` // Isolated project directory for CLI sandboxing
 	Role       string         `json:"role"`   // e.g. "Product Analyst", "Business Analyst", "System Analyst"
 	System     string         `json:"system"` // system prompt
 	Prompt     string         `json:"prompt"`

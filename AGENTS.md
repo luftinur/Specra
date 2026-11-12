@@ -13,8 +13,9 @@ Dokumen ini adalah **Authoritative Guidelines & Primary Source of Truth** bagi s
   - **Backend Core**: Go 1.24+ / 1.27+ (Modular domain services, SQLite WAL mode, OS keyring credential storage)
   - **Desktop Shell**: Wails v3 (Native WebKit/Cocoa di macOS, WebView2 di Windows)
   - **Frontend UI**: React 19, TypeScript (Strict Mode), Tailwind CSS v3/v4
-  - **Design System Tokens**: MQ-Studio 0.4.2 Token Scale (`src/design/tokens.css`, Warm Stone / Obsidian Slate / System Auto)
+  - **Design System Tokens**: MQ-Studio 0.4.2 Token Scale (`src/design/tokens.css`, Warm Stone / Obsidian Slate / System Auto). *(Catatan Kebijakan: MQ-Studio murni referensi teknis styling CSS shell aplikasi saat fase awal pengembangan; BUKAN acuan, nama, atau subjek sistem bagi proyek pengguna).*
   - **AI Provider Integrations**: Pure Real AI execution (Antigravity CLI `agy`, OpenCode CLI `opencode`, Google Gemini 1.5/2.5 REST API) — **Zero-Mock Policy**.
+  - **Strict Domain Isolation**: Seluruh prompt AI dan eksekusi subproses wajib diisolasi (`cmd.Dir` sandbox proyek pengguna). Dilarang membocorkan konteks internal developer (MQ-Studio / Specra dev tools) ke dalam dokumen kebutuhan pengguna.
 
 ---
 

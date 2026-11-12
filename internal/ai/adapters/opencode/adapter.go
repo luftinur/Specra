@@ -121,6 +121,9 @@ func (a *Adapter) generateCLI(ctx context.Context, req ai.GenerateRequest, start
 	args = append(args, fullPrompt)
 
 	cmd := exec.CommandContext(ctx, a.executablePath, args...)
+	if req.WorkDir != "" {
+		cmd.Dir = req.WorkDir
+	}
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr

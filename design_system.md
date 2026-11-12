@@ -138,6 +138,12 @@ Animasi di desktop app harus *snappy* (sangat cepat) dan bertujuan fungsional.
 
 Aplikasi ini mengadopsi pola antarmuka dan sistem token warna dari **MQ-Studio (v0.4.2)**. 
 
+### 9.0. Kebijakan Isolasi Konteks (Decoupling Policy)
+> [!IMPORTANT]
+> **MQ-Studio Decoupling Policy:**
+> `MQ-Studio 0.4.2` adalah **murni referensi internal styling & token layout** saat pengembangan awal shell antarmuka desktop Specra. Ini **BUKAN** acuan kebutuhan, brand, atau subjek sistem bagi proyek yang dibuat pengguna.
+> Seluruh prompt AI, pipeline Discovery, dan generator dokumen (PRD, SRS, Architecture, Design) wajib memperlakukan proyek pengguna secara agnostik berdasarkan domain bisnis masing-masing. DILARANG membawa nama atau konsep MQ-Studio ke dalam spesifikasi pengguna. 
+
 ### 9.1. Komponen & Pola yang Diadaptasi
 1. **Figma-Style Horizontal Tabs (`ConnectionTabs.tsx`):**
    - Ditempatkan langsung pada TitleBar jendela aplikasi (`.tb2`).

@@ -51,7 +51,7 @@ func (r *AgentRegistry) initDefaults() {
 		{ID: "scalability-fault-tolerance", Name: "Scalability & Fault Tolerance", Category: "architecture", Description: "Desain arsitektur terdistribusi, caching tier, idempotency, dan rate limiting.", Prompt: "Design for zero downtime, graceful degradation, and horizontal scaling.", Custom: false},
 
 		// UI/UX Agent Skills
-		{ID: "semantic-design-tokens", Name: "Semantic Design Tokens", Category: "uiux", Description: "Sistem token desain warna, tipografi, dan elevasi standar tokens.css.", Prompt: "Map UI elements strictly to semantic CSS tokens.", Custom: false},
+		{ID: "semantic-design-tokens", Name: "Semantic Design Tokens", Category: "uiux", Description: "Sistem token desain warna, tipografi, dan elevasi semantik yang disesuaikan dengan kebutuhan proyek pengguna.", Prompt: "Define clean semantic design tokens and CSS custom properties tailored to the user's project requirements.", Custom: false},
 		{ID: "atomic-component-hierarchy", Name: "Atomic Component Hierarchy", Category: "uiux", Description: "Hierarki komponen UI (Atoms, Molecules, Organisms, Templates).", Prompt: "Structure reusable component states and variants.", Custom: false},
 		{ID: "mermaid-screen-flows", Name: "Mermaid Screen Flows", Category: "uiux", Description: "Visualisasi alur layar interaktif menggunakan Mermaid flowchart.", Prompt: "Visualize screen navigation, error states, and user interactions.", Custom: false},
 		{ID: "wcag-accessibility-audit", Name: "WCAG 2.1 AA Accessibility", Category: "uiux", Description: "Standar aksesibilitas kontras warna 4.5:1, keyboard nav, dan aria-labels.", Prompt: "Ensure strict WCAG compliance and keyboard usability.", Custom: false},

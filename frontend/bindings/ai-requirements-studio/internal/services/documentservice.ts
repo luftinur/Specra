@@ -25,6 +25,10 @@ export function ApproveSRS(projectID: string, versionID: string): $CancellablePr
     return $Call.ByID(4244903559, projectID, versionID);
 }
 
+export function ExportAllDocuments(projectID: string, targetDir: string): $CancellablePromise<{ [_ in string]?: string } | null> {
+    return $Call.ByID(409571823, projectID, targetDir);
+}
+
 export function ExportDocument(projectID: string, docType: string, targetPath: string): $CancellablePromise<void> {
     return $Call.ByID(4001666921, projectID, docType, targetPath);
 }

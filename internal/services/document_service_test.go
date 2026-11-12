@@ -99,7 +99,7 @@ func TestDocumentService_PRD_SRS_ApprovalGating(t *testing.T) {
 		t.Errorf("expected PRD version 2, got %d", newPrdVer.VersionNumber)
 	}
 
-	// 7. Test Export
+	// 7. Test Export Single Document
 	exportTarget := filepath.Join(tmpDir, "exported_prd.md")
 	if err := svc.ExportDocument(p.ID, "prd", exportTarget); err != nil {
 		t.Fatalf("failed to export document: %v", err)
@@ -107,5 +107,21 @@ func TestDocumentService_PRD_SRS_ApprovalGating(t *testing.T) {
 	exportedData, err := os.ReadFile(exportTarget)
 	if err != nil || len(exportedData) == 0 {
 		t.Errorf("expected exported file to have content")
+	}
+
+	// 8. Test Export All Documents
+	allExportDir := filepath.Join(tmpDir, "all_exports")
+	results, err := svc.ExportAllDocuments(p.ID, allExportDir)
+	if err != nil {
+		t.Fatalf("failed to export all documents: %v", err)
+	}
+	if len(results) < 2 { // At least PRD and SRS generated
+		t.Errorf("expected at least 2 documents exported, got %d", len(results))
+	}
+	if _, err := os.Stat(filepath.Join(allExportDir, "PRD.md")); os.IsNotExist(err) {
+		t.Errorf("expected PRD.md to be exported in all_exports directory")
+	}
+	if _, err := os.Stat(filepath.Join(allExportDir, "SRS.md")); os.IsNotExist(err) {
+		t.Errorf("expected SRS.md to be exported in all_exports directory")
 	}
 }

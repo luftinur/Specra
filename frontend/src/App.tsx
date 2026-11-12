@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { resolveZoomFactor, SCALE_OPTIONS } from './lib/uiScale';
 import { 
   Terminal, 
   Settings, 
@@ -41,7 +42,6 @@ import {
   LayoutGrid,
   Sun,
   Moon,
-  Monitor,
   Sliders,
   FolderOpen,
   Layers,
@@ -199,6 +199,7 @@ export default function App() {
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [selectedSlashIndex, setSelectedSlashIndex] = useState(0);
   const slashMenuRef = useRef<HTMLDivElement | null>(null);
+  const slashItemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => {
     const handleMenusClickOutside = (event: MouseEvent) => {
@@ -232,8 +233,8 @@ export default function App() {
   const [themeMode, setThemeMode] = useState<'system' | 'light' | 'dark'>(() => {
     return (localStorage.getItem('theme_mode') as 'system' | 'light' | 'dark') || 'system';
   });
-  const [fontScale, setFontScale] = useState<'compact' | 'standard' | 'comfort'>(() => {
-    return (localStorage.getItem('font_scale') as 'compact' | 'standard' | 'comfort') || 'standard';
+  const [fontScale, setFontScale] = useState<string>(() => {
+    return localStorage.getItem('font_scale') || 'auto';
   });
   const [isCurrentDark, setIsCurrentDark] = useState(false);
 
@@ -320,12 +321,52 @@ export default function App() {
     document.documentElement.classList.toggle('dark', dark);
   };
 
-  const applyFontScale = (scale: 'compact' | 'standard' | 'comfort') => {
+  const applyFontScale = (scale: string) => {
     setFontScale(scale);
     localStorage.setItem('font_scale', scale);
-    const sizeMap = { compact: '13px', standard: '14px', comfort: '15.5px' };
-    document.documentElement.style.setProperty('--app-base-font-size', sizeMap[scale] || '14px');
+
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const { zoom, fontPx } = resolveZoomFactor(scale, w, h);
+
+    document.documentElement.style.zoom = String(zoom);
+    document.documentElement.style.setProperty('--app-base-font-size', `${fontPx}px`);
+    document.documentElement.style.setProperty('--mqs-scale', String(zoom));
   };
+
+  useEffect(() => {
+    const handleResize = () => {
+      const stored = localStorage.getItem('font_scale') || 'auto';
+      if (stored === 'auto') {
+        applyFontScale('auto');
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalZoomKeys = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+')) {
+        e.preventDefault();
+        const cur = document.documentElement.style.zoom ? parseFloat(document.documentElement.style.zoom) : 1;
+        const nextZoom = Math.min(2.0, Number((cur + 0.1).toFixed(2)));
+        document.documentElement.style.zoom = String(nextZoom);
+        document.documentElement.style.setProperty('--mqs-scale', String(nextZoom));
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === '-' || e.key === '_')) {
+        e.preventDefault();
+        const cur = document.documentElement.style.zoom ? parseFloat(document.documentElement.style.zoom) : 1;
+        const nextZoom = Math.max(0.7, Number((cur - 0.1).toFixed(2)));
+        document.documentElement.style.zoom = String(nextZoom);
+        document.documentElement.style.setProperty('--mqs-scale', String(nextZoom));
+      } else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+        e.preventDefault();
+        applyFontScale('auto');
+      }
+    };
+    window.addEventListener('keydown', handleGlobalZoomKeys);
+    return () => window.removeEventListener('keydown', handleGlobalZoomKeys);
+  }, []);
 
   const toggleQuickTheme = () => {
     const next = isCurrentDark ? 'light' : 'dark';
@@ -1016,6 +1057,30 @@ export default function App() {
     { cmd: '/clear', label: 'Clear Chat History', desc: 'Bersihkan histori sesi percakapan saat ini', icon: Trash2, action: 'clear' },
   ];
 
+  const filteredSlashCommands = useMemo(() => {
+    if (!inputMessage.startsWith('/')) return [];
+    const query = inputMessage.toLowerCase();
+    const cleanQuery = query.replace('/', '').trim();
+    return slashCommands.filter(c =>
+      c.cmd.toLowerCase().startsWith(query) ||
+      (cleanQuery && c.label.toLowerCase().includes(cleanQuery)) ||
+      (cleanQuery && c.desc.toLowerCase().includes(cleanQuery))
+    );
+  }, [inputMessage]);
+
+  useEffect(() => {
+    setSelectedSlashIndex(0);
+  }, [filteredSlashCommands.length]);
+
+  useEffect(() => {
+    if (showSlashMenu && slashItemRefs.current[selectedSlashIndex]) {
+      slashItemRefs.current[selectedSlashIndex]?.scrollIntoView({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
+    }
+  }, [selectedSlashIndex, showSlashMenu]);
+
   const handleSelectSlashCommand = async (cmd: typeof slashCommands[0]) => {
     setShowSlashMenu(false);
     setInputMessage('');
@@ -1367,6 +1432,23 @@ export default function App() {
     }
   };
 
+  const handleExportAllDocs = async () => {
+    if (!activeProject) return;
+    const defaultDir = prompt(
+      `Tentukan path folder untuk ekspor seluruh dokumen spesifikasi (PRD, SRS, Architecture, Design):`,
+      `C:\\specra-exports\\${activeProject.name ? activeProject.name.toLowerCase().replace(/\\s+/g, '-') : 'project'}`
+    );
+    if (!defaultDir) return;
+
+    try {
+      const exported = await DocumentService.ExportAllDocuments(activeProject.id, defaultDir);
+      const count = exported ? Object.keys(exported).length : 0;
+      alert(`Berhasil mengekspor ${count} dokumen spesifikasi ke folder:\n${defaultDir}`);
+    } catch (err) {
+      alert(`Gagal mengekspor dokumen: ${String(err)}`);
+    }
+  };
+
   const isPRDApproved = prdDetails.document?.status === 'approved';
   const isSRSOutdated = srsDetails.document?.status === 'outdated';
   const isArchitectureApproved = architectureDetails.document?.status === 'approved';
@@ -1503,6 +1585,18 @@ export default function App() {
             </div>
           )}
 
+          {/* Global Actions (Export All available even in Chat) */}
+          {activeProject && currentView === 'chat' && (
+            <button
+              onClick={handleExportAllDocs}
+              className="px-2 py-1 rounded-[6px] border border-border hover:bg-fill-mute text-fg flex items-center gap-1 text-xs transition-colors shadow-2xs"
+              title="Ekspor Seluruh Spesifikasi (PRD, SRS, Architecture, Design) sekaligus ke folder lokal"
+            >
+              <Download size={12} />
+              <span>Export All (.md)</span>
+            </button>
+          )}
+
           {/* Document Actions (Export & Edit/Simpan) */}
           {currentView !== 'chat' && activeProject && (
             <div className="flex items-center gap-1">
@@ -1522,10 +1616,19 @@ export default function App() {
               <button
                 onClick={handleExportDoc}
                 className="px-2 py-1 rounded-[6px] border border-border hover:bg-fill-mute text-fg flex items-center gap-1 text-xs transition-colors"
-                title="Export Document"
+                title="Export Dokumen Ini (.md)"
               >
                 <Download size={12} />
                 <span>Export</span>
+              </button>
+
+              <button
+                onClick={handleExportAllDocs}
+                className="px-2 py-1 rounded-[6px] border border-border hover:bg-fill-mute text-fg flex items-center gap-1 text-xs transition-colors"
+                title="Ekspor Seluruh Spesifikasi (PRD, SRS, Architecture, Design) sekaligus ke folder lokal"
+              >
+                <Download size={12} />
+                <span>Export All</span>
               </button>
 
               {!isEditingDoc ? (
@@ -1596,8 +1699,8 @@ export default function App() {
       {/* 2. Main Area: Sidebar + Content Sheet + Inspector */}
       <div className="mqs-main flex-1 flex min-w-0 min-height-0 overflow-hidden">
         
-        {/* Left Sidebar (.side3: 256px standard desktop rail) */}
-        <aside className="side3 w-[256px] flex flex-col justify-between shrink-0 py-2.5 px-2.5 select-none">
+        {/* Left Sidebar (.side3: 230px compact desktop rail) */}
+        <aside className="side3 w-[230px] flex flex-col justify-between shrink-0 py-2.5 px-2 select-none">
           <div className="space-y-3">
             {/* Group: Workspace Mode */}
             <div>
@@ -1788,6 +1891,25 @@ export default function App() {
 
           {/* Sidebar Footer */}
           <div className="space-y-1 pt-2 border-t border-border/60">
+            <button
+              type="button"
+              onClick={() => {
+                setSettingsTab('general');
+                setShowSettingsModal(true);
+                loadGeneralSettings();
+              }}
+              className="w-full flex items-center justify-between text-xs px-2 py-1.5 rounded-[6px] hover:bg-fill-mute text-fg-2 hover:text-fg transition-colors border border-border/50 bg-fill-soft/40 shadow-2xs"
+              title="Buka Pengaturan Tampilan & Font (General & Appearance)"
+            >
+              <div className="flex items-center gap-2">
+                <Sliders size={13} className="text-primary" />
+                <span className="font-medium text-xs">General & Appearance</span>
+              </div>
+              <span className="text-[10.5px] font-mono text-muted uppercase font-semibold">
+                {fontScale === 'auto' ? 'Auto HiDPI' : fontScale}
+              </span>
+            </button>
+
             <div className="flex items-center justify-between text-xs px-2 py-1 rounded-[6px] border border-border/80 bg-surface shadow-2xs">
               <div className="flex items-center gap-1.5 text-fg-2">
                 <Bot size={13} className="text-primary" />
@@ -1992,76 +2114,63 @@ export default function App() {
                         <MarkdownViewer content={m.content} isDark={isCurrentDark} />
                       </div>
 
-                      {/* Interactive Clarification Cards (The Q&A Loop) */}
-                      {isLastAssistant && clarifications.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-border/60 space-y-2.5">
-                          <div className="flex items-center justify-between text-xs font-semibold text-primary">
-                            <span className="flex items-center gap-1.5">
-                              <HelpCircle size={13} />
-                              <span>Clarification Needed ({clarifications.filter(c => c.status !== 'answered' && !c.answer).length} Open)</span>
-                            </span>
-                            <span className="text-[10px] font-mono text-muted">The Q&A Loop</span>
-                          </div>
-                          <div className="grid grid-cols-1 gap-2">
-                            {clarifications.map((c) => {
-                              const isAnswered = c.status === 'answered' || Boolean(c.answer);
-                              return (
+                      {/* Interactive Clarification Cards (The Q&A Loop) - Only render pending open questions */}
+                      {(() => {
+                        const openClarifications = clarifications.filter(c => c.status !== 'answered' && !c.answer);
+                        if (!isLastAssistant || openClarifications.length === 0) return null;
+
+                        return (
+                          <div className="mt-3 pt-3 border-t border-border/60 space-y-2.5">
+                            <div className="flex items-center justify-between text-xs font-semibold text-primary">
+                              <span className="flex items-center gap-1.5">
+                                <HelpCircle size={13} />
+                                <span>Clarification Needed ({openClarifications.length} Open)</span>
+                              </span>
+                              <span className="text-[10px] font-mono text-muted">The Q&A Loop</span>
+                            </div>
+                            <div className="grid grid-cols-1 gap-2">
+                              {openClarifications.map((c) => (
                                 <div
                                   key={c.id}
-                                  className={`p-3 rounded-xl border text-xs transition-all ${
-                                    isAnswered
-                                      ? 'bg-ok-tint/30 border-ok/30 text-fg'
-                                      : 'bg-surface border-border shadow-xs'
-                                  }`}
+                                  className="p-3 rounded-xl border border-border bg-surface shadow-xs text-xs space-y-2"
                                 >
-                                  <div className="flex items-center justify-between mb-1.5">
-                                    <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                                      isAnswered ? 'bg-ok text-white' : 'bg-primary-soft text-primary'
-                                    }`}>
-                                      {isAnswered ? 'Confirmed Answer' : 'Question to Answer'}
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary-soft text-primary">
+                                      Question to Answer
                                     </span>
-                                    <span className={`text-[10px] font-mono font-medium ${
-                                      isAnswered ? 'text-ok' : 'text-warn'
-                                    }`}>
-                                      {isAnswered ? 'Resolved' : 'Pending'}
+                                    <span className="text-[10px] font-mono font-medium text-warn">
+                                      Pending
                                     </span>
                                   </div>
-                                  <p className="font-medium text-fg mb-2 leading-relaxed">{c.question}</p>
-                                  {isAnswered ? (
-                                    <div className="p-2 rounded-lg bg-surface/80 border border-border/60 text-xs">
-                                      <span className="text-[10px] font-bold text-ok uppercase block mb-0.5">Jawaban Tersimpan:</span>
-                                      <p className="text-fg-2">{c.answer}</p>
-                                    </div>
-                                  ) : (
-                                    <form
-                                      onSubmit={(e) => {
-                                        e.preventDefault();
-                                        handleAnswerClarification(c.id);
-                                      }}
-                                      className="flex items-center gap-1.5"
+                                  <p className="font-medium text-fg leading-relaxed">{c.question}</p>
+                                  <form
+                                    onSubmit={(e) => {
+                                      e.preventDefault();
+                                      handleAnswerClarification(c.id);
+                                    }}
+                                    className="flex items-center gap-1.5 pt-1"
+                                  >
+                                    <input
+                                      type="text"
+                                      value={clarificationAnswers[c.id] || ''}
+                                      onChange={(e) => setClarificationAnswers(prev => ({ ...prev, [c.id]: e.target.value }))}
+                                      placeholder="Ketik jawaban klarifikasi..."
+                                      className="flex-1 px-2.5 py-1.5 text-xs bg-fill border border-border rounded-lg text-fg placeholder:text-muted focus:outline-none focus:border-primary"
+                                    />
+                                    <button
+                                      type="submit"
+                                      disabled={!clarificationAnswers[c.id]?.trim()}
+                                      className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold disabled:opacity-40 transition-colors shadow-2xs shrink-0"
                                     >
-                                      <input
-                                        type="text"
-                                        value={clarificationAnswers[c.id] || ''}
-                                        onChange={(e) => setClarificationAnswers(prev => ({ ...prev, [c.id]: e.target.value }))}
-                                        placeholder="Ketik jawaban klarifikasi..."
-                                        className="flex-1 px-2.5 py-1.5 text-xs bg-surface border border-border rounded-lg text-fg placeholder:text-muted focus:outline-none focus:border-primary"
-                                      />
-                                      <button
-                                        type="submit"
-                                        disabled={!clarificationAnswers[c.id]?.trim()}
-                                        className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold disabled:opacity-40 transition-colors shadow-2xs shrink-0"
-                                      >
-                                        Simpan Jawaban
-                                      </button>
-                                    </form>
-                                  )}
+                                      Simpan Jawaban
+                                    </button>
+                                  </form>
                                 </div>
-                              );
-                            })}
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   );
                 })
@@ -2132,28 +2241,26 @@ export default function App() {
                 )}
 
                 {/* Floating Slash Commands Popover */}
-                {showSlashMenu && (
+                {showSlashMenu && filteredSlashCommands.length > 0 && (
                   <div
                     ref={slashMenuRef}
-                    className="absolute bottom-[calc(100%+8px)] left-4 right-4 max-w-lg bg-surface border border-border rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-border/60 animate-in fade-in slide-in-from-bottom-2"
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="absolute bottom-[calc(100%+8px)] left-4 right-4 max-w-lg bg-surface border border-border rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-border/60 animate-in fade-in slide-in-from-bottom-2 select-none"
                   >
                     <div className="px-3 py-2 bg-panel flex items-center justify-between text-[11px] font-semibold text-muted">
                       <span>Perintah Cepat AI Studio</span>
                       <span className="font-mono text-[10px] text-muted">Gunakan ↑ ↓ Enter atau klik</span>
                     </div>
-                    <div className="max-h-60 overflow-y-auto py-1">
-                      {slashCommands
-                        .filter(c =>
-                          c.cmd.toLowerCase().startsWith(inputMessage.toLowerCase()) ||
-                          c.label.toLowerCase().includes(inputMessage.toLowerCase().replace('/', ''))
-                        )
-                        .map((cmd, idx) => {
+                    <div className="max-h-60 overflow-y-auto overscroll-contain py-1 mqs-scroll">
+                      {filteredSlashCommands.map((cmd, idx) => {
                           const CmdIcon = cmd.icon;
                           const isSelected = idx === selectedSlashIndex;
                           return (
                             <button
                               key={cmd.cmd}
+                              ref={(el) => (slashItemRefs.current[idx] = el)}
                               type="button"
+                              onMouseDown={(e) => e.preventDefault()}
                               onClick={() => handleSelectSlashCommand(cmd)}
                               onMouseEnter={() => setSelectedSlashIndex(idx)}
                               className={`w-full px-3 py-2 text-left flex items-center justify-between gap-2 text-xs transition-colors ${
@@ -2339,20 +2446,16 @@ export default function App() {
                         }
                       }}
                       onKeyDown={(e) => {
-                        const filtered = slashCommands.filter(c =>
-                          c.cmd.toLowerCase().startsWith(inputMessage.toLowerCase()) ||
-                          c.label.toLowerCase().includes(inputMessage.toLowerCase().replace('/', ''))
-                        );
-                        if (showSlashMenu && filtered.length > 0) {
+                        if (showSlashMenu && filteredSlashCommands.length > 0) {
                           if (e.key === 'ArrowDown') {
                             e.preventDefault();
-                            setSelectedSlashIndex(prev => (prev + 1) % filtered.length);
+                            setSelectedSlashIndex(prev => (prev + 1) % filteredSlashCommands.length);
                           } else if (e.key === 'ArrowUp') {
                             e.preventDefault();
-                            setSelectedSlashIndex(prev => (prev - 1 + filtered.length) % filtered.length);
+                            setSelectedSlashIndex(prev => (prev - 1 + filteredSlashCommands.length) % filteredSlashCommands.length);
                           } else if (e.key === 'Enter') {
                             e.preventDefault();
-                            const selected = filtered[selectedSlashIndex] || filtered[0];
+                            const selected = filteredSlashCommands[selectedSlashIndex] || filteredSlashCommands[0];
                             if (selected) {
                               handleSelectSlashCommand(selected);
                             }
@@ -2699,9 +2802,9 @@ export default function App() {
         )}
       </main>
 
-      {/* 3. Context / Inspector Panel (Right Pane - w-80 inside mqs-main) */}
+      {/* 3. Context / Inspector Panel (Right Pane - w-72 inside mqs-main) */}
       {showInspector && activeProject && (
-        <aside className="w-80 mr-2 mb-2 rounded-[12px] border border-border/80 bg-panel/60 shadow-2xs flex flex-col overflow-hidden shrink-0 backdrop-blur-xs">
+        <aside className="w-72 mr-2 mb-2 rounded-[12px] border border-border/80 bg-panel/60 shadow-2xs flex flex-col overflow-hidden shrink-0 backdrop-blur-xs">
           
           {/* Inspector Header: Selected Title on Left, 3-Dot Dropdown on Right (mq-studio style) */}
           <div className="h-11 px-3.5 border-b border-border flex items-center justify-between shrink-0 relative bg-surface/80 backdrop-blur-xs">
@@ -3419,7 +3522,7 @@ export default function App() {
       {/* Advanced Settings & System Diagnostics Modal (Two-Pane Master-Detail) */}
       {showSettingsModal && (
         <div className="fixed inset-0 bg-black/45 backdrop-blur-xs z-50 flex items-center justify-center p-3 md:p-4">
-          <div className="bg-surface border border-border rounded-[14px] w-[988px] max-w-[95vw] h-[672px] max-h-[88vh] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+          <div className="bg-surface border border-border rounded-[14px] w-[920px] max-w-[94vw] h-[640px] max-h-[88vh] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-100">
             
             {/* 1. Modal Header Bar (h-14 / 56px) */}
             <div className="h-14 px-6 border-b border-border flex items-center justify-between shrink-0 bg-surface">
@@ -3506,211 +3609,77 @@ export default function App() {
                   </div>
                 )}
 
-                {/* 1. Appearance & Theme Selection */}
+                {/* 1. Appearance, Theme & UI Scale */}
                 <div className="p-4 bg-fill-soft rounded-xl border border-border space-y-4">
                   <div>
                     <h4 className="font-semibold text-sm text-fg flex items-center gap-2">
                       <Sun size={16} className="text-primary" />
-                      Appearance & Color Themes (Tampilan & Tema)
+                      Appearance & Interface Scaling
                     </h4>
                     <p className="text-xs text-muted mt-0.5">
-                      Pilih tema visual yang nyaman untuk workspace coding assistant: Warm Stone (terang), Obsidian Slate (gelap), atau Otomatis.
+                      Sesuaikan tema warna antarmuka dan rasio skala tampilan agar nyaman di monitor standar maupun layar HiDPI.
                     </p>
                   </div>
 
-                  {/* 3 Theme Mockup Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {/* Light Mode Card */}
-                    <div
-                      onClick={() => {
-                        applyTheme('light');
-                        setGeneralSettings(prev => ({ ...prev, theme: 'light' }));
-                      }}
-                      className={`rounded-xl border transition-all cursor-pointer overflow-hidden flex flex-col justify-between ${
-                        themeMode === 'light'
-                          ? 'border-primary ring-2 ring-primary/20 bg-surface shadow-2xs'
-                          : 'border-border bg-surface hover:border-border-soft'
-                      }`}
-                    >
-                      <div className="h-20 bg-[#f2ede4] border-b border-[#e5dfd5] relative overflow-hidden p-1 flex flex-col">
-                        <div className="h-3.5 bg-[#f5f0e8] border-b border-[#e5dfd5] flex items-center px-1.5 gap-1 shrink-0">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#d8d2c8]" />
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#d8d2c8]" />
-                          <span className="w-8 h-2 rounded bg-white border border-[#e5dfd5] ml-1" />
-                        </div>
-                        <div className="flex-1 flex gap-1 pt-1 overflow-hidden">
-                          <div className="w-6 bg-[#f2ede4] flex flex-col gap-1 p-0.5 shrink-0">
-                            <span className="w-full h-1.5 rounded bg-[#e5dfd5]" />
-                            <span className="w-full h-1.5 rounded bg-[#e5dfd5]" />
-                          </div>
-                          <div className="flex-1 bg-[#faf6f0] rounded border border-[#e5dfd5] p-1.5 space-y-1">
-                            <span className="block w-3/4 h-1.5 rounded bg-[#e5dfd5]" />
-                            <span className="block w-1/2 h-1 rounded bg-[#ece6dc]" />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="p-3 flex items-start justify-between gap-2">
-                        <div>
-                          <div className="font-semibold text-xs text-fg flex items-center gap-1.5">
-                            <span>Light (Warm Stone)</span>
-                          </div>
-                          <p className="text-[11.5px] text-muted mt-0.5">
-                            Palet batu hangat alami, cerah dan nyaman di siang hari.
-                          </p>
-                        </div>
-                        <span className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
-                          themeMode === 'light' ? 'border-primary bg-primary text-white' : 'border-border'
-                        }`}>
-                          {themeMode === 'light' && <Check size={10} strokeWidth={3} />}
-                        </span>
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                    {/* Theme Select Dropdown */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-fg">
+                        Color Theme (Tema Warna)
+                      </label>
+                      <select
+                        value={themeMode}
+                        onChange={(e) => {
+                          const nextTheme = e.target.value as 'light' | 'dark' | 'system';
+                          applyTheme(nextTheme);
+                          setGeneralSettings(prev => ({ ...prev, theme: nextTheme }));
+                        }}
+                        className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-xs text-fg focus:outline-hidden focus:border-primary transition-colors cursor-pointer"
+                      >
+                        <option value="light">Light (Warm Stone) — Palet terang alami</option>
+                        <option value="dark">Dark (Obsidian Slate) — Kontras tajam & anti-silau</option>
+                        <option value="system">System / Auto — Ikuti preferensi OS</option>
+                      </select>
+                      <p className="text-[11px] text-muted leading-relaxed">
+                        {themeMode === 'light' && 'Palet batu hangat cerah, optimal untuk siang hari.'}
+                        {themeMode === 'dark' && 'Kontras tinggi WCAG AAA untuk fokus sesi coding malam.'}
+                        {themeMode === 'system' && 'Menyelaraskan tema secara dinamis dengan sistem operasi.'}
+                      </p>
                     </div>
 
-                    {/* Dark Mode Card */}
-                    <div
-                      onClick={() => {
-                        applyTheme('dark');
-                        setGeneralSettings(prev => ({ ...prev, theme: 'dark' }));
-                      }}
-                      className={`rounded-xl border transition-all cursor-pointer overflow-hidden flex flex-col justify-between ${
-                        themeMode === 'dark'
-                          ? 'border-primary ring-2 ring-primary/20 bg-surface shadow-2xs'
-                          : 'border-border bg-surface hover:border-border-soft'
-                      }`}
-                    >
-                      <div className="h-20 bg-[#121110] border-b border-[#2a2724] relative overflow-hidden p-1 flex flex-col">
-                        <div className="h-3.5 bg-[#171513] border-b border-[#2a2724] flex items-center px-1.5 gap-1 shrink-0">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#3a3632]" />
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#3a3632]" />
-                          <span className="w-8 h-2 rounded bg-[#1a1816] border border-[#2a2724] ml-1" />
-                        </div>
-                        <div className="flex-1 flex gap-1 pt-1 overflow-hidden">
-                          <div className="w-6 bg-[#121110] flex flex-col gap-1 p-0.5 shrink-0">
-                            <span className="w-full h-1.5 rounded bg-[#2a2724]" />
-                            <span className="w-full h-1.5 rounded bg-[#2a2724]" />
-                          </div>
-                          <div className="flex-1 bg-[#1a1816] rounded border border-[#2a2724] p-1.5 space-y-1">
-                            <span className="block w-3/4 h-1.5 rounded bg-[#332f2b]" />
-                            <span className="block w-1/2 h-1 rounded bg-[#25221f]" />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="p-3 flex items-start justify-between gap-2">
-                        <div>
-                          <div className="font-semibold text-xs text-fg flex items-center gap-1.5">
-                            <span>Dark (Obsidian Slate)</span>
-                          </div>
-                          <p className="text-[11.5px] text-muted mt-0.5">
-                            Kontras tajam & anti-lelah, minim silau untuk sesi fokus malam hari.
-                          </p>
-                        </div>
-                        <span className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
-                          themeMode === 'dark' ? 'border-primary bg-primary text-white' : 'border-border'
-                        }`}>
-                          {themeMode === 'dark' && <Check size={10} strokeWidth={3} />}
+                    {/* UI Scale / Zoom Dropdown */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-semibold text-fg">
+                          UI Scale & HiDPI Zoom
+                        </label>
+                        <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-primary-soft text-primary">
+                          {fontScale === 'auto' ? 'Auto HiDPI' : `${fontScale}%`}
                         </span>
                       </div>
-                    </div>
-
-                    {/* System Auto Card */}
-                    <div
-                      onClick={() => {
-                        applyTheme('system');
-                        setGeneralSettings(prev => ({ ...prev, theme: 'system' }));
-                      }}
-                      className={`rounded-xl border transition-all cursor-pointer overflow-hidden flex flex-col justify-between ${
-                        themeMode === 'system'
-                          ? 'border-primary ring-2 ring-primary/20 bg-surface shadow-2xs'
-                          : 'border-border bg-surface hover:border-border-soft'
-                      }`}
-                    >
-                      <div className="h-20 relative overflow-hidden border-b border-border grid grid-cols-2">
-                        {/* Left Light Half */}
-                        <div className="bg-[#f2ede4] p-1 flex flex-col border-r border-border">
-                          <div className="h-3.5 bg-[#f5f0e8] border-b border-[#e5dfd5] flex items-center px-1 shrink-0">
-                            <span className="w-5 h-2 rounded bg-white border border-[#e5dfd5]" />
-                          </div>
-                          <div className="flex-1 bg-[#faf6f0] mt-1 rounded border border-[#e5dfd5] p-1">
-                            <span className="block w-3/4 h-1.5 rounded bg-[#e5dfd5]" />
-                          </div>
-                        </div>
-                        {/* Right Dark Half */}
-                        <div className="bg-[#121110] p-1 flex flex-col">
-                          <div className="h-3.5 bg-[#171513] border-b border-[#2a2724] flex items-center px-1 shrink-0">
-                            <span className="w-5 h-2 rounded bg-[#1a1816] border border-[#2a2724]" />
-                          </div>
-                          <div className="flex-1 bg-[#1a1816] mt-1 rounded border border-[#2a2724] p-1">
-                            <span className="block w-3/4 h-1.5 rounded bg-[#332f2b]" />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="p-3 flex items-start justify-between gap-2">
-                        <div>
-                          <div className="font-semibold text-xs text-fg flex items-center gap-1.5">
-                            <Monitor size={13} className="text-primary" />
-                            <span>System / Auto</span>
-                          </div>
-                          <p className="text-[11.5px] text-muted mt-0.5">
-                            Otomatis mengikuti preferensi terang/gelap sistem operasi Windows.
-                          </p>
-                        </div>
-                        <span className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
-                          themeMode === 'system' ? 'border-primary bg-primary text-white' : 'border-border'
-                        }`}>
-                          {themeMode === 'system' && <Check size={10} strokeWidth={3} />}
-                        </span>
-                      </div>
+                      <select
+                        value={fontScale}
+                        onChange={(e) => {
+                          const nextScale = e.target.value;
+                          applyFontScale(nextScale);
+                          setGeneralSettings(prev => ({ ...prev, font_size: nextScale }));
+                        }}
+                        className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-xs text-fg focus:outline-hidden focus:border-primary transition-colors cursor-pointer"
+                      >
+                        {SCALE_OPTIONS.map((opt) => (
+                          <option key={opt.id} value={opt.id}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[11px] text-muted leading-relaxed">
+                        {SCALE_OPTIONS.find(o => o.id === fontScale)?.desc || 'Pintasan cepat zoom: Ctrl + / Ctrl - / Ctrl 0'}
+                      </p>
                     </div>
                   </div>
 
-                  {/* 2. Font Scale Selector */}
-                  <div className="pt-2 border-t border-border">
-                    <label className="block font-semibold text-xs text-fg mb-1">
-                      Interface Font Scale (Skala Ukuran Teks)
-                    </label>
-                    <p className="text-xs text-muted mb-3">
-                      Sesuaikan kenyamanan pembacaan teks di seluruh sidebar, editor, chat, dan tabel:
-                    </p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                      {[
-                        { id: 'compact', label: 'Compact (13px)', desc: 'Tampilan padat, memuat lebih banyak baris kode & dokumen.' },
-                        { id: 'standard', label: 'Standard (14px) - Default', desc: 'Skala seimbang & tajam, direkomendasikan untuk kenyamanan harian.' },
-                        { id: 'comfort', label: 'Comfort (15.5px)', desc: 'Teks ekstra besar, anti-lelah untuk monitor QHD/4K atau jarak baca jauh.' }
-                      ].map((item) => {
-                        const isSelected = (fontScale === item.id);
-                        return (
-                          <div
-                            key={item.id}
-                            onClick={() => {
-                              applyFontScale(item.id as any);
-                              setGeneralSettings(prev => ({ ...prev, font_size: item.id }));
-                            }}
-                            className={`p-3 rounded-lg border transition-all cursor-pointer flex flex-col justify-between ${
-                              isSelected
-                                ? 'bg-primary-soft/40 border-primary shadow-2xs'
-                                : 'bg-surface border-border hover:border-border-soft'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="font-semibold text-xs text-fg">{item.label}</span>
-                              <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                                isSelected ? 'border-primary bg-primary text-white' : 'border-border'
-                              }`}>
-                                {isSelected && <Check size={9} strokeWidth={3} />}
-                              </span>
-                            </div>
-                            <p className="text-[11.5px] text-muted leading-relaxed">
-                              {item.desc}
-                            </p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* 3. Animation Toggle */}
-                  <div className="pt-2 border-t border-border flex items-center justify-between">
+                  {/* Animation Toggle */}
+                  <div className="pt-3 border-t border-border flex items-center justify-between">
                     <div>
                       <span className="font-semibold text-xs text-fg">Smooth Motion & Animations</span>
                       <p className="text-[11.5px] text-muted">Aktifkan animasi transisi halus pada modal, tab bar, dan chat bubbles.</p>

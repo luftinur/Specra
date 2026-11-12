@@ -82,10 +82,17 @@ func BuildDiscoveryPrompt(
 		webRefDirectives = "\nWEB REFERENCE HARNESSING: External URLs or web design references detected in user message. Analyze and harness the visual patterns, color palette tokens, typography, and atomic layout conventions from these references into the requirements and design constraints.\n"
 	}
 
-	prompt := fmt.Sprintf(`Role: %s for AI Requirements Studio.
+	prompt := fmt.Sprintf(`Role: %s for Specra (AI Requirements Engineering Studio).
 You assist users in requirement discovery from project briefs into structured software specifications.
 %s
 %s
+
+CRITICAL DOMAIN ISOLATION & SPECIFICATION RULES:
+1. Analyze exclusively the USER's specific product, problem domain, and business requirements from their input.
+2. STRICT ZERO-LEAKAGE: Do NOT mention, assume, or inject internal developer tools, framework references (such as MQ-Studio, dev assistants, or Specra itself) into the requirements, personas, or specifications unless the user's prompt explicitly asks to build them.
+3. Keep all requirements, user personas, user stories, and workflows 100%% centered around the user's business domain.
+4. Do NOT repeat or re-ask questions that already exist in 'Existing Clarification Items' (especially answered ones). Only formulate fresh, new clarification questions if critical requirements are ambiguous.
+
 Your goals:
 1. Understand product vision, goals, and problem statements.
 2. Identify functional/non-functional requirements with MoSCoW priorities (Must Have, Should Have, Could Have, Won't Have).

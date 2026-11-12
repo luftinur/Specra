@@ -120,8 +120,13 @@ func BuildPRDGenerationPrompt(
 		clarBuilder.WriteString(fmt.Sprintf("- Q: %s | Answer: %s\n", c.Question, ans))
 	}
 
-	return fmt.Sprintf(`You are a Principal Product Manager for AI Requirements Studio.
+	return fmt.Sprintf(`You are a Principal Product Manager for Specra (AI Requirements Engineering Studio).
 Generate a complete, professional, publication-ready Product Requirements Document (PRD) in Markdown for the project described below.
+
+CRITICAL DOMAIN ISOLATION & ZERO-LEAKAGE:
+Base this document strictly on the provided PROJECT name, description, confirmed requirements, and clarification Q&A.
+Do NOT mention, assume, or leak internal developer tools, framework references (such as MQ-Studio, dev assistants, or Specra itself) into this document unless the user's project explicitly targets them.
+All personas, use cases, metrics, and workflows must belong 100%% to the user's application domain.
 
 PROJECT:
 Name: %s
@@ -175,8 +180,13 @@ func BuildSRSGenerationPrompt(
 			r.RequirementKey, r.Category, r.Title, r.Description, r.Priority))
 	}
 
-	return fmt.Sprintf(`You are a Lead Software Architect and System Analyst for AI Requirements Studio.
+	return fmt.Sprintf(`You are a Lead Software Architect and System Analyst for Specra.
 Generate a complete, professional Software Requirements Specification (SRS) in Markdown based on the APPROVED PRD below.
+
+CRITICAL DOMAIN ISOLATION & ZERO-LEAKAGE:
+Base this document strictly on the provided PROJECT name, description, and approved PRD baseline.
+Do NOT mention, assume, or leak internal developer tools, framework references (such as MQ-Studio, dev assistants, or Specra itself) into this document.
+All data models, interfaces, APIs, and functional specs must belong 100%% to the user's application domain.
 
 PROJECT:
 Name: %s
@@ -232,8 +242,13 @@ func BuildDesignGenerationPrompt(
 		}
 	}
 
-	return fmt.Sprintf(`You are an elite UI/UX Architect and Design System Specialist for AI Requirements Studio.
+	return fmt.Sprintf(`You are an elite UI/UX Architect and Design System Specialist for Specra.
 Generate a comprehensive Design Specification and Design System (design.md) for the following project:
+
+CRITICAL DOMAIN ISOLATION & ZERO-LEAKAGE:
+Design a cohesive, bespoke visual identity, theme tokens, and component architecture strictly for the user's specific project domain.
+Do NOT mention, assume, or leak internal developer tools, framework references (such as MQ-Studio, dev assistants, or Specra itself) into this design system.
+All color tokens, screen flows, components, and wireframes must belong 100%% to the user's application.
 
 PROJECT:
 Name: %s
@@ -284,8 +299,14 @@ func BuildArchitectureGenerationPrompt(
 			r.RequirementKey, r.Title, r.Category, r.Priority, r.Description))
 	}
 
-	return fmt.Sprintf(`You are a Principal Software Architect.
+	return fmt.Sprintf(`You are a Principal Software Architect for Specra.
 Generate an industry-standard, comprehensive Architecture Document (architecture.md) for the project:
+
+CRITICAL DOMAIN ISOLATION & ZERO-LEAKAGE:
+Base this architecture strictly on the provided PROJECT name, description, approved PRD, and approved SRS.
+Do NOT mention, assume, or leak internal developer tools, framework references (such as MQ-Studio, dev assistants, or Specra itself) into this document.
+All C4 models, API contracts, deployment topologies, and database schemas must belong 100%% to the user's application.
+
 Project Name: %s
 Project Description: %s
 

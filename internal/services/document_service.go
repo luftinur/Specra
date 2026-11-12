@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"ai-requirements-studio/internal/ai"
@@ -36,6 +37,13 @@ func NewDocumentService(
 		workspace:    wm,
 		orchestrator: orch,
 	}
+}
+
+func (s *DocumentService) getWorkDir(projectID string) string {
+	if s.workspace != nil {
+		return s.workspace.ProjectDir(projectID)
+	}
+	return ""
 }
 
 func (s *DocumentService) GetDocumentDetails(projectID string, docType string) (map[string]any, error) {
@@ -96,6 +104,7 @@ func (s *DocumentService) GeneratePRD(projectID string) (*domain.DocumentVersion
 
 	resp, err := s.orchestrator.Execute(ctx, ai.GenerateRequest{
 		ProjectID: projectID,
+		WorkDir:   s.getWorkDir(projectID),
 		Role:      "Product Analyst",
 		Prompt:    prompt,
 	})
@@ -150,6 +159,7 @@ func (s *DocumentService) RegeneratePRDSection(projectID string, sectionNumber i
 
 	resp, err := s.orchestrator.Execute(ctx, ai.GenerateRequest{
 		ProjectID: projectID,
+		WorkDir:   s.getWorkDir(projectID),
 		Role:      "Product Analyst",
 		Prompt:    prompt,
 	})
@@ -220,6 +230,7 @@ func (s *DocumentService) GenerateSRS(projectID string) (*domain.DocumentVersion
 
 	resp, err := s.orchestrator.Execute(ctx, ai.GenerateRequest{
 		ProjectID: projectID,
+		WorkDir:   s.getWorkDir(projectID),
 		Role:      "System Analyst",
 		Prompt:    prompt,
 	})
@@ -273,6 +284,7 @@ func (s *DocumentService) RegenerateSRSSection(projectID string, sectionNumber i
 
 	resp, err := s.orchestrator.Execute(ctx, ai.GenerateRequest{
 		ProjectID: projectID,
+		WorkDir:   s.getWorkDir(projectID),
 		Role:      "System Analyst",
 		Prompt:    prompt,
 	})
@@ -351,6 +363,7 @@ func (s *DocumentService) GenerateDesign(projectID string) (*domain.DocumentVers
 
 	resp, err := s.orchestrator.Execute(ctx, ai.GenerateRequest{
 		ProjectID: projectID,
+		WorkDir:   s.getWorkDir(projectID),
 		Role:      "UI/UX Architect",
 		Prompt:    prompt,
 	})
@@ -404,6 +417,7 @@ func (s *DocumentService) RegenerateDesignSection(projectID string, sectionNumbe
 
 	resp, err := s.orchestrator.Execute(ctx, ai.GenerateRequest{
 		ProjectID: projectID,
+		WorkDir:   s.getWorkDir(projectID),
 		Role:      "UI/UX Architect",
 		Prompt:    prompt,
 	})
@@ -482,6 +496,7 @@ func (s *DocumentService) GenerateArchitecture(projectID string) (*domain.Docume
 
 	resp, err := s.orchestrator.Execute(ctx, ai.GenerateRequest{
 		ProjectID: projectID,
+		WorkDir:   s.getWorkDir(projectID),
 		Role:      "Principal Software Architect",
 		Prompt:    prompt,
 	})
@@ -535,6 +550,7 @@ func (s *DocumentService) RegenerateArchitectureSection(projectID string, sectio
 
 	resp, err := s.orchestrator.Execute(ctx, ai.GenerateRequest{
 		ProjectID: projectID,
+		WorkDir:   s.getWorkDir(projectID),
 		Role:      "Principal Software Architect",
 		Prompt:    prompt,
 	})
@@ -623,4 +639,52 @@ func (s *DocumentService) ExportDocument(projectID string, docType string, targe
 	}
 
 	return os.WriteFile(targetPath, []byte(currVer.Content), 0644)
+}
+
+func (s *DocumentService) ExportAllDocuments(projectID string, targetDir string) (map[string]string, error) {
+	ctx := context.Background()
+	results := make(map[string]string)
+
+	if targetDir == "" {
+		if s.workspace != nil {
+			targetDir = filepath.Join(s.workspace.ProjectDir(projectID), "exports")
+		} else {
+			targetDir = "."
+		}
+	}
+
+	if err := os.MkdirAll(targetDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create target export directory: %w", err)
+	}
+
+	docTypes := []struct {
+		dt       domain.DocumentType
+		filename string
+	}{
+		{domain.DocTypePRD, "PRD.md"},
+		{domain.DocTypeSRS, "SRS.md"},
+		{domain.DocTypeArchitecture, "architecture.md"},
+		{domain.DocTypeDesign, "design.md"},
+	}
+
+	for _, d := range docTypes {
+		doc, err := s.docRepo.GetOrCreate(ctx, projectID, d.dt)
+		if err != nil {
+			continue
+		}
+		currVer, err := s.docRepo.GetCurrentVersion(ctx, doc.ID)
+		if err != nil || currVer == nil || currVer.Content == "" {
+			continue
+		}
+		outPath := filepath.Join(targetDir, d.filename)
+		if err := os.WriteFile(outPath, []byte(currVer.Content), 0644); err == nil {
+			results[string(d.dt)] = outPath
+		}
+	}
+
+	if len(results) == 0 {
+		return nil, fmt.Errorf("no generated documents available to export")
+	}
+
+	return results, nil
 }

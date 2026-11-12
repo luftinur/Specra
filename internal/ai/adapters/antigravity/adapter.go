@@ -86,6 +86,9 @@ func (a *Adapter) Generate(ctx context.Context, req ai.GenerateRequest) (*ai.Gen
 	}
 
 	cmd := exec.CommandContext(ctx, a.executablePath, args...)
+	if req.WorkDir != "" {
+		cmd.Dir = req.WorkDir
+	}
 
 	var stdoutBuf, stderrBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf

@@ -75,6 +75,38 @@ Fase 13 telah selesai diimplementasikan penuh untuk menghadirkan pengalaman visu
   - Hasil benchmark unit test membuktikan **penghematan token sebesar 38,2% hingga 50%+** dibanding JSON standar.
   - Decoder TOON terintegrasi langsung ke dalam `ParseDiscoveryOutput`.
 
+### H. Decoupling MQ-Studio, Slash Auto-Scroll, Export All Docs, Chat Q&A Deduplication & Adaptive HiDPI Scaling
+- **CLI Subprocess Sandboxing (`cmd.Dir`)**:
+  - `GenerateRequest` kini membawa `WorkDir: s.workspace.ProjectDir(projectID)`.
+  - Adapter `antigravity` dan `opencode` kini menyetel `cmd.Dir = req.WorkDir`. Agen CLI mengeksekusi terisolasi di direktori proyek pengguna tanpa membaca repositori pengembang (`AGENTS.md` atau `_ref_ui/`).
+- **Domain Isolation Directives**:
+  - `BuildDiscoveryPrompt` dan generator dokumen (PRD, SRS, Architecture, Design) diperbarui dengan aturan isolasi ketat yang melarang pembocoran kerangka internal developer ke dokumen kebutuhan pengguna.
+- **Slash Commands Popover Buttery Smooth & Auto-Scroll**:
+  - Filter kueri slash commands dipusatkan menggunakan `useMemo`.
+  - `slashItemRefs` dan `useEffect` otomatis memicu `scrollIntoView({ block: 'nearest', behavior: 'smooth' })` saat `selectedSlashIndex` berganti via ArrowDown/ArrowUp.
+  - Ditambahkan `onMouseDown={(e) => e.preventDefault()}` dan `overscroll-contain` sehingga klik tidak mencabut fokus kursor dari input teks dan scroll dropup tidak menggerakkan chat di belakangnya.
+- **Fitur "Export All Documents" (PRD, SRS, Architecture, Design)**:
+  - Ditambahkan fungsi backend `ExportAllDocuments(projectID, targetDir)`.
+  - Tombol `Export All (.md)` kini tersedia di Header Bar baik dari halaman Dokumen maupun langsung saat berada di tampilan **Chat**.
+- **Deduplikasi Kartu Konfirmasi Chat**:
+  - Di dalam bubble chat, hanya pertanyaan klarifikasi berstatus pending/terbuka yang di-render (`clarifications.filter(c => c.status !== 'answered' && !c.answer)`). Pertanyaan yang sudah dijawab otomatis hilang dari bubble chat dan tersimpan rapi di Right Inspector.
+- **Adaptive HiDPI UI Scaling & Layout Optimization**:
+  - Mengimplementasikan `resolveZoomFactor(scale, width, height)` di [`frontend/src/lib/uiScale.ts`](file:///E:/dev-agent-assistant/frontend/src/lib/uiScale.ts) dengan faktor skala terkontrol (0.90x hingga 1.25x) sehingga teks besar dan jelas tanpa merusak tata letak layar laptop HiDPI (3072×1920 @ 175%).
+  - **Penyederhanaan Tampilan Pengaturan (Dropdown-Based)**:
+    - Mengganti grid kartu mockup besar dengan **`<select>` dropdown elegan dan ringkas** pada tab *General & Appearance*.
+    - Dropdown Tema: `Light (Warm Stone)`, `Dark (Obsidian Slate)`, dan `System / Auto`.
+    - Dropdown Skala UI: `Auto (Adaptive HiDPI)`, `90% (Compact)`, `100% (Default)`, `105%`, `110%`, `115%`, `120%`, `125%`.
+    - Tombol pintasan global keyboard tetap aktif: `Ctrl +`, `Ctrl -`, `Ctrl 0`.
+  - **Pencegahan Layout Overflow & Optimalisasi Ruang Kolom Utama**:
+    - Lebar sidebar kiri disesuaikan dari 256px ke **230px**.
+    - Lebar inspector kanan disesuaikan dari 320px (`w-80`) ke **288px (`w-72`)**.
+    - Dimensi Settings Modal disesuaikan ke `w-[920px] max-w-[94vw] h-[640px] max-h-[88vh]` sehingga tidak pernah terpotong atau overflow keluar batas layar.
+    - Kolom panggung utama (`.mqs-content`) tetap luas, seimbang, dan bebas dari horizontal overflow.
+  - Akses cepat ke General & Appearance disediakan dari:
+    1. Tombol ikon Settings di pojok kanan TitleBar.
+    2. Tombol baris baru **`General & Appearance`** di bagian bawah (*footer*) Left Sidebar dengan indikator status skala aktif.
+  - Ditambahkan pintasan keyboard zoom global: `Ctrl +` (Zoom In), `Ctrl -` (Zoom Out), dan `Ctrl 0` (Reset Zoom).
+
 ---
 
 ## 2. Hasil Verifikasi & Pengujian
