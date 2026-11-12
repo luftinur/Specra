@@ -3425,9 +3425,8 @@ export default function App() {
             <div className="h-14 px-6 border-b border-border flex items-center justify-between shrink-0 bg-surface">
               <div className="flex items-center gap-2.5">
                 <SpecraIcon size={20} />
-                <h3 className="font-bold text-base text-fg tracking-tight">
-                  specra Settings
-                </h3>
+                <SpecraWordmark height={16} className="text-fg" />
+                <span className="text-muted text-sm font-medium">Settings</span>
               </div>
               <button 
                 onClick={() => setShowSettingsModal(false)} 

@@ -31,6 +31,8 @@ docs/
 │   ├── plan_agentic_pipeline_and_unified_console.md   # Unified Console, Pipeline Stepper & Interactive Q&A Loop
 │   ├── plan_mermaid_blocks_and_preview_mode.md        # Blok Mermaid Interaktif, Visual Preview & Copy Button
 │   ├── plan_specra_logo_and_icon.md                   # Identitas Visual, SVG App Icon & Wordmark specra
+│   ├── plan_specra_brand_and_icon_refinement.md       # Refinement visualisasi Wordmark geometri & App Icon squircle
+│   ├── plan_review_and_sync_macos_updates.md          # Review & sinkronisasi pembaruan multi-device macOS
 │   └── walkthrough.md                                 # Rangkuman komprehensif & hasil testing
 └── context_history/
     ├── transcript_01_windows.jsonl                    # Log riwayat sesi awal pengembangan di Windows (1.963 steps)
@@ -44,7 +46,8 @@ docs/
 1. **[`AGENTS.md`](../AGENTS.md)**: Pedoman wajib AI Coding Agent, aturan zero-mock, dan SOP sinkronisasi artefak & riwayat.
 2. **[`walkthrough.md`](./artifacts/walkthrough.md)**: Rangkuman arsitektur, perjalanan implementasi menyeluruh (Fase 1-11), dan tabel verifikasi hasil testing.
 3. **[`plan_specra_logo_and_icon.md`](./artifacts/plan_specra_logo_and_icon.md)**: Rencana teknis Identitas Visual, SVG App Icon (512x512 squircle), Wordmark `specra`, dan regenerasi aset native desktop.
-4. **[`plan_mermaid_blocks_and_preview_mode.md`](./artifacts/plan_mermaid_blocks_and_preview_mode.md)**: Rencana teknis Blok Mermaid Interaktif, Visual Preview SVG, Zoom/Pan, Code Toggle & One-Click Copy Button.
+4. **[`plan_specra_brand_and_icon_refinement.md`](./artifacts/plan_specra_brand_and_icon_refinement.md)**: Refinement visualisasi Wordmark murni vektor geometri (single-story `a`, circular counters) & App Icon squircle (palet deep slate).
+5. **[`plan_mermaid_blocks_and_preview_mode.md`](./artifacts/plan_mermaid_blocks_and_preview_mode.md)**: Rencana teknis Blok Mermaid Interaktif, Visual Preview SVG, Zoom/Pan, Code Toggle & One-Click Copy Button.
 4. **[`plan_agentic_pipeline_and_unified_console.md`](./artifacts/plan_agentic_pipeline_and_unified_console.md)**: Rencana teknis Fase 12: Unified Prompt Console, Pipeline Stepper, Interactive Q&A Loop Cards, dan AI Readiness Recommender.
 5. **[`plan_agentic_modes_and_slash_commands.md`](./artifacts/plan_agentic_modes_and_slash_commands.md)**: Rencana teknis Agentic Interaction Modes, Slash Commands System (/plan, /discovery, /exec, /prd), dan Interactive Clarification Cards dalam Chat Bubble.
 6. **[`plan_skills_ux_and_right_inspector_wiring.md`](./artifacts/plan_skills_ux_and_right_inspector_wiring.md)**: Rencana teknis Skills UX Refinement (Dropdown per Persona) dan Interaktivitas Right Inspector (Requirements, Validation, Assumptions, Clarifications).

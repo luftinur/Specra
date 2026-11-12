@@ -158,3 +158,39 @@ Aplikasi ini mengadopsi pola antarmuka dan sistem token warna dari **MQ-Studio (
 - **Kebijakan Git:** Folder `_ref_ui/` (~20 MB, 1.600+ file) secara sengaja dimasukkan ke dalam `.gitignore` agar:
   - Repositori GitHub tetap bersih, ramping, dan cepat saat proses `git clone` atau `git pull`.
   - Fokus repositori murni pada kode sumber aplikasi AI Requirements Studio tanpa menyertakan repositori pihak ketiga.
+
+---
+
+## 10. Identitas Visual, Wordmark & App Icon `specra`
+
+Identitas merek **`specra`** dirancang dengan pendekatan *clean Silicon Valley tech standard* yang minimalis, tegas, dan berbobot sebagai platform *requirements engineering* profesional:
+
+### 10.1. Bedah Visualisasi Wordmark `specra`
+- **Tipologi & Klasifikasi Font:**
+  - Kategori: Neo-Grotesk Geometris kontemporer (padanan Geist / Inter Display geometric single-story).
+  - Bobot: Heavy / Bold (700–800) untuk kestabilan visual alat rekayasa perangkat lunak.
+- **Anatomi & Proporsi Huruf (All-Lowercase):**
+  - **`s`**: Kurva simetris, bukaan aperture sedang, dan potongan terminal horizontal 90° presisi.
+  - **`p`**: Stem vertikal turun stabil ke bawah baseline dengan mangkuk (*counter*) bulat geometris sempurna.
+  - **`e` & `c`**: Bentuk lingkaran terbuka (*open circular counters*) dengan horizontal crossbar pada `e` sejajar tepat dengan garis tengah.
+  - **`r` & `a`**: Lengkungan arch pada `r` dipotong bersih; huruf `a` menggunakan model **single-story geometris murni** (lingkaran dengan tiang tegak lurus di kanan) selaras konsisten dengan `p`, `e`, dan `c`.
+- **Implementasi Pure Vector Path:**
+  - Diimplementasikan langsung menggunakan elemen vektor SVG `<path d="...">` pada [`SpecraBrand.tsx`](frontend/src/components/SpecraBrand.tsx) sehingga bebas dependensi font OS dan 100% konsisten di semua lingkungan.
+
+### 10.2. Spesifikasi SVG App Icon (512×512 px)
+- **Bingkai:** Squircle standar macOS/Windows (`rx="106"`).
+- **Latar Belakang:** Deep Slate / Dark Charcoal (`#12151A` ➔ `#0F1115` ➔ `#0A0B0E`) dengan kontras rasio WCAG AAA.
+- **Kedalaman Subtil:**
+  - Refleksi cahaya atas (*ambient specular glow*).
+  - Inner glow border 3.5px (`#FFFFFF` opacity 0.22 ➔ 0.0).
+  - Monogram `s` tebal (*weight 800*, stroke 54px) dengan drop shadow lembut.
+  - Precision engineering accent node dot (`#6366F1` ke `#38BDF8`).
+
+### 10.3. Matriks Aset Multi-Platform
+| Target Platform | Format File | Lokasi Aset | Rekomendasi Dimensi |
+|---|---|---|---|
+| **macOS App Icon** | `.icns` | `build/darwin/icons.icns` | Multi-resolusi (16–1024 px @2x) |
+| **Windows Desktop** | `.ico` | `build/windows/icon.ico` | Multi-layer bitmap (16–256 px) |
+| **Linux Desktop** | `.png` / `.svg` | `build/appicon.svg` | `/usr/share/icons/hicolor/512x512/apps/specra.png` |
+| **Web Favicon / PWA**| `.svg` + `.png` | `frontend/public/favicon.svg` | Favicon SVG dinamis & PNG 32×32 / 192×192 px |
+

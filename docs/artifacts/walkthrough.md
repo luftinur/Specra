@@ -49,6 +49,22 @@ Fase 13 telah selesai diimplementasikan penuh untuk menghadirkan pengalaman visu
 - Orientasi pembukaan dropdown menu Persona Selector (`Product Analyst`) dan Interaction Mode (`Discovery Mode`) di bottom Unified Prompt Console telah diubah dari `top-full mt-1` (ke bawah) menjadi **`bottom-full mb-2`** (ke atas).
 - Menghilangkan masalah dropdown terpotong batas bawah layar (*clipped*), sehingga menu melayang lega di atas console bar.
 
+### F. Pure Vector Wordmark & Squircle App Icon Refinement (`specra`)
+- **Wordmark Geometris Murni (All-Lowercase `specra`):**
+  - Mengonversi implementasi wordmark dari tag `<text>` menjadi **Pure SVG Vector Paths (`<path d="...">`)**.
+  - Huruf **`a`**: *Single-story geometric pure* (lingkaran mangkuk penuh dengan tiang vertikal tegak lurus di kanan), serasi konsisten dengan mangkuk `p`, `e`, dan `c`.
+  - Huruf **`s`**: Kurva simetris dengan potongan terminal 90° horizontal presisi.
+  - Huruf **`p`**: Stem vertikal turun stabil ke bawah baseline dengan circular counter sempurna.
+  - Huruf **`e` & `c`**: Mangkuk lingkaran terbuka dengan horizontal crossbar pada `e` sejajar garis tengah.
+  - Huruf **`r`**: Lengkungan terminal arch terpotong bersih.
+  - Bebas dependensi font sistem dan 100% konsisten di semua platform.
+- **SVG App Icon 512×512 Squircle:**
+  - Palet Deep Slate / Dark Charcoal (`#12151A` ➔ `#0F1115` ➔ `#0A0B0E`) dengan kontras rasio WCAG AAA.
+  - Ambient top specular glow, stroke inner border 3.5px, monogram `s` tebal (*weight 800*, stroke 54px) ber-depth drop shadow, dan engineering spectrum accent node dot (`#6366F1` ➔ `#38BDF8`).
+- **Integrasi UI & Perbaikan TypeScript:**
+  - `SpecraWordmark` kini terintegrasi di Settings Modal Header Bar (`<SpecraIcon size={20} /> <SpecraWordmark height={16} />`) dan TitleBar.
+  - Menyelesaikan warning/error `TS6133` unused import sehingga `npm run build` 100% clean.
+
 ---
 
 ## 2. Hasil Verifikasi & Pengujian
@@ -56,15 +72,15 @@ Fase 13 telah selesai diimplementasikan penuh untuk menghadirkan pengalaman visu
 1. **Frontend Compilation (TypeScript Strict Mode)**:
    ```bash
    cd frontend && npm run build
-   # Output: ✓ built in 790ms (0 TypeScript errors)
+   # Output: ✓ built in 2.70s (0 TypeScript errors)
    ```
 2. **Backend Unit & End-to-End Tests**:
    ```bash
    go test -v ./internal/...
    # Output: PASS (13 test suites, 100% pass)
    ```
-3. **Native macOS Desktop Binary**:
+3. **Native Windows Desktop Binary**:
    ```bash
-   wails3 task darwin:build:native
-   # Output: bin/ai-requirements-studio berhasil dibangun
+   wails3 task build
+   # Output: bin/ai-requirements-studio.exe (22.5 MB) berhasil dibangun
    ```
