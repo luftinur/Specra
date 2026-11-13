@@ -16,9 +16,7 @@ import {
   Edit3, 
   Save, 
   Lock, 
-  CheckCircle,
   FileCode2,
-  FileCheck,
   CheckCircle2,
   AlertTriangle,
   GitBranch,
@@ -50,14 +48,16 @@ import {
   ChevronDown,
   ChevronRight,
   HelpCircle,
-  Copy,
-  Code
+  Columns
 } from 'lucide-react';
 import { MarkdownViewer } from './components/MarkdownViewer';
 import { SpecraLogo, SpecraIcon, SpecraWordmark } from './components/SpecraBrand';
 import { ToastContainer, type ToastItem, type ToastType } from './components/Toast';
 import { ConfirmModal } from './components/ConfirmModal';
 import { ExportModal } from './components/ExportModal';
+import { DesktopMenuBar } from './components/DesktopMenuBar';
+import { DocumentCanvasPane } from './components/DocumentCanvasPane';
+import { useResizablePanel } from './hooks/useResizablePanel';
 import { 
   ProjectService, 
   ConversationService, 
@@ -88,6 +88,34 @@ import type {
 
 export default function App() {
   const [currentView, setCurrentView] = useState<'chat' | 'prd' | 'srs' | 'architecture' | 'design'>('chat');
+  const [layoutMode, setLayoutMode] = useState<'chat' | 'split' | 'doc'>('chat');
+  const [showLeftSidebar, setShowLeftSidebar] = useState<boolean>(true);
+  const [activeDocType, setActiveDocType] = useState<'prd' | 'srs' | 'architecture' | 'design'>('prd');
+
+  // Resizable Panels
+  const leftPanel = useResizablePanel({
+    storageKey: 'specra_left_panel_width',
+    defaultWidth: 230,
+    minWidth: 160,
+    maxWidth: 420,
+    direction: 'left',
+  });
+
+  const rightPanel = useResizablePanel({
+    storageKey: 'specra_right_panel_width',
+    defaultWidth: 320,
+    minWidth: 240,
+    maxWidth: 550,
+    direction: 'right',
+  });
+
+  const centerSplit = useResizablePanel({
+    storageKey: 'specra_chat_split_width',
+    defaultWidth: 540,
+    minWidth: 320,
+    maxWidth: 950,
+    direction: 'left',
+  });
 
   // Open Project Tabs (Figma / MQ-Studio Pattern)
   const [openProjectIds, setOpenProjectIds] = useState<string[]>([]);
@@ -1656,11 +1684,11 @@ export default function App() {
   };
 
   const handleStartEdit = () => {
-    const currentContent = currentView === 'prd' 
+    const currentContent = activeDocType === 'prd' 
       ? prdDetails.current_version?.content || '' 
-      : currentView === 'srs'
+      : activeDocType === 'srs'
       ? srsDetails.current_version?.content || ''
-      : currentView === 'architecture'
+      : activeDocType === 'architecture'
       ? architectureDetails.current_version?.content || ''
       : designDetails.current_version?.content || '';
     setDocEditContent(currentContent);
@@ -1671,7 +1699,7 @@ export default function App() {
     if (!activeProject) return;
     setIsDocLoading(true);
     try {
-      await DocumentService.SaveManualEdit(activeProject.id, currentView, docEditContent);
+      await DocumentService.SaveManualEdit(activeProject.id, activeDocType, docEditContent);
       await loadDocumentDetails(activeProject.id);
       await handleRunValidation();
       setIsEditingDoc(false);
@@ -1818,13 +1846,31 @@ export default function App() {
   const isSRSOutdated = srsDetails.document?.status === 'outdated';
   const isArchitectureApproved = architectureDetails.document?.status === 'approved';
   const isDesignApproved = designDetails.document?.status === 'approved';
-  const activeDocDetails = currentView === 'prd' 
+
+  const activeDocDetails = activeDocType === 'prd' 
     ? prdDetails 
-    : currentView === 'srs' 
+    : activeDocType === 'srs' 
     ? srsDetails 
-    : currentView === 'architecture'
-    ? architectureDetails
+    : activeDocType === 'architecture' 
+    ? architectureDetails 
     : designDetails;
+
+  const handleOpenDocument = (type: 'prd' | 'srs' | 'architecture' | 'design') => {
+    setActiveDocType(type);
+    setCurrentView(type);
+    if (layoutMode === 'chat') {
+      setLayoutMode('split');
+    }
+    if (type === 'prd') {
+      setActiveChatAgent('product-analyst');
+    } else if (type === 'srs') {
+      setActiveChatAgent('system-analyst');
+    } else if (type === 'architecture') {
+      setActiveChatAgent('software-architect');
+    } else if (type === 'design') {
+      setActiveChatAgent('ui-ux-agent');
+    }
+  };
 
   const unresolvedQACount = useMemo(() => {
     const openQ = clarifications.filter(c => c.status === 'open' && !c.answer).length;
@@ -1870,596 +1916,48 @@ export default function App() {
     },
   ];
 
+  const renderDocumentPane = () => (
+    <DocumentCanvasPane
+      docType={activeDocType}
+      document={activeDocDetails.document}
+      currentVersion={activeDocDetails.current_version}
+      sections={activeDocDetails.sections}
+      isDocLoading={isDocLoading}
+      isEditingDoc={isEditingDoc}
+      docEditContent={docEditContent}
+      onDocEditChange={setDocEditContent}
+      selectedSectionNum={selectedSectionNum}
+      onSelectSectionNum={setSelectedSectionNum}
+      docDisplayMode={docDisplayMode}
+      onSetDocDisplayMode={setDocDisplayMode}
+      copiedFullDoc={copiedFullDoc}
+      isDark={isCurrentDark}
+      isPRDApproved={isPRDApproved}
+      isSRSOutdated={isSRSOutdated}
+      layoutMode={layoutMode}
+      onSetLayoutMode={setLayoutMode}
+      onCloseDocPane={() => setLayoutMode('chat')}
+      onGeneratePRD={handleGeneratePRD}
+      onRegeneratePRDSection={handleRegeneratePRDSection}
+      onApprovePRD={handleApprovePRD}
+      onGenerateSRS={handleGenerateSRS}
+      onRegenerateSRSSection={handleRegenerateSRSSection}
+      onApproveSRS={handleApproveSRS}
+      onGenerateArchitecture={handleGenerateArchitecture}
+      onRegenerateArchitectureSection={handleRegenerateArchitectureSection}
+      onApproveArchitecture={handleApproveArchitecture}
+      onGenerateDesign={handleGenerateDesign}
+      onRegenerateDesignSection={handleRegenerateDesignSection}
+      onApproveDesign={handleApproveDesign}
+      onCopyFullDoc={handleCopyFullDoc}
+      onExportDoc={handleExportDoc}
+      onStartEdit={handleStartEdit}
+      onSaveEdit={handleSaveEdit}
+    />
+  );
 
-  return (
-    <div className="m3 flex flex-col w-full h-full overflow-hidden text-fg">
-      
-      {/* 1. Full-Width Title Bar (40px) */}
-      <header className="tb2 h-10 px-3 flex items-center justify-between border-b border-border/60 bg-chrome select-none shrink-0">
-        <div className="mqs-tabrow flex items-center gap-1.5 min-w-0 flex-1">
-          {/* Logo / Project Manager Button */}
-          <button
-            type="button"
-            onClick={() => {
-              setProjectManagerTab('open');
-              setIsProjectManagerOpen(true);
-            }}
-            className="flex items-center gap-2 px-2 py-1 rounded-[6px] hover:bg-fill-mute text-fg transition-colors shrink-0"
-            title="Open Project Manager"
-          >
-            <SpecraLogo size={22} showWordmark={true} />
-          </button>
-
-          <div className="h-4 w-px bg-border/60 mx-2.5 shrink-0" />
-
-          {/* Project Tabs Strip */}
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
-            {openProjectIds.map((pid) => {
-              const proj = projects.find(p => p.id === pid);
-              if (!proj) return null;
-              const isActive = activeProject?.id === pid;
-              return (
-                <div
-                  key={pid}
-                  onClick={() => setActiveProject(proj)}
-                  className={`group relative flex items-center gap-2 px-3 py-1 rounded-[6px] text-xs font-medium cursor-pointer transition-all shrink-0 max-w-[160px] select-none ${
-                    isActive
-                      ? 'bg-surface text-fg shadow-2xs border border-border/80'
-                      : 'text-muted hover:text-fg hover:bg-fill-mute/70 border border-transparent'
-                  }`}
-                  title={proj.name}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-primary' : 'bg-muted-2'}`} />
-                  <span className="truncate pr-3">{proj.name}</span>
-                  <button
-                    type="button"
-                    onClick={(e) => handleCloseProjectTab(pid, e)}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-2 hover:text-err hover:bg-fill-mute transition-colors opacity-0 group-hover:opacity-100"
-                    title="Close tab"
-                  >
-                    <X size={11} />
-                  </button>
-                </div>
-              );
-            })}
-
-            <button
-              type="button"
-              onClick={() => {
-                setProjectManagerTab('create');
-                setIsProjectManagerOpen(true);
-              }}
-              className="flex items-center justify-center w-6 h-6 rounded-[6px] text-muted hover:text-fg hover:bg-fill-mute border border-dashed border-border-dash transition-colors shrink-0"
-              title="Open or Create Project"
-            >
-              <Plus size={13} />
-            </button>
-          </div>
-        </div>
-
-        {/* Right Actions in TitleBar */}
-        <div className="flex items-center gap-2 shrink-0 pl-2">
-          {activeProject && (
-            <div className="flex items-center gap-1.5 text-xs text-muted font-mono">
-              <span className="hidden md:inline px-2 py-0.5 rounded bg-fill-soft border border-border/60">
-                {currentView === 'chat' ? 'Chat Discovery' : currentView === 'prd' ? 'PRD Workspace' : currentView === 'srs' ? 'SRS Workspace' : currentView === 'architecture' ? 'Architecture' : 'Design System'}
-              </span>
-            </div>
-          )}
-
-          {/* Global Actions (Export All available even in Chat) */}
-          {activeProject && currentView === 'chat' && (
-            <button
-              onClick={handleExportAllDocs}
-              className="px-2 py-1 rounded-[6px] border border-border hover:bg-fill-mute text-fg flex items-center gap-1 text-xs transition-colors shadow-2xs"
-              title="Ekspor Seluruh Spesifikasi (PRD, SRS, Architecture, Design) sekaligus ke folder lokal"
-            >
-              <Download size={12} />
-              <span>Export All (.md)</span>
-            </button>
-          )}
-
-          {/* Document Actions (Export & Edit/Simpan) */}
-          {currentView !== 'chat' && activeProject && (
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={handleCopyFullDoc}
-                disabled={!activeDocDetails.current_version?.content}
-                className={`px-2 py-1 rounded-[6px] border border-border flex items-center gap-1 text-xs transition-colors shadow-2xs disabled:opacity-40 ${
-                  copiedFullDoc ? 'bg-ok-tint text-ok font-semibold border-ok/40' : 'hover:bg-fill-mute text-fg'
-                }`}
-                title="Salin seluruh isi dokumen Markdown"
-              >
-                {copiedFullDoc ? <Check size={12} className="text-ok" /> : <Copy size={12} />}
-                <span>{copiedFullDoc ? 'Tersalin!' : 'Copy Doc'}</span>
-              </button>
-
-              <button
-                onClick={handleExportDoc}
-                className="px-2 py-1 rounded-[6px] border border-border hover:bg-fill-mute text-fg flex items-center gap-1 text-xs transition-colors"
-                title="Export Dokumen Ini (.md)"
-              >
-                <Download size={12} />
-                <span>Export</span>
-              </button>
-
-              <button
-                onClick={handleExportAllDocs}
-                className="px-2 py-1 rounded-[6px] border border-border hover:bg-fill-mute text-fg flex items-center gap-1 text-xs transition-colors"
-                title="Ekspor Seluruh Spesifikasi (PRD, SRS, Architecture, Design) sekaligus ke folder lokal"
-              >
-                <Download size={12} />
-                <span>Export All</span>
-              </button>
-
-              {!isEditingDoc ? (
-                <button
-                  onClick={handleStartEdit}
-                  className="px-2 py-1 rounded-[6px] border border-border hover:bg-fill-mute text-fg flex items-center gap-1 text-xs transition-colors"
-                >
-                  <Edit3 size={12} />
-                  <span>Edit</span>
-                </button>
-              ) : (
-                <button
-                  onClick={handleSaveEdit}
-                  className="px-2.5 py-1 rounded-[6px] bg-primary hover:bg-primary-hover text-white flex items-center gap-1 text-xs font-medium transition-colors shadow-2xs"
-                >
-                  <Save size={12} />
-                  <span>Simpan</span>
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* AI Provider Status Pill */}
-          <div 
-            onClick={() => { setSettingsTab('providers'); setShowSettingsModal(true); loadGeneralSettings(); loadTokenUsage(); handleDetectAgents(true); }}
-            className="flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] bg-fill-soft border border-border/60 text-[11px] font-mono cursor-pointer hover:border-primary/50 transition-colors"
-            title={`Active Engine: ${primaryProvider}${providerStatus.model ? ` (${providerStatus.model})` : ''} - Klik untuk kelola`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${providerStatus.available ? 'bg-ok' : 'bg-err'}`} />
-            <span className="text-muted">
-              {providerStatus.model ? `${primaryProvider.replace('-cli', '')} · ${providerStatus.model}` : providerStatus.version}
-            </span>
-          </div>
-
-          {/* Inspector Toggle */}
-          {activeProject && (
-            <button 
-              onClick={() => setShowInspector(!showInspector)}
-              className={`p-1.5 rounded-[6px] transition-colors ${
-                showInspector 
-                  ? 'bg-fill-mute text-fg' 
-                  : 'text-muted hover:text-fg hover:bg-fill-mute'
-              }`}
-              title="Toggle Inspector"
-            >
-              <PanelRight size={15} />
-            </button>
-          )}
-
-          {/* Quick Theme Toggle (Sun / Moon) */}
-          <button
-            onClick={toggleQuickTheme}
-            className="p-1.5 rounded-[6px] text-muted hover:text-fg hover:bg-fill-mute transition-colors"
-            title={isCurrentDark ? "Beralih ke Mode Terang (Light)" : "Beralih ke Mode Gelap (Dark)"}
-          >
-            {isCurrentDark ? (
-              <Sun size={15} className="text-amber-400" />
-            ) : (
-              <Moon size={15} />
-            )}
-          </button>
-
-          {/* Settings Studio */}
-          <button
-            onClick={() => { setShowSettingsModal(true); loadGeneralSettings(); loadTokenUsage(); handleDetectAgents(true); }}
-            className="p-1.5 rounded-[6px] text-muted hover:text-fg hover:bg-fill-mute transition-colors"
-            title="Studio Settings"
-          >
-            <Settings size={15} />
-          </button>
-        </div>
-      </header>
-
-      {/* 2. Main Area: Sidebar + Content Sheet + Inspector */}
-      <div className="mqs-main flex-1 flex min-w-0 min-height-0 overflow-hidden">
-        
-        {/* Left Sidebar (.side3: 230px compact desktop rail) */}
-        <aside className="side3 w-[230px] flex flex-col justify-between shrink-0 py-2.5 px-2 select-none">
-          <div className="space-y-3">
-            {/* Group: Workspace Mode */}
-            <div>
-              <div className="gl text-[10.5px] font-semibold uppercase tracking-wider text-muted-2 px-2 py-1">
-                Workspace
-              </div>
-              <div className="space-y-0.5">
-                <button
-                  onClick={() => { setCurrentView('chat'); setIsEditingDoc(false); }}
-                  className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center gap-2 text-[12px] font-medium transition-colors ${
-                    currentView === 'chat'
-                      ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
-                      : 'text-fg-2 hover:bg-fill-mute hover:text-fg'
-                  }`}
-                >
-                  <MessageSquare size={14} className={currentView === 'chat' ? 'text-primary' : 'text-muted'} />
-                  <span className="truncate">Chat Discovery</span>
-                </button>
-
-                <button
-                  onClick={() => { setCurrentView('prd'); setIsEditingDoc(false); }}
-                  className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center justify-between text-[12px] font-medium transition-colors ${
-                    currentView === 'prd'
-                      ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
-                      : 'text-fg-2 hover:bg-fill-mute hover:text-fg'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <FileText size={14} className={currentView === 'prd' ? 'text-primary shrink-0' : 'text-muted shrink-0'} />
-                    <span className="truncate">PRD Document</span>
-                  </div>
-                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded uppercase font-semibold shrink-0 ${
-                    isPRDApproved ? 'bg-ok-tint text-ok font-semibold' : 'bg-fill text-muted font-medium'
-                  }`}>
-                    {prdDetails.document?.status || 'none'}
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => { setCurrentView('srs'); setIsEditingDoc(false); }}
-                  className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center justify-between text-[12px] font-medium transition-colors ${
-                    currentView === 'srs'
-                      ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
-                      : 'text-fg-2 hover:bg-fill-mute hover:text-fg'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <FileCode2 size={14} className={currentView === 'srs' ? 'text-primary shrink-0' : 'text-muted shrink-0'} />
-                    <span className="truncate">SRS Document</span>
-                  </div>
-                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded uppercase font-semibold shrink-0 ${
-                    isSRSOutdated
-                      ? 'bg-err-bg text-err font-semibold'
-                      : srsDetails.document?.status === 'approved' 
-                      ? 'bg-ok-tint text-ok font-semibold' 
-                      : !isPRDApproved 
-                      ? 'bg-fill text-muted font-medium'
-                      : 'bg-fill text-muted font-medium'
-                  }`}>
-                    {isSRSOutdated ? (
-                      'Outdated'
-                    ) : !isPRDApproved ? (
-                      <span className="flex items-center gap-1 text-[10px]" title="Terkunci: Memerlukan persetujuan PRD">
-                        <Lock size={10} className="text-muted-2" />
-                        <span>Locked</span>
-                      </span>
-                    ) : (
-                      srsDetails.document?.status || 'draft'
-                    )}
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => { setCurrentView('architecture'); setIsEditingDoc(false); }}
-                  className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center justify-between text-[12px] font-medium transition-colors ${
-                    currentView === 'architecture'
-                      ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
-                      : 'text-fg-2 hover:bg-fill-mute hover:text-fg'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Cpu size={14} className={currentView === 'architecture' ? 'text-primary shrink-0' : 'text-muted shrink-0'} />
-                    <span className="truncate">Architecture</span>
-                  </div>
-                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded uppercase font-semibold shrink-0 ${
-                    isArchitectureApproved 
-                      ? 'bg-ok-tint text-ok font-semibold' 
-                      : !isPRDApproved 
-                      ? 'bg-fill text-muted font-medium'
-                      : 'bg-fill text-muted font-medium'
-                  }`}>
-                    {isArchitectureApproved ? (
-                      'approved'
-                    ) : !isPRDApproved ? (
-                      <span className="flex items-center gap-1 text-[10px]" title="Terkunci: Memerlukan persetujuan PRD">
-                        <Lock size={10} className="text-muted-2" />
-                        <span>Locked</span>
-                      </span>
-                    ) : (
-                      architectureDetails.document?.status || 'draft'
-                    )}
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => { setCurrentView('design'); setIsEditingDoc(false); }}
-                  className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center justify-between text-[12px] font-medium transition-colors ${
-                    currentView === 'design'
-                      ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
-                      : 'text-fg-2 hover:bg-fill-mute hover:text-fg'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Sparkles size={14} className={currentView === 'design' ? 'text-primary shrink-0' : 'text-muted shrink-0'} />
-                    <span className="truncate">Design System</span>
-                  </div>
-                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded uppercase font-semibold shrink-0 ${
-                    isDesignApproved 
-                      ? 'bg-ok-tint text-ok font-semibold' 
-                      : !isPRDApproved 
-                      ? 'bg-fill text-muted font-medium'
-                      : 'bg-fill text-muted font-medium'
-                  }`}>
-                    {isDesignApproved ? (
-                      'approved'
-                    ) : !isPRDApproved ? (
-                      <span className="flex items-center gap-1 text-[10px]" title="Terkunci: Memerlukan persetujuan PRD">
-                        <Lock size={10} className="text-muted-2" />
-                        <span>Locked</span>
-                      </span>
-                    ) : (
-                      designDetails.document?.status || 'draft'
-                    )}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Group: Active Project Summary */}
-            <div>
-              <div className="gl text-[11px] font-semibold uppercase tracking-wider text-muted-2 px-2 py-1 flex items-center justify-between">
-                <span>Active Project</span>
-                <button
-                  onClick={() => {
-                    setProjectManagerTab('open');
-                    setIsProjectManagerOpen(true);
-                  }}
-                  className="text-[10px] text-primary hover:underline font-semibold"
-                >
-                  Switch
-                </button>
-              </div>
-
-              {activeProject ? (
-                <div className="p-2.5 rounded-[8px] border border-border bg-fill-soft/80 space-y-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <FolderKanban size={13} className="text-primary shrink-0" />
-                    <span className="font-semibold text-xs text-fg truncate">
-                      {activeProject.name}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted line-clamp-2 leading-relaxed">
-                    {activeProject.description || 'No description provided.'}
-                  </p>
-                  <div className="pt-1 flex items-center justify-between text-[10px] text-muted-2 border-t border-border/60">
-                    <span>{requirements.length} Reqs</span>
-                    <button
-                      onClick={handleOpenEditProject}
-                      className="hover:text-primary font-medium"
-                    >
-                      Edit Info
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-3 rounded-[8px] border border-border/80 bg-fill-soft/50 text-xs text-muted space-y-1.5">
-                  <div className="flex items-center gap-1.5 text-fg-2 font-medium">
-                    <FolderKanban size={13} className="text-muted" />
-                    <span>Belum ada project aktif</span>
-                  </div>
-                  <p className="text-[11px] text-muted-2 leading-relaxed">
-                    Buka project di tab atas atau gunakan tombol pada canvas.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Sidebar Footer */}
-          <div className="space-y-1 pt-2 border-t border-border/60">
-            <button
-              type="button"
-              onClick={() => {
-                setSettingsTab('general');
-                setShowSettingsModal(true);
-                loadGeneralSettings();
-              }}
-              className="w-full flex items-center justify-between text-xs px-2 py-1.5 rounded-[6px] hover:bg-fill-mute text-fg-2 hover:text-fg transition-colors border border-border/50 bg-fill-soft/40 shadow-2xs"
-              title="Buka Pengaturan Tampilan & Font (General & Appearance)"
-            >
-              <div className="flex items-center gap-2">
-                <Sliders size={13} className="text-primary" />
-                <span className="font-medium text-xs">General & Appearance</span>
-              </div>
-              <span className="text-[10.5px] font-mono text-muted uppercase font-semibold">
-                {fontScale === 'auto' ? 'Auto HiDPI' : fontScale}
-              </span>
-            </button>
-
-            <div className="flex items-center justify-between text-xs px-2 py-1 rounded-[6px] border border-border/80 bg-surface shadow-2xs">
-              <div className="flex items-center gap-1.5 text-fg-2">
-                <Bot size={13} className="text-primary" />
-                <span className="font-medium truncate max-w-[130px] capitalize">
-                  {primaryProvider.replace('-cli', '')}
-                </span>
-                {fallbackEnabled && (
-                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-primary-soft text-primary font-semibold">
-                    +FB
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full ${providerStatus.available ? 'bg-ok' : 'bg-err'}`} />
-                <span className="text-[10px] text-muted font-mono">
-                  {tokenSummary ? `${tokenSummary.total_tokens.toLocaleString()} tok` : '0 tok'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        {/* Central Workspace Sheet (.mqs-content - Layered Center Stage) */}
-        <main className="mqs-content flex-1 flex flex-col min-w-0 min-height-0 mr-2 mb-2 rounded-[12px] border border-border bg-surface shadow-xs overflow-hidden relative">
-
-        {/* Global Project Pipeline Stepper Bar */}
-        {activeProject && (
-          <div className="px-4 py-2 border-b border-border bg-panel/75 flex flex-wrap items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar">
-              {pipelineSteps.map((step, idx) => {
-                const isActive = currentView === step.id;
-                const isLocked = step.locked;
-                return (
-                  <React.Fragment key={step.id}>
-                    {idx > 0 && (
-                      <ChevronRight size={13} className="text-muted/40 shrink-0" />
-                    )}
-                    <button
-                      type="button"
-                      disabled={isLocked}
-                      onClick={() => !isLocked && setCurrentView(step.id as any)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 ${
-                        isActive
-                          ? 'bg-primary-soft text-primary font-semibold border border-primary/30 shadow-2xs'
-                          : isLocked
-                          ? 'opacity-40 cursor-not-allowed text-muted'
-                          : 'text-muted hover:text-fg hover:bg-fill-mute cursor-pointer'
-                      }`}
-                      title={isLocked ? 'Prasyarat: Dokumen hulu (PRD) harus disetujui terlebih dahulu' : `Buka tahap ${step.name}`}
-                    >
-                      {step.status === 'completed' ? (
-                        <CheckCircle2 size={13} className="text-ok shrink-0" />
-                      ) : step.status === 'outdated' ? (
-                        <AlertTriangle size={13} className="text-err shrink-0" />
-                      ) : isLocked ? (
-                        <Lock size={12} className="text-muted shrink-0" />
-                      ) : (
-                        <span className={`w-2 h-2 rounded-full shrink-0 ${
-                          isActive ? 'bg-primary animate-pulse' : 'bg-muted/60'
-                        }`} />
-                      )}
-                      <span className="font-semibold">{step.name}</span>
-                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-medium ${
-                        step.status === 'completed'
-                          ? 'bg-ok-tint text-ok font-semibold'
-                          : step.status === 'outdated'
-                          ? 'bg-err-bg text-err font-semibold'
-                          : isActive
-                          ? 'bg-primary text-white font-semibold'
-                          : 'bg-fill text-muted'
-                      }`}>
-                        {step.desc}
-                      </span>
-                    </button>
-                  </React.Fragment>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center gap-2.5 text-xs text-muted shrink-0">
-              {/* Auto Pipeline Trigger Button */}
-              {autoPipelineRunning ? (
-                <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-primary-soft border border-primary/40 text-primary text-xs font-semibold shrink-0 animate-pulse">
-                  <Loader2 size={13} className="animate-spin text-primary" />
-                  <span>{autoPipelineStage || 'Menjalankan Pipeline...'}</span>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => runAutoPipeline(false)}
-                  disabled={!activeProject || isDocLoading}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold shrink-0 transition-all shadow-2xs hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50"
-                  title="Jalankan seluruh rangkaian otomatis: Discovery ➔ PRD ➔ SRS ➔ Architecture ➔ Design System"
-                >
-                  <Zap size={13} className="fill-current text-amber-300" />
-                  <span>Auto Pipeline</span>
-                </button>
-              )}
-
-              <div className="flex items-center gap-1.5 pl-2 border-l border-border/60">
-                <span className="text-[11px] font-mono">Mode:</span>
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
-                  interactionMode === 'discovery'
-                    ? 'bg-primary-soft text-primary'
-                    : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
-                }`}>
-                  {interactionMode}
-                </span>
-              </div>
-              <div className="hidden xl:flex items-center gap-1.5 font-mono text-[11px]">
-                <span className="w-1.5 h-1.5 rounded-full bg-ok" />
-                <span>{currentSpecialist.name}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Auto Pipeline Gating Banner (Paused on Clarifications) */}
-        {pipelinePausedReason && (
-          <div className="mx-4 mt-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between gap-3 text-xs text-amber-800 dark:text-amber-200 shrink-0 shadow-2xs animate-in fade-in slide-in-from-top-1">
-            <div className="flex items-center gap-2.5">
-              <AlertTriangle size={16} className="text-amber-500 shrink-0" />
-              <div>
-                <span className="font-semibold">{pipelinePausedReason}</span>
-                <p className="text-[11.5px] text-muted mt-0.5">Jawab pertanyaan klarifikasi di bawah agar AI tidak berhalusinasi, atau lanjutkan dengan asumsi saat ini.</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => { setPipelinePausedReason(null); runAutoPipeline(true); }}
-                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
-              >
-                <span>Lanjutkan Pipeline</span>
-                <ChevronRight size={13} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setPipelinePausedReason(null)}
-                className="p-1 hover:bg-fill-mute rounded text-muted hover:text-fg transition-colors"
-                title="Tutup pesan"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Auto Pipeline Completion Celebration Banner */}
-        {pipelineCompletedNotice && (
-          <div className="mx-4 mt-2 p-3 bg-ok-tint border border-ok/30 rounded-xl flex items-center justify-between gap-3 text-xs text-ok shrink-0 shadow-2xs animate-in fade-in slide-in-from-top-1">
-            <div className="flex items-center gap-2.5">
-              <CheckCircle2 size={16} className="text-ok shrink-0" />
-              <div>
-                <span className="font-semibold text-fg">Auto Pipeline Selesai! Seluruh 4 Dokumen Spesifikasi Berhasil Disusun</span>
-                <p className="text-[11.5px] text-muted mt-0.5">PRD (20 Sections), SRS (22 Sections), Architecture (16 Sections), dan Design System (16 Sections) siap digunakan.</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={handleExportAllDocs}
-                className="px-3 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
-              >
-                <Download size={13} />
-                <span>Export All (.md)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPipelineCompletedNotice(false)}
-                className="p-1 hover:bg-fill-mute rounded text-muted hover:text-fg transition-colors"
-                title="Tutup pesan"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* VIEW 1: CHAT DISCOVERY */}
-        {currentView === 'chat' && (
-          <div className="flex-1 flex flex-col overflow-hidden">
+  const renderChatPane = () => (
+<div className="flex-1 flex flex-col overflow-hidden h-full">
             <div className="flex-1 overflow-y-auto p-6 space-y-5">
               {!activeProject ? (
                 <div className="h-full flex flex-col items-center justify-center p-6 text-center max-w-lg mx-auto">
@@ -2909,318 +2407,597 @@ export default function App() {
               </div>
             )}
           </div>
-        )}
+  );
 
-        {/* VIEW 2 & 3: DOCUMENT WORKSPACE (PRD & SRS) */}
-        {currentView !== 'chat' && activeProject && (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            
-            {/* Outdated SRS Warning Alert Banner (SYS-SRS-008) */}
-            {currentView === 'srs' && isSRSOutdated && (
-              <div className="p-3 bg-rose-50 dark:bg-rose-950/60 border-b border-rose-200 dark:border-rose-900/40 text-rose-800 dark:text-rose-200 flex items-center justify-between text-xs px-4">
-                <div className="flex items-center gap-2">
-                  <ShieldAlert size={15} className="text-rose-600 shrink-0" />
-                  <span className="font-semibold">SRS Outdated:</span>
-                  <span>PRD telah dimodifikasi setelah SRS dibuat. Harap lakukan re-validasi atau regenerate SRS agar spesifikasi tetap konsisten!</span>
-                </div>
-                <button
-                  onClick={handleGenerateSRS}
-                  className="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white font-medium text-[11px]"
+
+
+  return (
+    <div className="m3 flex flex-col w-full h-full overflow-hidden text-fg">
+      
+      {/* 1. Full-Width Title Bar (40px) */}
+      <header className="tb2 h-10 px-3 flex items-center justify-between border-b border-border/60 bg-chrome select-none shrink-0">
+        <div className="mqs-tabrow flex items-center gap-1.5 min-w-0 flex-1">
+          {/* Logo / Project Manager Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setProjectManagerTab('open');
+              setIsProjectManagerOpen(true);
+            }}
+            className="flex items-center gap-2 px-2 py-1 rounded-[6px] hover:bg-fill-mute text-fg transition-colors shrink-0"
+            title="Open Project Manager"
+          >
+            <SpecraLogo size={22} showWordmark={true} />
+          </button>
+
+          <div className="h-4 w-px bg-border/60 mx-2.5 shrink-0" />
+
+          {/* Project Tabs Strip */}
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+            {openProjectIds.map((pid) => {
+              const proj = projects.find(p => p.id === pid);
+              if (!proj) return null;
+              const isActive = activeProject?.id === pid;
+              return (
+                <div
+                  key={pid}
+                  onClick={() => setActiveProject(proj)}
+                  className={`group relative flex items-center gap-2 px-3 py-1 rounded-[6px] text-xs font-medium cursor-pointer transition-all shrink-0 max-w-[160px] select-none ${
+                    isActive
+                      ? 'bg-surface text-fg shadow-2xs border border-border/80'
+                      : 'text-muted hover:text-fg hover:bg-fill-mute/70 border border-transparent'
+                  }`}
+                  title={proj.name}
                 >
-                  Regenerate SRS
-                </button>
-              </div>
-            )}
-
-            {/* Document Controls Banner */}
-            <div className="p-3 bg-panel border-b border-border flex flex-wrap items-center justify-between gap-3 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-xs text-muted uppercase tracking-wider">
-                    {currentView.toUpperCase()} Status:
-                  </span>
-                  <span className={`text-xs font-semibold uppercase px-2 py-0.5 rounded-[5px] ${
-                    isSRSOutdated && currentView === 'srs'
-                      ? 'bg-err-bg text-err'
-                      : activeDocDetails.document?.status === 'approved'
-                      ? 'bg-ok-tint text-ok font-semibold'
-                      : 'bg-warn-bg text-warn font-semibold'
-                  }`}>
-                    {isSRSOutdated && currentView === 'srs' ? 'Outdated' : activeDocDetails.document?.status || 'draft'}
-                  </span>
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? 'bg-primary' : 'bg-muted-2'}`} />
+                  <span className="truncate pr-3">{proj.name}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => handleCloseProjectTab(pid, e)}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-2 hover:text-err hover:bg-fill-mute transition-colors opacity-0 group-hover:opacity-100"
+                    title="Close tab"
+                  >
+                    <X size={11} />
+                  </button>
                 </div>
+              );
+            })}
 
-                {activeDocDetails.current_version && (
-                  <>
-                    <span className="text-xs font-mono text-muted bg-surface border border-border px-2 py-0.5 rounded-[5px]">
-                      Version: v{activeDocDetails.current_version.version_number}
-                    </span>
+            <button
+              type="button"
+              onClick={() => {
+                setProjectManagerTab('create');
+                setIsProjectManagerOpen(true);
+              }}
+              className="flex items-center justify-center w-6 h-6 rounded-[6px] text-muted hover:text-fg hover:bg-fill-mute border border-dashed border-border-dash transition-colors shrink-0"
+              title="Open or Create Project"
+            >
+              <Plus size={13} />
+            </button>
+          </div>
+        </div>
 
-                    {/* View Mode Switcher: Formatted Preview vs Raw Markdown */}
-                    <div className="flex items-center gap-0.5 bg-surface border border-border rounded-lg p-0.5 text-xs shadow-2xs">
-                      <button
-                        type="button"
-                        onClick={() => setDocDisplayMode('preview')}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
-                          docDisplayMode === 'preview'
-                            ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
-                            : 'text-muted hover:text-fg hover:bg-fill-mute'
-                        }`}
-                      >
-                        <Eye size={12} />
-                        <span>Preview Mode</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDocDisplayMode('source')}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
-                          docDisplayMode === 'source'
-                            ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
-                            : 'text-muted hover:text-fg hover:bg-fill-mute'
-                        }`}
-                      >
-                        <Code size={12} />
-                        <span>Raw Markdown</span>
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+        {/* Right Actions in TitleBar */}
+        <div className="flex items-center gap-1.5 shrink-0 pl-2">
+          {/* Toggle Left Sidebar */}
+          <button
+            type="button"
+            onClick={() => setShowLeftSidebar(prev => !prev)}
+            className={`p-1.5 rounded-[6px] transition-colors cursor-pointer ${
+              showLeftSidebar ? 'bg-fill-mute text-fg' : 'text-muted hover:text-fg hover:bg-fill-mute'
+            }`}
+            title="Toggle Navigator Sidebar (Ctrl+B)"
+          >
+            <Columns size={14} />
+          </button>
 
-              {/* Generation & Approval Buttons */}
-              <div className="flex items-center gap-2">
-                {currentView === 'prd' ? (
-                  <>
+          {/* AI Provider Status Pill */}
+          <div 
+            onClick={() => { setSettingsTab('providers'); setShowSettingsModal(true); loadGeneralSettings(); loadTokenUsage(); handleDetectAgents(true); }}
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] bg-fill-soft border border-border/60 text-[11px] font-mono cursor-pointer hover:border-primary/50 transition-colors"
+            title={`Active Engine: ${primaryProvider}${providerStatus.model ? ` (${providerStatus.model})` : ''} - Klik untuk kelola`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${providerStatus.available ? 'bg-ok' : 'bg-err'}`} />
+            <span className="text-muted">
+              {providerStatus.model ? `${primaryProvider.replace('-cli', '')} · ${providerStatus.model}` : providerStatus.version}
+            </span>
+          </div>
+
+          {/* Inspector Toggle */}
+          {activeProject && (
+            <button 
+              type="button"
+              onClick={() => setShowInspector(!showInspector)}
+              className={`p-1.5 rounded-[6px] transition-colors cursor-pointer ${
+                showInspector 
+                  ? 'bg-fill-mute text-fg' 
+                  : 'text-muted hover:text-fg hover:bg-fill-mute'
+              }`}
+              title="Toggle Project Co-Pilot (Ctrl+J)"
+            >
+              <PanelRight size={14} />
+            </button>
+          )}
+
+          {/* Quick Theme Toggle (Sun / Moon) */}
+          <button
+            type="button"
+            onClick={toggleQuickTheme}
+            className="p-1.5 rounded-[6px] text-muted hover:text-fg hover:bg-fill-mute transition-colors cursor-pointer"
+            title={isCurrentDark ? "Beralih ke Mode Terang (Light)" : "Beralih ke Mode Gelap (Dark)"}
+          >
+            {isCurrentDark ? (
+              <Sun size={14} className="text-amber-400" />
+            ) : (
+              <Moon size={14} />
+            )}
+          </button>
+
+          {/* Settings Studio */}
+          <button
+            type="button"
+            onClick={() => { setShowSettingsModal(true); loadGeneralSettings(); loadTokenUsage(); handleDetectAgents(true); }}
+            className="p-1.5 rounded-[6px] text-muted hover:text-fg hover:bg-fill-mute transition-colors cursor-pointer"
+            title="Studio Settings (Ctrl+,)"
+          >
+            <Settings size={14} />
+          </button>
+        </div>
+      </header>
+
+      {/* 2. Desktop Application Menu Bar (28px) */}
+      <DesktopMenuBar
+        activeProjectName={activeProject?.name}
+        hasActiveProject={Boolean(activeProject)}
+        activeDocType={activeDocType}
+        layoutMode={layoutMode}
+        showLeftSidebar={showLeftSidebar}
+        showRightInspector={showInspector}
+        isDark={isCurrentDark}
+        themeMode={themeMode}
+        docStatuses={{
+          prd: { exists: Boolean(prdDetails.current_version), status: prdDetails.document?.status },
+          srs: { exists: Boolean(srsDetails.current_version), status: srsDetails.document?.status },
+          architecture: { exists: Boolean(architectureDetails.current_version), status: architectureDetails.document?.status },
+          design: { exists: Boolean(designDetails.current_version), status: designDetails.document?.status },
+        }}
+        activeAgentId={activeChatAgent}
+        onNewProject={() => {
+          setProjectManagerTab('create');
+          setIsProjectManagerOpen(true);
+        }}
+        onOpenProjectManager={() => {
+          setProjectManagerTab('open');
+          setIsProjectManagerOpen(true);
+        }}
+        onOpenWorkspaceFolder={handleOpenWorkspaceFolder}
+        onExportActiveDoc={handleExportDoc}
+        onExportAllDocs={handleExportAllDocs}
+        onOpenSettings={(tab) => {
+          if (tab) setSettingsTab(tab as any);
+          setShowSettingsModal(true);
+          loadGeneralSettings();
+          loadTokenUsage();
+          handleDetectAgents(true);
+        }}
+        onClearChat={() => setMessages([])}
+        onCopyDoc={handleCopyFullDoc}
+        onToggleLeftSidebar={() => setShowLeftSidebar(prev => !prev)}
+        onToggleRightInspector={() => setShowInspector(prev => !prev)}
+        onSetLayoutMode={setLayoutMode}
+        onSetTheme={(t) => {
+          applyTheme(t);
+          setGeneralSettings(prev => ({ ...prev, theme: t }));
+          ProviderService.SaveGeneralSettings({ ...generalSettings, theme: t }).catch(() => {});
+        }}
+        onOpenDoc={handleOpenDocument}
+        onSelectAgent={(agentId) => setActiveChatAgent(agentId)}
+        onRunAutoPipeline={() => runAutoPipeline(false)}
+        onRunClarify={async () => {
+          if (activeSession && activeProject) {
+            setIsSending(true);
+            try {
+              await ConversationService.SendMessageWithAgent(
+                activeSession.id,
+                activeProject.id,
+                "[MODE: DISCOVERY] Evaluasi seluruh konteks project saat ini. Identifikasi celah ambiguitas dan ajukan 1-3 pertanyaan klarifikasi penting.",
+                activeChatAgent
+              );
+              const msgs = await ConversationService.ListMessages(activeSession.id);
+              setMessages(msgs || []);
+              await refreshProjectEntities(activeProject.id);
+            } catch (err) {
+              notifyError("Clarify Error", String(err));
+            } finally {
+              setIsSending(false);
+            }
+          }
+        }}
+        onRunValidation={handleRunValidation}
+        onRunDiagnostics={handleRunDiagnostics}
+      />
+
+      {/* 2. Main Area: Sidebar + Content Sheet + Inspector */}
+      <div className="mqs-main flex-1 flex min-w-0 min-height-0 overflow-hidden">
+        
+        {/* Left Sidebar (Navigator & Specifications Tree - Resizable) */}
+        {showLeftSidebar && (
+          <>
+            <aside 
+              style={{ width: `${leftPanel.width}px` }}
+              className="side3 flex flex-col justify-between shrink-0 py-2.5 px-2 select-none border-r border-border/80 bg-panel/40 overflow-y-auto no-scrollbar"
+            >
+              <div className="space-y-3">
+                {/* Group: Specifications Tree */}
+                <div>
+                  <div className="gl text-[10.5px] font-semibold uppercase tracking-wider text-muted-2 px-2 py-1 flex items-center justify-between">
+                    <span>Specifications</span>
+                    <span className="text-[10px] font-mono text-muted">{requirements.length} Reqs</span>
+                  </div>
+                  <div className="space-y-0.5">
                     <button
-                      onClick={handleGeneratePRD}
-                      disabled={isDocLoading}
-                      className="px-3 py-1.5 rounded-[6px] bg-primary hover:bg-primary-hover text-white font-medium text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-2xs"
+                      type="button"
+                      onClick={() => { setLayoutMode('chat'); setCurrentView('chat'); }}
+                      className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center gap-2 text-[12px] font-medium transition-colors cursor-pointer ${
+                        layoutMode === 'chat'
+                          ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
+                          : 'text-fg-2 hover:bg-fill-mute hover:text-fg'
+                      }`}
                     >
-                      {isDocLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-                      <span>{activeDocDetails.current_version ? 'Regenerate Full PRD' : 'Generate PRD Draft'}</span>
+                      <MessageSquare size={14} className={layoutMode === 'chat' ? 'text-primary' : 'text-muted'} />
+                      <span className="truncate">Chat Co-Pilot</span>
                     </button>
 
-                    {activeDocDetails.current_version && activeDocDetails.document?.status !== 'approved' && (
-                      <button
-                        onClick={handleApprovePRD}
-                        className="px-3 py-1.5 rounded-[6px] bg-ok hover:bg-ok-text text-white font-medium text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
-                      >
-                        <CheckCircle size={13} />
-                        <span>Approve PRD</span>
-                      </button>
-                    )}
-                  </>
-                ) : currentView === 'srs' ? (
-                  <>
-                    {!isPRDApproved ? (
-                      <div className="flex items-center gap-1.5 text-xs text-warn bg-warn-bg border border-warn-border px-3 py-1 rounded-[6px]">
-                        <Lock size={13} />
-                        <span>SRS Gated: Approve PRD terlebih dahulu!</span>
-                      </div>
-                    ) : (
-                      <>
-                        <button
-                          onClick={handleGenerateSRS}
-                          disabled={isDocLoading}
-                          className="px-3 py-1.5 rounded-[6px] bg-primary hover:bg-primary-hover text-white font-medium text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-2xs"
-                        >
-                          {isDocLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-                          <span>{activeDocDetails.current_version ? 'Regenerate Full SRS' : 'Generate SRS from Approved PRD'}</span>
-                        </button>
-
-                        {activeDocDetails.current_version && activeDocDetails.document?.status !== 'approved' && (
-                          <button
-                            onClick={handleApproveSRS}
-                            className="px-3 py-1.5 rounded-[6px] bg-ok hover:bg-ok-text text-white font-medium text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
-                          >
-                            <FileCheck size={13} />
-                            <span>Approve SRS</span>
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </>
-                ) : currentView === 'architecture' ? (
-                  <>
-                    {!isPRDApproved ? (
-                      <div className="flex items-center gap-1.5 text-xs text-warn bg-warn-bg border border-warn-border px-3 py-1 rounded-[6px]">
-                        <Lock size={13} />
-                        <span>Architecture Gated: Approve PRD terlebih dahulu!</span>
-                      </div>
-                    ) : (
-                      <>
-                        <button
-                          onClick={handleGenerateArchitecture}
-                          disabled={isDocLoading}
-                          className="px-3 py-1.5 rounded-[6px] bg-primary hover:bg-primary-hover text-white font-medium text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-2xs"
-                        >
-                          {isDocLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-                          <span>{activeDocDetails.current_version ? 'Regenerate Full Architecture' : 'Generate Architecture Draft (16 Sections)'}</span>
-                        </button>
-
-                        {activeDocDetails.current_version && activeDocDetails.document?.status !== 'approved' && (
-                          <button
-                            onClick={handleApproveArchitecture}
-                            className="px-3 py-1.5 rounded-[6px] bg-ok hover:bg-ok-text text-white font-medium text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
-                          >
-                            <Cpu size={13} />
-                            <span>Approve Architecture</span>
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {!isPRDApproved ? (
-                      <div className="flex items-center gap-1.5 text-xs text-warn bg-warn-bg border border-warn-border px-3 py-1 rounded-[6px]">
-                        <Lock size={13} />
-                        <span>Design System Gated: Approve PRD terlebih dahulu!</span>
-                      </div>
-                    ) : (
-                      <>
-                        <button
-                          onClick={handleGenerateDesign}
-                          disabled={isDocLoading}
-                          className="px-3 py-1.5 rounded-[6px] bg-primary hover:bg-primary-hover text-white font-medium text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-2xs"
-                        >
-                          {isDocLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-                          <span>{activeDocDetails.current_version ? 'Regenerate Full Design System' : 'Generate Design System Draft (16 Sections)'}</span>
-                        </button>
-
-                        {activeDocDetails.current_version && activeDocDetails.document?.status !== 'approved' && (
-                          <button
-                            onClick={handleApproveDesign}
-                            className="px-3 py-1.5 rounded-[6px] bg-ok hover:bg-ok-text text-white font-medium text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
-                          >
-                            <CheckCircle2 size={13} />
-                            <span>Approve Design System</span>
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </>
-                )}
-
-                {/* Section-level Regeneration */}
-                {activeDocDetails.current_version && (
-                  <div className="flex items-center gap-1 pl-2 border-l border-border">
-                    <select
-                      value={selectedSectionNum}
-                      onChange={(e) => setSelectedSectionNum(Number(e.target.value))}
-                      className="border border-border rounded-[6px] px-2 py-1 text-xs bg-surface text-fg outline-none"
-                    >
-                      {activeDocDetails.sections.map((sec, idx) => (
-                        <option key={idx + 1} value={idx + 1}>
-                          {idx + 1}. {sec}
-                        </option>
-                      ))}
-                    </select>
                     <button
-                      onClick={currentView === 'prd' ? handleRegeneratePRDSection : currentView === 'srs' ? handleRegenerateSRSSection : currentView === 'architecture' ? handleRegenerateArchitectureSection : handleRegenerateDesignSection}
-                      disabled={isDocLoading}
-                      title="Regenerate selected section"
-                      className="px-2 py-1 rounded-[6px] border border-border hover:bg-fill-mute text-fg text-xs flex items-center gap-1 transition-colors"
+                      type="button"
+                      onClick={() => handleOpenDocument('prd')}
+                      className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center justify-between text-[12px] font-medium transition-colors cursor-pointer ${
+                        activeDocType === 'prd' && layoutMode !== 'chat'
+                          ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
+                          : 'text-fg-2 hover:bg-fill-mute hover:text-fg'
+                      }`}
                     >
-                      <RefreshCw size={12} className={isDocLoading ? 'animate-spin' : ''} />
-                      <span>Regen Section</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText size={14} className={activeDocType === 'prd' && layoutMode !== 'chat' ? 'text-primary shrink-0' : 'text-tone-blue shrink-0'} />
+                        <span className="truncate">1. PRD Document</span>
+                      </div>
+                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded uppercase font-semibold shrink-0 ${
+                        isPRDApproved ? 'bg-ok-tint text-ok' : prdDetails.current_version ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'bg-fill text-muted'
+                      }`}>
+                        {isPRDApproved ? 'Approved' : prdDetails.current_version ? 'Draft' : 'None'}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenDocument('srs')}
+                      className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center justify-between text-[12px] font-medium transition-colors cursor-pointer ${
+                        activeDocType === 'srs' && layoutMode !== 'chat'
+                          ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
+                          : 'text-fg-2 hover:bg-fill-mute hover:text-fg'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileCode2 size={14} className={activeDocType === 'srs' && layoutMode !== 'chat' ? 'text-primary shrink-0' : 'text-tone-teal shrink-0'} />
+                        <span className="truncate">2. SRS Document</span>
+                      </div>
+                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded uppercase font-semibold shrink-0 ${
+                        isSRSOutdated
+                          ? 'bg-err-bg text-err'
+                          : srsDetails.document?.status === 'approved' 
+                          ? 'bg-ok-tint text-ok' 
+                          : !isPRDApproved 
+                          ? 'bg-fill text-muted' 
+                          : 'bg-fill text-muted'
+                      }`}>
+                        {isSRSOutdated ? (
+                          'Outdated'
+                        ) : !isPRDApproved ? (
+                          <span className="flex items-center gap-1 text-[10px]" title="Terkunci: Memerlukan persetujuan PRD">
+                            <Lock size={10} className="text-muted-2" />
+                            <span>Locked</span>
+                          </span>
+                        ) : (
+                          srsDetails.document?.status || (srsDetails.current_version ? 'Draft' : 'Ready')
+                        )}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenDocument('architecture')}
+                      className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center justify-between text-[12px] font-medium transition-colors cursor-pointer ${
+                        activeDocType === 'architecture' && layoutMode !== 'chat'
+                          ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
+                          : 'text-fg-2 hover:bg-fill-mute hover:text-fg'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Cpu size={14} className={activeDocType === 'architecture' && layoutMode !== 'chat' ? 'text-primary shrink-0' : 'text-tone-violet shrink-0'} />
+                        <span className="truncate">3. Architecture</span>
+                      </div>
+                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded uppercase font-semibold shrink-0 ${
+                        isArchitectureApproved 
+                          ? 'bg-ok-tint text-ok' 
+                          : !isPRDApproved 
+                          ? 'bg-fill text-muted' 
+                          : 'bg-fill text-muted'
+                      }`}>
+                        {isArchitectureApproved ? (
+                          'approved'
+                        ) : !isPRDApproved ? (
+                          <span className="flex items-center gap-1 text-[10px]" title="Terkunci: Memerlukan persetujuan PRD">
+                            <Lock size={10} className="text-muted-2" />
+                            <span>Locked</span>
+                          </span>
+                        ) : (
+                          architectureDetails.document?.status || (architectureDetails.current_version ? 'Draft' : 'Ready')
+                        )}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenDocument('design')}
+                      className={`ni w-full text-left px-2.5 py-1.5 rounded-[7px] flex items-center justify-between text-[12px] font-medium transition-colors cursor-pointer ${
+                        activeDocType === 'design' && layoutMode !== 'chat'
+                          ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
+                          : 'text-fg-2 hover:bg-fill-mute hover:text-fg'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Layers size={14} className={activeDocType === 'design' && layoutMode !== 'chat' ? 'text-primary shrink-0' : 'text-tone-orange shrink-0'} />
+                        <span className="truncate">4. Design System</span>
+                      </div>
+                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded uppercase font-semibold shrink-0 ${
+                        isDesignApproved 
+                          ? 'bg-ok-tint text-ok' 
+                          : !isPRDApproved 
+                          ? 'bg-fill text-muted' 
+                          : 'bg-fill text-muted'
+                      }`}>
+                        {isDesignApproved ? (
+                          'approved'
+                        ) : !isPRDApproved ? (
+                          <span className="flex items-center gap-1 text-[10px]" title="Terkunci: Memerlukan persetujuan PRD">
+                            <Lock size={10} className="text-muted-2" />
+                            <span>Locked</span>
+                          </span>
+                        ) : (
+                          designDetails.document?.status || (designDetails.current_version ? 'Draft' : 'Ready')
+                        )}
+                      </span>
                     </button>
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
 
-            {/* Document Content View / Editor */}
-            <div className="flex-1 overflow-y-auto p-8">
-              {isDocLoading ? (
-                <div className="h-64 flex flex-col items-center justify-center space-y-2 text-indigo-600">
-                  <Loader2 size={28} className="animate-spin" />
-                  <span className="text-xs font-medium">AI sedang menyusun spesifikasi dokumen via Antigravity CLI...</span>
-                </div>
-              ) : isEditingDoc ? (
-                <div className="max-w-4xl mx-auto h-full flex flex-col">
-                  <textarea
-                    value={docEditContent}
-                    onChange={(e) => setDocEditContent(e.target.value)}
-                    className="flex-1 w-full p-5 font-mono text-xs leading-relaxed border border-border rounded-lg bg-surface text-fg outline-none focus:border-primary resize-none h-[calc(100vh-250px)] shadow-2xs"
-                  />
-                </div>
-              ) : !activeDocDetails.current_version ? (
-                <div className="h-64 flex flex-col items-center justify-center text-muted space-y-3">
-                  <FileText size={40} className="text-muted/60" />
-                  <p className="text-xs">
-                    Dokumen {currentView.toUpperCase()} belum dibuat untuk project ini.
-                  </p>
-                  {currentView === 'prd' ? (
+                {/* Group: Active Project Summary */}
+                <div>
+                  <div className="gl text-[11px] font-semibold uppercase tracking-wider text-muted-2 px-2 py-1 flex items-center justify-between">
+                    <span>Active Project</span>
                     <button
-                      onClick={handleGeneratePRD}
-                      className="px-4 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-[6px] text-xs font-medium shadow-2xs transition-colors"
+                      type="button"
+                      onClick={() => {
+                        setProjectManagerTab('open');
+                        setIsProjectManagerOpen(true);
+                      }}
+                      className="text-[10px] text-primary hover:underline font-semibold cursor-pointer"
                     >
-                      Generate Draft PRD (20 Sections)
+                      Switch
                     </button>
-                  ) : currentView === 'srs' ? (
-                    isPRDApproved ? (
-                      <button
-                        onClick={handleGenerateSRS}
-                        className="px-4 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-[6px] text-xs font-medium shadow-2xs transition-colors"
-                      >
-                        Generate Draft SRS (22 Sections)
-                      </button>
-                    ) : null
-                  ) : currentView === 'architecture' ? (
-                    isPRDApproved ? (
-                      <button
-                        onClick={handleGenerateArchitecture}
-                        className="px-4 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-[6px] text-xs font-medium shadow-2xs transition-colors"
-                      >
-                        Generate Architecture Draft (16 Sections)
-                      </button>
-                    ) : null
-                  ) : (
-                    isPRDApproved ? (
-                      <button
-                        onClick={handleGenerateDesign}
-                        className="px-4 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-[6px] text-xs font-medium shadow-2xs transition-colors"
-                      >
-                        Generate Design System Draft (16 Sections)
-                      </button>
-                    ) : null
-                  )}
-                </div>
-              ) : (
-                <div className="max-w-5xl mx-auto w-full px-4 py-2">
-                  {docDisplayMode === 'preview' ? (
-                    <MarkdownViewer content={activeDocDetails.current_version.content} isDark={isCurrentDark} />
-                  ) : (
-                    <div className="border border-border rounded-xl bg-surface overflow-hidden shadow-2xs">
-                      <div className="px-3.5 py-2 bg-panel border-b border-border flex items-center justify-between text-xs">
-                        <span className="font-mono text-muted text-[11px]">
-                          Markdown Source (v{activeDocDetails.current_version.version_number})
+                  </div>
+
+                  {activeProject ? (
+                    <div className="p-2.5 rounded-[8px] border border-border bg-fill-soft/80 space-y-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <FolderKanban size={13} className="text-primary shrink-0" />
+                        <span className="font-semibold text-xs text-fg truncate">
+                          {activeProject.name}
                         </span>
+                      </div>
+                      <p className="text-[11px] text-muted line-clamp-2 leading-relaxed">
+                        {activeProject.description || 'No description provided.'}
+                      </p>
+                      <div className="pt-1 flex items-center justify-between text-[10px] text-muted-2 border-t border-border/60">
+                        <span>{requirements.length} Reqs</span>
                         <button
                           type="button"
-                          onClick={handleCopyFullDoc}
-                          className="flex items-center gap-1 text-[11px] text-primary hover:underline font-medium"
+                          onClick={handleOpenEditProject}
+                          className="hover:text-primary font-medium cursor-pointer"
                         >
-                          {copiedFullDoc ? <Check size={11} className="text-ok" /> : <Copy size={11} />}
-                          <span>{copiedFullDoc ? 'Tersalin' : 'Salin Semua'}</span>
+                          Edit Info
                         </button>
                       </div>
-                      <pre className="p-4 overflow-x-auto font-mono text-xs leading-relaxed bg-fill text-fg-2 whitespace-pre-wrap">
-                        <code>{activeDocDetails.current_version.content}</code>
-                      </pre>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-[8px] border border-border/80 bg-fill-soft/50 text-xs text-muted space-y-1.5">
+                      <div className="flex items-center gap-1.5 text-fg-2 font-medium">
+                        <FolderKanban size={13} className="text-muted" />
+                        <span>Belum ada project aktif</span>
+                      </div>
+                      <p className="text-[11px] text-muted-2 leading-relaxed">
+                        Buka project di tab atas atau gunakan tombol pada menu File.
+                      </p>
                     </div>
                   )}
                 </div>
-              )}
+              </div>
+
+              {/* Sidebar Footer */}
+              <div className="space-y-1 pt-2 border-t border-border/60">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSettingsTab('general');
+                    setShowSettingsModal(true);
+                    loadGeneralSettings();
+                  }}
+                  className="w-full flex items-center justify-between text-xs px-2 py-1.5 rounded-[6px] hover:bg-fill-mute text-fg-2 hover:text-fg transition-colors border border-border/50 bg-fill-soft/40 shadow-2xs cursor-pointer"
+                  title="Buka Pengaturan Tampilan & Font"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sliders size={13} className="text-primary" />
+                    <span className="font-medium text-xs">General & Appearance</span>
+                  </div>
+                  <span className="text-[10.5px] font-mono text-muted uppercase font-semibold">
+                    {fontScale === 'auto' ? 'Auto HiDPI' : fontScale}
+                  </span>
+                </button>
+
+                <div className="flex items-center justify-between text-xs px-2 py-1 rounded-[6px] border border-border/80 bg-surface shadow-2xs">
+                  <div className="flex items-center gap-1.5 text-fg-2">
+                    <Bot size={13} className="text-primary" />
+                    <span className="font-medium truncate max-w-[130px] capitalize">
+                      {primaryProvider.replace('-cli', '')}
+                    </span>
+                    {fallbackEnabled && (
+                      <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-primary-soft text-primary font-semibold">
+                        +FB
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`w-1.5 h-1.5 rounded-full ${providerStatus.available ? 'bg-ok' : 'bg-err'}`} />
+                    <span className="text-[10px] text-muted font-mono">
+                      {tokenSummary ? `${tokenSummary.total_tokens.toLocaleString()} tok` : '0 tok'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </aside>
+
+            {/* Draggable Divider for Left Sidebar */}
+            <div
+              onMouseDown={leftPanel.startResize}
+              className="w-1.5 hover:w-2 hover:bg-primary/50 cursor-col-resize transition-all shrink-0 z-20 group relative flex items-center justify-center select-none"
+              title="Tarik untuk mengubah lebar panel navigasi"
+            >
+              <div className="w-0.5 h-8 rounded-full bg-border group-hover:bg-primary" />
             </div>
+          </>
+        )}
+
+        {/* Central Workspace Sheet (.mqs-content - Layered Center Stage) */}
+        <main className="mqs-content flex-1 flex flex-col min-w-0 min-height-0 mr-2 mb-2 rounded-[12px] border border-border bg-surface shadow-xs overflow-hidden relative">
+
+        {/* Auto Pipeline Gating Banner (Paused on Clarifications) */}
+        {pipelinePausedReason && (
+          <div className="mx-4 mt-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between gap-3 text-xs text-amber-800 dark:text-amber-200 shrink-0 shadow-2xs animate-in fade-in slide-in-from-top-1">
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle size={16} className="text-amber-500 shrink-0" />
+              <div>
+                <span className="font-semibold">{pipelinePausedReason}</span>
+                <p className="text-[11.5px] text-muted mt-0.5">Jawab pertanyaan klarifikasi di bawah agar AI tidak berhalusinasi, atau lanjutkan dengan asumsi saat ini.</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => { setPipelinePausedReason(null); runAutoPipeline(true); }}
+                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
+              >
+                <span>Lanjutkan Pipeline</span>
+                <ChevronRight size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setPipelinePausedReason(null)}
+                className="p-1 hover:bg-fill-mute rounded text-muted hover:text-fg transition-colors"
+                title="Tutup pesan"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Auto Pipeline Completion Celebration Banner */}
+        {pipelineCompletedNotice && (
+          <div className="mx-4 mt-2 p-3 bg-ok-tint border border-ok/30 rounded-xl flex items-center justify-between gap-3 text-xs text-ok shrink-0 shadow-2xs animate-in fade-in slide-in-from-top-1">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 size={16} className="text-ok shrink-0" />
+              <div>
+                <span className="font-semibold text-fg">Auto Pipeline Selesai! Seluruh 4 Dokumen Spesifikasi Berhasil Disusun</span>
+                <p className="text-[11.5px] text-muted mt-0.5">PRD (20 Sections), SRS (22 Sections), Architecture (16 Sections), dan Design System (16 Sections) siap digunakan.</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleExportAllDocs}
+                className="px-3 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
+              >
+                <Download size={13} />
+                <span>Export All (.md)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPipelineCompletedNotice(false)}
+                className="p-1 hover:bg-fill-mute rounded text-muted hover:text-fg transition-colors"
+                title="Tutup pesan"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+
+                {/* Workspace Panes based on layoutMode */}
+        {layoutMode === 'chat' && (
+          <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+            {renderChatPane()}
+          </div>
+        )}
+
+        {layoutMode === 'split' && (
+          <div className="flex-1 flex w-full h-full overflow-hidden min-w-0">
+            {/* Left Column: Chat Pane (resizable) */}
+            <div
+              style={{ width: `${centerSplit.width}px` }}
+              className="flex flex-col h-full overflow-hidden shrink-0 border-r border-border/80 min-w-[280px]"
+            >
+              {renderChatPane()}
+            </div>
+
+            {/* Draggable Divider between Chat & Document */}
+            <div
+              onMouseDown={centerSplit.startResize}
+              className="w-1.5 hover:w-2 hover:bg-primary/50 cursor-col-resize transition-all shrink-0 z-20 group relative flex items-center justify-center select-none"
+              title="Tarik untuk menyesuaikan rasio lebar Chat vs Dokumen"
+            >
+              <div className="w-0.5 h-10 rounded-full bg-border group-hover:bg-primary" />
+            </div>
+
+            {/* Right Column: Document Canvas */}
+            <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+              {renderDocumentPane()}
+            </div>
+          </div>
+        )}
+
+        {layoutMode === 'doc' && (
+          <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+            {renderDocumentPane()}
           </div>
         )}
       </main>
 
-      {/* 3. Context / Project Co-Pilot Panel (Right Pane - w-80 inside mqs-main) */}
+      {/* 3. Context / Project Co-Pilot Panel (Right Pane) */}
       {showInspector && activeProject && (
-        <aside className="w-80 mr-2 mb-2 rounded-[12px] border border-border/80 bg-panel/60 shadow-2xs flex flex-col overflow-hidden shrink-0 backdrop-blur-xs">
+        <>
+          {/* Draggable Divider for Right Inspector */}
+          <div
+            onMouseDown={rightPanel.startResize}
+            className="w-1.5 hover:w-2 hover:bg-primary/50 cursor-col-resize transition-all shrink-0 z-20 group relative flex items-center justify-center select-none"
+            title="Tarik untuk mengubah lebar panel Co-Pilot"
+          >
+            <div className="w-0.5 h-8 rounded-full bg-border group-hover:bg-primary" />
+          </div>
+
+          <aside
+            style={{ width: `${rightPanel.width}px` }}
+            className="mr-2 mb-2 rounded-[12px] border border-border/80 bg-panel/60 shadow-2xs flex flex-col overflow-hidden shrink-0 backdrop-blur-xs"
+          >
           
           {/* Co-Pilot Header: Title, pending actions badge, & close button */}
           <div className="h-10 px-3.5 border-b border-border flex items-center justify-between shrink-0 bg-surface/80 backdrop-blur-xs">
@@ -3831,6 +3608,7 @@ export default function App() {
             </span>
           </div>
         </aside>
+        </>
       )}
       </div>
 
@@ -5771,6 +5549,11 @@ export default function App() {
 
           </div>
         </div>
+      )}
+
+      {/* Global Mouse Dragging Overlay for smooth resizing */}
+      {(leftPanel.isDragging || rightPanel.isDragging || centerSplit.isDragging) && (
+        <div className="fixed inset-0 select-none z-[9999] cursor-col-resize pointer-events-auto" />
       )}
 
       {/* Global In-App Toast Notification System */}

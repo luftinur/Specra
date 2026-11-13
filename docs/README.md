@@ -42,6 +42,7 @@ docs/
 │   ├── plan_unified_copilot_assumptions_and_pipeline_ux.md    # Rekonstruksi UX Sidebar Kanan (Project Co-Pilot) & Koreksi Asumsi
 │   ├── plan_custom_toast_dialogs_and_native_export_ux.md     # In-App Toast System, Confirmation Modal & Native File Export Modal
 │   ├── walkthrough_custom_toast_dialogs_and_native_export_ux.md # Walkthrough In-App Toast, Confirm Modal & Native Export
+│   ├── plan_desktop_menubar_chat_first_split_and_resizable_panels.md # Desktop Menu Bar, Chat-First Split View, & Resizable Panels
 │   └── walkthrough.md                                 # Rangkuman komprehensif & hasil testing
 └── context_history/
     ├── transcript_01_windows.jsonl                    # Log riwayat sesi awal pengembangan di Windows (1.963 steps)
@@ -75,3 +76,5 @@ docs/
 14. **[`plan_unified_copilot_assumptions_and_pipeline_ux.md`](./artifacts/plan_unified_copilot_assumptions_and_pipeline_ux.md)**: Rencana Komprehensif Rekonstruksi UX: Koreksi Asumsi Interaktif, Sidebar Project Co-Pilot, Sinkronisasi Canvas-to-Chat, dan Penyelarasan Persona & Mode.
 15. **[`plan_custom_toast_dialogs_and_native_export_ux.md`](./artifacts/plan_custom_toast_dialogs_and_native_export_ux.md)**: Rencana Implementasi In-App Toast System, Confirmation Modal, dan Native File/Folder Export Modal.
 16. **[`walkthrough_custom_toast_dialogs_and_native_export_ux.md`](./artifacts/walkthrough_custom_toast_dialogs_and_native_export_ux.md)**: Walkthrough hasil pengujian penggantian browser dialog (`alert`, `confirm`, `prompt`) dengan Toast in-app, Confirm Modal, dan dialog ekspor native OS.
+17. **[`plan_desktop_menubar_chat_first_split_and_resizable_panels.md`](./artifacts/plan_desktop_menubar_chat_first_split_and_resizable_panels.md)**: Rencana Komprehensif Arsitektur Chat-First Desktop: Desktop Menu Bar, Side-by-Side Split View (Chat + Doc Canvas), Context-Aware Persona Auto-Switching, dan Resizable Columns.
+18. **[`walkthrough_desktop_menubar_chat_first_split_and_resizable_panels.md`](./artifacts/walkthrough_desktop_menubar_chat_first_split_and_resizable_panels.md)**: Walkthrough Implementasi Desktop Application Menu Bar, Chat-First Split View, Context-Aware Persona Auto-Switching, dan Resizable Panels dengan LocalStorage Persistence.
