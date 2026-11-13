@@ -157,6 +157,15 @@ func (r *ConversationRepository) UpdateAssumptionStatus(ctx context.Context, id,
 	return nil
 }
 
+func (r *ConversationRepository) UpdateAssumption(ctx context.Context, id, description, status string) error {
+	query := `UPDATE assumptions SET description = ?, status = ? WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, description, status, id)
+	if err != nil {
+		return fmt.Errorf("failed to update assumption: %w", err)
+	}
+	return nil
+}
+
 func (r *ConversationRepository) AddAssumption(ctx context.Context, a *domain.Assumption) error {
 	query := `INSERT INTO assumptions (id, project_id, description, status, source_reference, created_at)
 	          VALUES (?, ?, ?, ?, ?, ?)`

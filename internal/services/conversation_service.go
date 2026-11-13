@@ -291,3 +291,20 @@ func (s *ConversationService) ListClarifications(projectID string) ([]domain.Cla
 func (s *ConversationService) ListAssumptions(projectID string) ([]domain.Assumption, error) {
 	return s.repo.ListAssumptions(context.Background(), projectID)
 }
+
+func (s *ConversationService) PostSystemEvent(conversationID, projectID, title, message string) (*domain.Message, error) {
+	ctx := context.Background()
+	msgID := fmt.Sprintf("msg-%d", time.Now().UnixNano())
+	formattedContent := fmt.Sprintf("📌 **%s**\n\n%s", title, message)
+	eventMsg := &domain.Message{
+		ID:             msgID,
+		ConversationID: conversationID,
+		Role:           domain.RoleAssistant,
+		Content:        formattedContent,
+		CreatedAt:      time.Now().UTC(),
+	}
+	if err := s.repo.AddMessage(ctx, eventMsg); err != nil {
+		return nil, fmt.Errorf("failed to save system event message: %w", err)
+	}
+	return eventMsg, nil
+}

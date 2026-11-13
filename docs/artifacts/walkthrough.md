@@ -1,54 +1,73 @@
-# Walkthrough: Audit Komprehensif Security, Race Conditions, Hydration/FOUC, & E2E Hardening
+# Walkthrough: Rekonstruksi UX Asumsi Interaktif, Project Co-Pilot, & Sinkronisasi Alur Multi-Agent
 
 ## 1. Ringkasan Eksekutif
-Sesuai arahan audit menyeluruh dari pengguna:
-> *"audit security di sourcecodenya, audit race condition, audit hydration jika ada cek keseluruhan code e2e"*
+Berdasarkan evaluasi kritis pengguna mengenai:
+1. *"di sidebar sebelah kanan kan ada assumptions nah itu gw jawabnya gimana ? perlu jawaban kan..":* Ketiadaan sarana bagi pengguna untuk menjawab atau mengoreksi asumsi AI selain menolaknya secara pasif.
+2. *"sidebar kanan ini bikin bingung user yang inspector viewers secara pipeline, workflow, dan chat discovery ini nyambung semua kan sebenernya ? secara UX bagaimana rekomendasi lu":* Fragmentasi sidebar kanan ("Inspector") yang menyembunyikan 5 sub-view di balik menu 3-titik kecil.
+3. *"chat discoverynya juga, harusnya nyambung juga kan ya ? karena gini misal gw ke menu prd dan gw klik button generate..apakah chat discovery paham statusnya sampai mana ? kemudian ini jadi ga kepake atau sebenertnya terpakai secara fungsi nantinya untuk chat discovery yang dropdown pilih persona discovery sama dropdown discovery mode dan exec mode":* Ketiadaan sinkronisasi antara aksi canvas dokumen dan linimasa chat, serta kebingungan tujuan fungsional dropdown persona dan mode interaksi.
 
-Kami telah mengeksekusi investigasi menyeluruh dan penguatan pada seluruh lapisan backend (Go, ModernC SQLite WAL, OS Keyring, CLI subproses) serta frontend (React 19, TypeScript strict mode, Vite, dan Wails v3 shell).
-
-Seluruh temuan dari rencana [plan_comprehensive_security_race_and_hydration_audit.md](file:///E:/dev-agent-assistant/docs/artifacts/plan_comprehensive_security_race_and_hydration_audit.md) telah diperbaiki dan diverifikasi 100% tanpa regresi.
-
----
-
-## 2. Rincian Penguatan yang Diterapkan
-
-### A. Pilar Keamanan (Security Hardening)
-1. **Mitigasi Path Traversal pada `WorkspaceManager` (`internal/storage/workspace.go`)**:
-   - `ProjectDir(projectID)` kini melakukan sanitasi penuh dengan `filepath.Base(filepath.Clean(projectID))` dan memverifikasi bahwa path hasil akhir tidak pernah keluar dari `projects/`. Nilai ilegal seperti `../../../` otomatis dialihkan ke direktori aman `default`.
-   - Menambahkan unit test di `internal/storage/storage_test.go` yang memvalidasi bahwa input path manipulatif ditolak dan tetap terkungkung di dalam direktori workspace.
-2. **Sanitasi Parameter Flag Subproses CLI**:
-   - Menambahkan fungsi pembantu `sanitizeModelName` di adapter Antigravity (`agy`), OpenCode, dan Gemini yang membersihkan newline, carriage return, dan prefix bendera manipulatif (`--`) guna mencegah injeksi argumen CLI.
-3. **Audit SQL Injection & Kredensial**:
-   - Memverifikasi seluruh query repositori (`conversation`, `document`, `project`, `provider`, `requirement`, `validation`). Seluruhnya 100% menggunakan parameterized prepared statements (`?`), tanpa ada konkatenasi string SQL mentah.
-   - Kunci API tetap tersimpan aman di Windows Credential Manager / macOS Keychain via `go-keyring`, dan `RedactSensitiveData` aktif menyamarkan token pada log eksekusi.
-
-### B. Pilar Konkurensi & Pencegahan Race Condition
-1. **Thread-Safe AI Provider Adapters**:
-   - Menambahkan `sync.RWMutex` ke `antigravity.Adapter`, `opencode.Adapter`, dan `gemini.Adapter`.
-   - Seluruh mutasi `SetConfig` dan pembacaan `GetModel`, `Generate`, dan `ListModels` kini disinkronkan secara thread-safe.
-2. **Pemberantasan Data Race & Deadlock di `AgentRegistry` (`internal/ai/agent_registry.go`)**:
-   - Memperbaiki `SaveSkill` dan `DeleteSkill` agar iterasi slice map `r.skills` dilakukan di dalam blok mutex lock sebelum disimpan ke database, menghilangkan potensi fatal panic `concurrent map iteration and write`.
-   - Mengeliminasi rekursi penguncian mutex (`RLock()` ganda) di `GetSkillsForAgent` yang berpotensi memicu writer-preference deadlock di Go runtime.
-   - Menambahkan stress test konkurensi di `phase1_test.go` dengan 90 goroutine simultan yang berhasil lulus tanpa deadlocks atau data races.
-3. **Atomisitas Transaksi SQLite (`internal/storage/document_repo.go`)**:
-   - `AddVersion` kini dibungkus dalam SQLite database transaction (`BeginTx` / `Commit` / `Rollback`) sehingga operasi `SELECT MAX(version_number)`, `INSERT INTO document_versions`, dan `UPDATE documents` berjalan 100% atomik tanpa risiko nomor versi duplikat.
-4. **Pencegahan Out-of-Order Stale Response di Frontend (`frontend/src/App.tsx`)**:
-   - Menambahkan `activeProjectTokenRef` di dalam `useEffect([activeProject])`. Setiap perpindahan tab project meningkatkan token generasi request. Callback asinkron `loadSessionAndData`, `loadDocumentDetails`, dan `loadValidationAndTraceability` yang tiba terlambat dari project lama otomatis dibatalkan (*discarded*).
-5. **Concurrency Guard pada Input Chat**:
-   - `handleSendMessage` kini memiliki guard `isSending || autoPipelineRunning` untuk mencegah tumpang tindih chat saat pipeline otomatis sedang memproses dokumen.
-
-### C. Pilar Hydration & Render Lifecycle (FOUC Elimination)
-1. **Pencegahan Flash of Unstyled Content (FOUC) di `frontend/index.html`**:
-   - Menyisipkan script sinkron ringan di `<head>` sebelum `<body>` untuk membaca `localStorage.getItem('theme_mode')` dan `localStorage.getItem('font_scale')`.
-   - WebView2 / WebKit langsung menerapkan kelas `.dark` dan `document.documentElement.style.zoom` sebelum frame HTML pertama dirender, menghilangkan kedipan terang pada saat aplikasi dibuka.
-2. **Root Error Boundary (`frontend/src/components/ErrorBoundary.tsx` & `main.tsx`)**:
-   - Membungkus seluruh aplikasi React dalam komponen `<ErrorBoundary>` dengan styling Warm Stone / Obsidian Slate dan tombol "Muat Ulang Studio", mencegah terjadinya layar putih kosong (*white screen of death*) jika terjadi runtime error tak terduga.
+Seluruh permasalahan di atas telah diselesaikan dan diimplementasikan secara end-to-end pada lapisan backend (Go, SQLite, Service layer) dan frontend (React 19, TypeScript strict mode, Tailwind CSS).
 
 ---
 
-## 3. Hasil Pengujian & Verifikasi Otomatis
+## 2. Rincian Fitur & Penguatan yang Diterapkan
 
-1. **Go Unit, Integration & Concurrency Test Suites**:
+### A. Interaktivitas Asumsi Proyek (Confirm, Correct, Reject)
+1. **Penyimpanan Koreksi di SQLite (`internal/storage/conversation_repo.go`)**:
+   - Menambahkan query `UpdateAssumption(ctx, id, description, status)` untuk memperbarui teks fakta hasil koreksi pengguna sekaligus menandai statusnya menjadi `confirmed`.
+2. **Backend Service (`internal/services/requirement_service.go`)**:
+   - Menambahkan `CorrectAssumption(id string, correctedText string) error`.
+3. **Kartu Asumsi Interaktif di UI (`frontend/src/App.tsx`)**:
+   - Setiap kartu asumsi kini memiliki 3 tombol aksi jelas:
+     - **`✓ Benar`**: Mengonfirmasi asumsi AI apa adanya menjadi fakta proyek sah (`confirmed`).
+     - **`✎ Koreksi`**: Membuka kotak teks inline (*inline textarea*) langsung di kartu: *"Tuliskan fakta atau preferensi yang benar (misal: 'Bukan Stripe, kita pakai Midtrans QRIS')..."* lengkap dengan tombol **Simpan Koreksi** dan **Batal**.
+     - **`✕ Tolak`**: Menolak asumsi yang tidak relevan (`rejected`).
+   - Asumsi yang telah terkonfirmasi/dikoreksi menampilkan badge hijau `✓ Terkonfirmasi` dengan opsi untuk mengedit kembali jika ada perubahan kebutuhan di kemudian hari.
+
+### B. Transformasi Sidebar Kanan: "Project Co-Pilot" dengan 3 Tab Terbuka
+1. **Re-branding Menjadi "Project Co-Pilot"**:
+   - Mengganti istilah teknis *Inspector* menjadi asisten proaktif yang mendampingi alur kerja pengguna.
+   - Menghilangkan menu 3-titik dropdown (`MoreVertical`) yang sebelumnya menyembunyikan navigasi.
+2. **3 Segmented Tabs Permanen**:
+   - **Tab 1: `Kebutuhan`**: Menampilkan backlog kebutuhan (FR-xxx/NFR-xxx), filter prioritas MoSCoW, tombol Approve/Reject, dan pemicu ekstraksi AI.
+   - **Tab 2: `Tanya & Asumsi` (Action Center)**:
+     - Menggabungkan **Pertanyaan Klarifikasi AI** dan **Asumsi Sistem** dalam satu wadah aksi terpusat.
+     - Dilengkapi **Badge Counter** kuning berkedip (*pulsing dot*) jika ada pertanyaan terbuka atau asumsi yang belum dikonfirmasi/dijawab.
+   - **Tab 3: `Pipeline & Audit`**:
+     - Visual Stepper status 5 tahap dokumen (Discovery ➔ PRD ➔ SRS ➔ Architecture ➔ Design System) yang dapat diklik langsung untuk membuka dokumen terkait.
+     - Ringkasan temuan validasi/konflik dengan tombol "Audit Ulang".
+     - Matriks ketertelusuran (*Traceability Matrix*) PRD ➔ SRS.
+3. **Smart Auto-Focusing**:
+   - Saat pipeline otomatis berhenti sejenak karena ada pertanyaan klarifikasi yang wajib dijawab, sistem otomatis mengarahkan fokus sidebar kanan ke tab **Tanya & Asumsi**.
+
+### C. Bi-Directional Canvas-to-Chat Synchronization
+1. **Pencatatan Event Sistem Milestone (`internal/services/conversation_service.go`)**:
+   - Menambahkan metode `PostSystemEvent(conversationID, projectID, title, message string) (*domain.Message, error)` yang mencatat milestone dokumen resmi ke dalam database percakapan.
+2. **Auto-Post Notifikasi Milestone ke Linimasa Chat**:
+   - Saat pengguna mengklik tombol di canvas:
+     - **Generate PRD**: Mem-posting milestone *"PRD Draft v1 Berhasil Dibuat (20 Sections)"* dengan rekapitulasi jumlah kebutuhan dan asumsi.
+     - **Approve PRD**: Mem-posting pemberitahuan *"PRD Resmi Disetujui (Approved)"* bahwa gerbang downstream SRS kini terbuka.
+     - **Generate / Approve SRS**: Mem-posting pembaharuan spesifikasi SRS IEEE 830 (22 sections).
+     - **Generate / Approve Architecture**: Mem-posting pembaharuan dokumen Arsitektur (16 sections, C4 diagram, API contracts).
+     - **Generate / Approve Design System**: Mem-posting penyelesaian Design System (16 sections, MQ-Studio tokens & screen flows).
+   - Saat pengguna kembali ke tab Chat, linimasa percakapan langsung sinkron dan mengetahui dengan persis di mana posisi dokumen proyek berada.
+
+### D. Penyelarasan Specialist Persona & Segmented Mode Toggle
+1. **Context-Aware Persona Auto-Switching**:
+   - Berpindah ke menu **PRD** ➔ Persona chat otomatis berpindah ke **Product Analyst**.
+   - Berpindah ke menu **SRS** ➔ Persona chat otomatis berpindah ke **System Analyst**.
+   - Berpindah ke menu **Architecture** ➔ Persona chat otomatis berpindah ke **Software Architect**.
+   - Berpindah ke menu **Design System** ➔ Persona chat otomatis berpindah ke **UI/UX Agent**.
+2. **Segmented Toggle Pill Mode Interaksi**:
+   - Menggantikan dropdown tersembunyi dengan **Toggle Pill 1-Klik** di atas bar input chat:
+     - **`🔍 Eksplorasi (Tanya Jawab)`**: AI proaktif mencari celah, mengajukan pertanyaan klarifikasi, dan mendeteksi asumsi dari ide kasar pengguna.
+     - **`⚡ Eksekusi (Spesifikasi)`**: AI langsung menyusun draft spesifikasi teknis dan artefak dokumen tanpa bertanya.
+
+---
+
+## 3. Hasil Verifikasi & Uji Mutu
+
+1. **Go Unit & Integration Test Suites**:
    ```powershell
    go test -v ./internal/...
    ```
@@ -56,11 +75,13 @@ Seluruh temuan dari rencana [plan_comprehensive_security_race_and_hydration_audi
    - `ai-requirements-studio/internal`: **PASS** (Scenario A-D e2e)
    - `ai-requirements-studio/internal/ai`: **PASS** (Orchestrator, Discovery, TOON, Validation Engine)
    - `ai-requirements-studio/internal/security`: **PASS** (Sensitive Data Redaction)
-   - `ai-requirements-studio/internal/services`: **PASS** (90 goroutines concurrency stress test, PRD/SRS lifecycles, general settings)
+   - `ai-requirements-studio/internal/services`: **PASS** (RequirementService CorrectAssumption, ConversationService PostSystemEvent, 90 goroutines stress test)
    - `ai-requirements-studio/internal/storage`: **PASS** (Workspace path traversal guard, DocumentRepo atomic transactions)
 
 2. **Frontend TypeScript & Vite Production Build**:
    ```powershell
    npm --prefix frontend run build
    ```
-   **Hasil:** `tsc` (TypeScript Strict Mode) dan Vite client bundle berhasil dibangun dengan **0 errors**.
+   **Hasil:**
+   - `tsc` (TypeScript Strict Mode): **0 errors**.
+   - Vite client bundle: Berhasil dibangun dalam **3.35s**.

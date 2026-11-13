@@ -268,6 +268,19 @@ func TestConversation_AttachmentAndZeroMockFailFast(t *testing.T) {
 	if len(savedFiles) != 1 || savedFiles[0] != filename {
 		t.Fatalf("expected attachment %s, got %v", filename, savedFiles)
 	}
+
+	// 3. Test PostSystemEvent (Canvas to Chat Sync)
+	sysMsg, err := convServiceSuccess.PostSystemEvent(conv.ID, projectID, "PRD Draft Created", "PRD Draft v1 has been generated with 20 sections.")
+	if err != nil {
+		t.Fatalf("failed to post system event: %v", err)
+	}
+	if sysMsg == nil || sysMsg.Role != domain.RoleAssistant {
+		t.Fatalf("expected system event message, got: %+v", sysMsg)
+	}
+	msgs, err := convRepo.ListMessages(ctx, conv.ID)
+	if err != nil || len(msgs) < 3 {
+		t.Fatalf("expected persisted messages including system event, got %d msgs: %v", len(msgs), err)
+	}
 }
 
 func TestAgentRegistry_PersonasAndMCP(t *testing.T) {

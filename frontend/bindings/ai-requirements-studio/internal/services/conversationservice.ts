@@ -35,6 +35,10 @@ export function ListMessages(conversationID: string): $CancellablePromise<domain
     return $Call.ByID(2966642368, conversationID);
 }
 
+export function PostSystemEvent(conversationID: string, projectID: string, title: string, message: string): $CancellablePromise<domain$0.Message | null> {
+    return $Call.ByID(219544453, conversationID, projectID, title, message);
+}
+
 export function SendMessage(conversationID: string, projectID: string, content: string): $CancellablePromise<domain$0.Message | null> {
     return $Call.ByID(268470649, conversationID, projectID, content);
 }

@@ -39,6 +39,7 @@ docs/
 │   ├── plan_fix_windows_cli_length_and_auto_pipeline.md# Fix limit argumen CLI Windows via stdin pipe & Auto Pipeline
 │   ├── plan_dynamic_cli_model_detection.md            # Deteksi model dinamis CLI (agy, opencode, gemini) & model selector
 │   ├── plan_comprehensive_security_race_and_hydration_audit.md # Audit security, race conditions, hydration/FOUC & E2E
+│   ├── plan_unified_copilot_assumptions_and_pipeline_ux.md    # Rekonstruksi UX Sidebar Kanan (Project Co-Pilot) & Koreksi Asumsi
 │   └── walkthrough.md                                 # Rangkuman komprehensif & hasil testing
 └── context_history/
     ├── transcript_01_windows.jsonl                    # Log riwayat sesi awal pengembangan di Windows (1.963 steps)
@@ -69,3 +70,4 @@ docs/
 11. **[`plan_general_settings_and_darkmode.md`](./artifacts/plan_general_settings_and_darkmode.md)**: Rencana implementasi General Settings, 3 color themes (Warm Stone, Obsidian Slate, System Auto), dan font scaling.
 12. **[`plan_mq_studio_design_system.md`](./artifacts/plan_mq_studio_design_system.md)**: Adaptasi token styling dan layout shell ala MQ-Studio.
 13. **[`business_orchestration_plan.md`](./artifacts/business_orchestration_plan.md)**: Spesifikasi orkestrasi 4 Specialist Personas (*Product Analyst*, *System Analyst*, *Software Architect*, *UI/UX Agent*).
+14. **[`plan_unified_copilot_assumptions_and_pipeline_ux.md`](./artifacts/plan_unified_copilot_assumptions_and_pipeline_ux.md)**: Rencana Komprehensif Rekonstruksi UX: Koreksi Asumsi Interaktif, Sidebar Project Co-Pilot, Sinkronisasi Canvas-to-Chat, dan Penyelarasan Persona & Mode.

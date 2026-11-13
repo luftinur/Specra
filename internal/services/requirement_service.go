@@ -52,3 +52,10 @@ func (s *RequirementService) AnswerClarification(id string, answer string) error
 func (s *RequirementService) UpdateAssumptionStatus(id string, status string) error {
 	return s.convRepo.UpdateAssumptionStatus(context.Background(), id, status)
 }
+
+func (s *RequirementService) CorrectAssumption(id string, correctedText string) error {
+	if correctedText == "" {
+		return fmt.Errorf("corrected text cannot be empty")
+	}
+	return s.convRepo.UpdateAssumption(context.Background(), id, correctedText, "confirmed")
+}

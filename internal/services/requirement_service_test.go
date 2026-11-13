@@ -94,4 +94,28 @@ func TestRequirementService(t *testing.T) {
 	if len(clars) != 1 || clars[0].Status != "answered" || *clars[0].Answer != "30 days retention" {
 		t.Errorf("unexpected clarifications: %+v", clars)
 	}
+
+	// Test Assumption Confirmation & Correction
+	_ = cRepo.AddAssumption(ctx, &domain.Assumption{
+		ID:          "asmp-1",
+		ProjectID:   "p-svc",
+		Description: "Assumed payment gateway is Stripe",
+		Status:      "unconfirmed",
+	})
+	if err := svc.UpdateAssumptionStatus("asmp-1", "confirmed"); err != nil {
+		t.Fatalf("failed to confirm assumption: %v", err)
+	}
+	asmps, _ := cRepo.ListAssumptions(ctx, "p-svc")
+	if len(asmps) != 1 || asmps[0].Status != "confirmed" {
+		t.Fatalf("expected confirmed assumption, got %+v", asmps)
+	}
+
+	// Test Assumption Correction
+	if err := svc.CorrectAssumption("asmp-1", "Payment uses Midtrans QRIS and GoPay"); err != nil {
+		t.Fatalf("failed to correct assumption: %v", err)
+	}
+	asmps2, _ := cRepo.ListAssumptions(ctx, "p-svc")
+	if len(asmps2) != 1 || asmps2[0].Description != "Payment uses Midtrans QRIS and GoPay" || asmps2[0].Status != "confirmed" {
+		t.Fatalf("expected corrected assumption text, got %+v", asmps2)
+	}
 }

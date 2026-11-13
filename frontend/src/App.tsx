@@ -27,7 +27,6 @@ import {
   Key,
   Database,
   X,
-  MoreVertical,
   Check,
   ListOrdered,
   Cpu,
@@ -149,28 +148,14 @@ export default function App() {
   const [docDisplayMode, setDocDisplayMode] = useState<'preview' | 'source'>('preview');
   const [copiedFullDoc, setCopiedFullDoc] = useState(false);
 
-  // Inspector & Chat UI State
-  const [activeTab, setActiveTab] = useState<'requirements' | 'validation' | 'traceability' | 'assumptions' | 'questions'>('requirements');
+  // Project Co-Pilot & Chat UI State
+  const [activeTab, setActiveTab] = useState<'requirements' | 'qa_assumptions' | 'pipeline_audit'>('qa_assumptions');
   const [showInspector, setShowInspector] = useState(true);
-  const [showInspectorMenu, setShowInspectorMenu] = useState(false);
-  const inspectorMenuRef = useRef<HTMLDivElement | null>(null);
+  const [editingAssumptionId, setEditingAssumptionId] = useState<string | null>(null);
+  const [editingAssumptionText, setEditingAssumptionText] = useState<string>('');
   const [inputMessage, setInputMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
 
-  // Close inspector 3-dot dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (inspectorMenuRef.current && !inspectorMenuRef.current.contains(event.target as Node)) {
-        setShowInspectorMenu(false);
-      }
-    };
-    if (showInspectorMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showInspectorMenu]);
 
   // Close Add Skill dropdown when clicking outside
   const addSkillDropdownRef = useRef<HTMLDivElement | null>(null);
@@ -196,8 +181,6 @@ export default function App() {
   const [interactionMode, setInteractionMode] = useState<'discovery' | 'execution'>('discovery');
   const [showPersonaMenu, setShowPersonaMenu] = useState(false);
   const personaMenuRef = useRef<HTMLDivElement | null>(null);
-  const [showModeMenu, setShowModeMenu] = useState(false);
-  const modeMenuRef = useRef<HTMLDivElement | null>(null);
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [selectedSlashIndex, setSelectedSlashIndex] = useState(0);
   const slashMenuRef = useRef<HTMLDivElement | null>(null);
@@ -208,9 +191,6 @@ export default function App() {
       const target = event.target as Node;
       if (personaMenuRef.current && !personaMenuRef.current.contains(target)) {
         setShowPersonaMenu(false);
-      }
-      if (modeMenuRef.current && !modeMenuRef.current.contains(target)) {
-        setShowModeMenu(false);
       }
       if (slashMenuRef.current && !slashMenuRef.current.contains(target)) {
         setShowSlashMenu(false);
@@ -230,6 +210,19 @@ export default function App() {
   const [activeChatAgent, setActiveChatAgent] = useState<'product-analyst' | 'system-analyst' | 'software-architect' | 'ui-ux-agent'>('product-analyst');
   const [attachedFile, setAttachedFile] = useState<{ name: string; size: number; content: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Auto-sync specialist persona with the active document view
+  useEffect(() => {
+    if (currentView === 'prd') {
+      setActiveChatAgent('product-analyst');
+    } else if (currentView === 'srs') {
+      setActiveChatAgent('system-analyst');
+    } else if (currentView === 'architecture') {
+      setActiveChatAgent('software-architect');
+    } else if (currentView === 'design') {
+      setActiveChatAgent('ui-ux-agent');
+    }
+  }, [currentView]);
 
   // Theme & Typography Scale State
   const [themeMode, setThemeMode] = useState<'system' | 'light' | 'dark'>(() => {
@@ -799,6 +792,31 @@ export default function App() {
     }
   };
 
+  const handleCorrectAssumption = async (id: string) => {
+    const text = editingAssumptionText.trim();
+    if (!text) return;
+    try {
+      await RequirementService.CorrectAssumption(id, text);
+      setEditingAssumptionId(null);
+      setEditingAssumptionText('');
+      if (activeProject) await refreshProjectEntities(activeProject.id);
+    } catch (err) {
+      alert(`Gagal menyimpan koreksi asumsi: ${String(err)}`);
+    }
+  };
+
+  const notifyChatMilestone = async (title: string, message: string) => {
+    if (activeSession && activeProject) {
+      try {
+        await ConversationService.PostSystemEvent(activeSession.id, activeProject.id, title, message);
+        const msgs = await ConversationService.ListMessages(activeSession.id);
+        setMessages(msgs || []);
+      } catch (err) {
+        console.warn('Failed to post milestone to chat:', err);
+      }
+    }
+  };
+
   const handleAnswerClarification = async (id: string) => {
     const ans = clarificationAnswers[id]?.trim();
     if (!ans) return;
@@ -1233,7 +1251,7 @@ export default function App() {
       setCurrentView('design');
       await handleGenerateDesign();
     } else if (cmd.action === 'validate') {
-      setActiveTab('validation');
+      setActiveTab('pipeline_audit');
       await handleRunValidation();
     } else if (cmd.action === 'clear') {
       setMessages([]);
@@ -1339,6 +1357,10 @@ export default function App() {
       await loadDocumentDetails(activeProject.id);
       await handleRunValidation();
       setIsEditingDoc(false);
+      await notifyChatMilestone(
+        'PRD Draft v1 Berhasil Dibuat (20 Sections)',
+        `Product Analyst telah menyusun draft PRD (20 sections).\n\n- Kebutuhan terdeteksi: **${requirements.length} item**\n- Asumsi aktif: **${assumptions.length} item**\n\n👉 *Buka tab PRD untuk mereview dokumen lengkap, atau diskusikan revisi langsung di sini.*`
+      );
     } catch (err) {
       alert(`Gagal generate PRD: ${String(err)}`);
     } finally {
@@ -1353,6 +1375,10 @@ export default function App() {
       await DocumentService.RegeneratePRDSection(activeProject.id, selectedSectionNum);
       await loadDocumentDetails(activeProject.id);
       await handleRunValidation();
+      await notifyChatMilestone(
+        `PRD Section ${selectedSectionNum} Diperbarui`,
+        `Product Analyst telah memperbarui Section ${selectedSectionNum} pada dokumen PRD.`
+      );
     } catch (err) {
       alert(`Gagal regenerate section PRD: ${String(err)}`);
     } finally {
@@ -1365,6 +1391,10 @@ export default function App() {
     try {
       await DocumentService.ApprovePRD(activeProject.id, prdDetails.current_version.id);
       await loadDocumentDetails(activeProject.id);
+      await notifyChatMilestone(
+        'PRD Resmi Disetujui (Approved)',
+        'Dokumen PRD resmi disetujui. Gerbang spesifikasi downstream **SRS (IEEE 830, 22 sections)** kini terbuka dan siap digenerate oleh System Analyst.'
+      );
       alert('PRD berhasil disetujui (Approved)! Sekarang dokumen SRS dapat digenerate.');
     } catch (err) {
       alert(`Gagal approve PRD: ${String(err)}`);
@@ -1384,6 +1414,10 @@ export default function App() {
       await loadDocumentDetails(activeProject.id);
       await handleRunValidation();
       setIsEditingDoc(false);
+      await notifyChatMilestone(
+        'SRS Draft v1 Berhasil Dibuat (22 Sections)',
+        'System Analyst telah menyusun spesifikasi SRS IEEE 830 (22 sections) lengkap dengan pemetaan kebutuhan fungsional (FR-xxx) dan matriks ketertelusuran (*Traceability Matrix*).'
+      );
     } catch (err) {
       alert(`Gagal generate SRS: ${String(err)}`);
     } finally {
@@ -1398,6 +1432,10 @@ export default function App() {
       await DocumentService.RegenerateSRSSection(activeProject.id, selectedSectionNum);
       await loadDocumentDetails(activeProject.id);
       await handleRunValidation();
+      await notifyChatMilestone(
+        `SRS Section ${selectedSectionNum} Diperbarui`,
+        `System Analyst telah memperbarui Section ${selectedSectionNum} pada spesifikasi SRS.`
+      );
     } catch (err) {
       alert(`Gagal regenerate section SRS: ${String(err)}`);
     } finally {
@@ -1410,6 +1448,10 @@ export default function App() {
     try {
       await DocumentService.ApproveSRS(activeProject.id, srsDetails.current_version.id);
       await loadDocumentDetails(activeProject.id);
+      await notifyChatMilestone(
+        'SRS Resmi Disetujui (Approved)',
+        'Dokumen SRS resmi disetujui. Arsitektur sistem (C4 diagram, API contracts, dan STRIDE threat model) siap digenerate oleh **Software Architect**.'
+      );
       alert('SRS berhasil disetujui (Approved)!');
     } catch (err) {
       alert(`Gagal approve SRS: ${String(err)}`);
@@ -1428,6 +1470,10 @@ export default function App() {
       await DocumentService.GenerateArchitecture(activeProject.id);
       await loadDocumentDetails(activeProject.id);
       setIsEditingDoc(false);
+      await notifyChatMilestone(
+        'Architecture Draft Berhasil Dibuat (16 Sections)',
+        'Software Architect telah merancang arsitektur sistem (16 sections) mencakup diagram C4 konteks & kontainer, spesifikasi REST API, dan strategi mitigasi STRIDE.'
+      );
     } catch (err) {
       alert(`Gagal generate Architecture: ${String(err)}`);
     } finally {
@@ -1441,6 +1487,10 @@ export default function App() {
     try {
       await DocumentService.RegenerateArchitectureSection(activeProject.id, selectedSectionNum);
       await loadDocumentDetails(activeProject.id);
+      await notifyChatMilestone(
+        `Architecture Section ${selectedSectionNum} Diperbarui`,
+        `Software Architect telah memperbarui Section ${selectedSectionNum} pada dokumen Arsitektur.`
+      );
     } catch (err) {
       alert(`Gagal regenerate section Architecture: ${String(err)}`);
     } finally {
@@ -1453,6 +1503,10 @@ export default function App() {
     try {
       await DocumentService.ApproveArchitecture(activeProject.id, architectureDetails.current_version.id);
       await loadDocumentDetails(activeProject.id);
+      await notifyChatMilestone(
+        'Architecture Resmi Disetujui (Approved)',
+        'Dokumen Arsitektur disetujui. Spesifikasi Design System (16 sections) siap digenerate oleh **UI/UX Agent**.'
+      );
       alert('Architecture (architecture.md) berhasil disetujui (Approved)!');
     } catch (err) {
       alert(`Gagal approve Architecture: ${String(err)}`);
@@ -1471,6 +1525,10 @@ export default function App() {
       await DocumentService.GenerateDesign(activeProject.id);
       await loadDocumentDetails(activeProject.id);
       setIsEditingDoc(false);
+      await notifyChatMilestone(
+        'Design System Draft Berhasil Dibuat (16 Sections)',
+        'UI/UX Agent telah menyusun spesifikasi Design System (16 sections) mencakup token visual MQ-Studio, alur interaksi layar, komponen atomik, dan kepatuhan WCAG 2.2 AA.'
+      );
     } catch (err) {
       alert(`Gagal generate Design System: ${String(err)}`);
     } finally {
@@ -1484,6 +1542,10 @@ export default function App() {
     try {
       await DocumentService.RegenerateDesignSection(activeProject.id, selectedSectionNum);
       await loadDocumentDetails(activeProject.id);
+      await notifyChatMilestone(
+        `Design System Section ${selectedSectionNum} Diperbarui`,
+        `UI/UX Agent telah memperbarui Section ${selectedSectionNum} pada dokumen Design System.`
+      );
     } catch (err) {
       alert(`Gagal regenerate section Design: ${String(err)}`);
     } finally {
@@ -1496,6 +1558,10 @@ export default function App() {
     try {
       await DocumentService.ApproveDesign(activeProject.id, designDetails.current_version.id);
       await loadDocumentDetails(activeProject.id);
+      await notifyChatMilestone(
+        'Design System Resmi Disetujui (Approved)',
+        'Seluruh spesifikasi sistem (**PRD**, **SRS**, **Architecture**, dan **Design System**) telah lengkap dan disetujui. Workspace siap untuk fase implementasi teknis.'
+      );
       alert('Design System (design.md) berhasil disetujui (Approved)!');
     } catch (err) {
       alert(`Gagal approve Design: ${String(err)}`);
@@ -1601,6 +1667,8 @@ export default function App() {
           setAutoPipelineRunning(false);
           setPipelinePausedReason(`Pipeline Berhenti Sementara: Harap jawab ${openClar.length} pertanyaan klarifikasi.`);
           setCurrentView('chat');
+          setActiveTab('qa_assumptions');
+          setShowInspector(true);
           return;
         }
       }
@@ -1614,6 +1682,10 @@ export default function App() {
       }
       await loadDocumentDetails(activeProject.id);
       await handleRunValidation();
+      await notifyChatMilestone(
+        'Auto-Pipeline: PRD Selesai & Disetujui (20 Sections)',
+        'Product Analyst telah menyusun draft PRD dan disetujui otomatis untuk membuka gerbang SRS.'
+      );
 
       // 3. SRS Generation & Auto-Approve
       setAutoPipelineStage('3/5: Menyusun SRS IEEE 830 (22 Sections)...');
@@ -1624,6 +1696,10 @@ export default function App() {
       }
       await loadDocumentDetails(activeProject.id);
       await handleRunValidation();
+      await notifyChatMilestone(
+        'Auto-Pipeline: SRS Selesai & Disetujui (22 Sections)',
+        'System Analyst telah menyusun spesifikasi SRS IEEE 830 dan disetujui otomatis untuk membuka gerbang Arsitektur.'
+      );
 
       // 4. Architecture Generation & Auto-Approve
       setAutoPipelineStage('4/5: Menyusun Architecture C4 (16 Sections)...');
@@ -1633,6 +1709,10 @@ export default function App() {
         await DocumentService.ApproveArchitecture(activeProject.id, archVer.id);
       }
       await loadDocumentDetails(activeProject.id);
+      await notifyChatMilestone(
+        'Auto-Pipeline: Architecture Selesai & Disetujui (16 Sections)',
+        'Software Architect telah merancang C4 architecture and disetujui otomatis untuk membuka gerbang Design System.'
+      );
 
       // 5. Design System Generation & Auto-Approve
       setAutoPipelineStage('5/5: Menyusun Design System (16 Sections)...');
@@ -1641,6 +1721,11 @@ export default function App() {
       if (desVer) {
         await DocumentService.ApproveDesign(activeProject.id, desVer.id);
       }
+      await loadDocumentDetails(activeProject.id);
+      await notifyChatMilestone(
+        'Auto-Pipeline Selesai: Seluruh Dokumen Siap',
+        'Rangkaian spesifikasi lengkap (PRD, SRS, Architecture, Design System) telah selesai digenerate dan disetujui.'
+      );
       await loadDocumentDetails(activeProject.id);
 
       setAutoPipelineStage(null);
@@ -1666,13 +1751,11 @@ export default function App() {
     ? architectureDetails
     : designDetails;
 
-  const inspectorTabs = [
-    { id: 'requirements' as const, label: 'Requirements', shortLabel: 'Reqs', count: requirements.length, icon: ListOrdered },
-    { id: 'validation' as const, label: 'Validation Findings', shortLabel: 'Validate', count: findings.length, icon: ShieldAlert },
-    { id: 'traceability' as const, label: 'Traceability Matrix', shortLabel: 'Trace Matrix', count: traceabilityMatrix.length, icon: GitBranch },
-    { id: 'assumptions' as const, label: 'Assumptions', shortLabel: 'Assump', count: assumptions.length, icon: AlertTriangle },
-    { id: 'questions' as const, label: 'Clarifications', shortLabel: 'Q&A', count: clarifications.length, icon: MessageSquare },
-  ];
+  const unresolvedQACount = useMemo(() => {
+    const openQ = clarifications.filter(c => c.status === 'open' && !c.answer).length;
+    const unconfA = assumptions.filter(a => a.status === 'unconfirmed').length;
+    return openQ + unconfA;
+  }, [clarifications, assumptions]);
 
   const pipelineSteps = [
     {
@@ -1712,7 +1795,6 @@ export default function App() {
     },
   ];
 
-  const currentInspectorTab = inspectorTabs.find(t => t.id === activeTab) || inspectorTabs[0];
 
   return (
     <div className="m3 flex flex-col w-full h-full overflow-hidden text-fg">
@@ -2641,67 +2723,34 @@ export default function App() {
                         )}
                       </div>
 
-                      {/* Interaction Mode Pill */}
-                      <div className="relative" ref={modeMenuRef}>
+                      {/* Interaction Mode Segmented Pill */}
+                      <div className="flex items-center p-0.5 rounded-lg bg-panel border border-border/80 text-xs">
                         <button
                           type="button"
-                          onClick={() => setShowModeMenu(!showModeMenu)}
-                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold shadow-2xs transition-colors ${
+                          onClick={() => setInteractionMode('discovery')}
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
                             interactionMode === 'discovery'
-                              ? 'bg-primary-soft text-primary border-primary/30'
-                              : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                              ? 'bg-primary text-white shadow-2xs'
+                              : 'text-muted hover:text-fg'
                           }`}
-                          title="Ganti Mode Interaksi AI"
+                          title="Mode Eksplorasi (Default): AI proaktif menganalisis celah ide, mengajukan pertanyaan klarifikasi, dan mendeteksi asumsi."
                         >
-                          {interactionMode === 'discovery' ? (
-                            <Search size={12} className="text-primary" />
-                          ) : (
-                            <Zap size={12} className="text-amber-500" />
-                          )}
-                          <span className="capitalize">{interactionMode} Mode</span>
-                          <ChevronDown size={11} className="opacity-70" />
+                          <Search size={12} />
+                          <span>Eksplorasi (Tanya Jawab)</span>
                         </button>
-
-                        {/* Mode Dropdown Menu (Adaptive Upward) */}
-                        {showModeMenu && (
-                          <div className="absolute bottom-full left-0 mb-2 w-64 bg-surface border border-border rounded-xl shadow-xl z-50 py-1 divide-y divide-border/50 animate-in fade-in slide-in-from-bottom-2">
-                            <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted bg-panel/50">
-                              Mode Interaksi AI
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setInteractionMode('discovery');
-                                setShowModeMenu(false);
-                              }}
-                              className={`w-full px-3 py-2 text-left flex items-start gap-2.5 text-xs transition-colors ${
-                                interactionMode === 'discovery' ? 'bg-primary-soft text-primary font-semibold' : 'hover:bg-fill-mute text-fg'
-                              }`}
-                            >
-                              <Search size={14} className="mt-0.5 text-primary shrink-0" />
-                              <div>
-                                <div className="font-semibold">Discovery Mode (Default)</div>
-                                <p className="text-[10.5px] text-muted leading-tight">Proaktif menggali ide, menemukan celah, & mengajukan pertanyaan klarifikasi.</p>
-                              </div>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setInteractionMode('execution');
-                                setShowModeMenu(false);
-                              }}
-                              className={`w-full px-3 py-2 text-left flex items-start gap-2.5 text-xs transition-colors ${
-                                interactionMode === 'execution' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold' : 'hover:bg-fill-mute text-fg'
-                              }`}
-                            >
-                              <Zap size={14} className="mt-0.5 text-amber-500 shrink-0" />
-                              <div>
-                                <div className="font-semibold">Execution Mode</div>
-                                <p className="text-[10.5px] text-muted leading-tight">Pasif, langsung menyusun spesifikasi dari konteks tanpa bertanya lagi.</p>
-                              </div>
-                            </button>
-                          </div>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => setInteractionMode('execution')}
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                            interactionMode === 'execution'
+                              ? 'bg-amber-600 text-white shadow-2xs'
+                              : 'text-muted hover:text-fg'
+                          }`}
+                          title="Mode Eksekusi: AI langsung menyusun draft spesifikasi teknis dan artefak dokumen tanpa bertanya."
+                        >
+                          <Zap size={12} />
+                          <span>Eksekusi (Spesifikasi)</span>
+                        </button>
                       </div>
                     </div>
 
@@ -3094,83 +3143,93 @@ export default function App() {
         )}
       </main>
 
-      {/* 3. Context / Inspector Panel (Right Pane - w-72 inside mqs-main) */}
+      {/* 3. Context / Project Co-Pilot Panel (Right Pane - w-80 inside mqs-main) */}
       {showInspector && activeProject && (
-        <aside className="w-72 mr-2 mb-2 rounded-[12px] border border-border/80 bg-panel/60 shadow-2xs flex flex-col overflow-hidden shrink-0 backdrop-blur-xs">
+        <aside className="w-80 mr-2 mb-2 rounded-[12px] border border-border/80 bg-panel/60 shadow-2xs flex flex-col overflow-hidden shrink-0 backdrop-blur-xs">
           
-          {/* Inspector Header: Selected Title on Left, 3-Dot Dropdown on Right (mq-studio style) */}
-          <div className="h-11 px-3.5 border-b border-border flex items-center justify-between shrink-0 relative bg-surface/80 backdrop-blur-xs">
+          {/* Co-Pilot Header: Title, pending actions badge, & close button */}
+          <div className="h-10 px-3.5 border-b border-border flex items-center justify-between shrink-0 bg-surface/80 backdrop-blur-xs">
             <div className="flex items-center gap-2">
-              <currentInspectorTab.icon size={15} className="text-primary" />
+              <Bot size={15} className="text-primary" />
               <span className="font-semibold text-xs text-fg tracking-tight">
-                {currentInspectorTab.label}
+                Project Co-Pilot
               </span>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-primary-soft text-primary">
-                {currentInspectorTab.count}
-              </span>
-            </div>
-
-            <div className="relative" ref={inspectorMenuRef}>
-              <button
-                type="button"
-                onClick={() => setShowInspectorMenu(!showInspectorMenu)}
-                className={`p-1.5 rounded-md transition-colors ${
-                  showInspectorMenu
-                    ? 'bg-fill text-fg'
-                    : 'hover:bg-fill text-muted hover:text-fg'
-                }`}
-                title="Switch Inspector View"
-              >
-                <MoreVertical size={16} />
-              </button>
-
-              {showInspectorMenu && (
-                <div className="absolute right-0 top-full mt-1.5 w-56 bg-surface border border-border rounded-lg shadow-xl p-1 z-30 space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
-                  <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted">
-                    Inspector Views
-                  </div>
-                  {inspectorTabs.map((tab) => {
-                    const isTabActive = activeTab === tab.id;
-                    const TabIcon = tab.icon;
-                    return (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => {
-                          setActiveTab(tab.id);
-                          setShowInspectorMenu(false);
-                        }}
-                        className={`w-full flex items-center justify-between px-2.5 py-2 rounded-md text-xs transition-colors ${
-                          isTabActive
-                            ? 'bg-primary-soft text-primary font-semibold'
-                            : 'text-fg/80 hover:bg-fill'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <TabIcon size={14} className={isTabActive ? 'text-primary' : 'text-muted'} />
-                          <span>{tab.label}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-medium ${
-                            isTabActive 
-                              ? 'bg-primary text-white' 
-                              : 'bg-fill text-muted'
-                          }`}>
-                            {tab.count}
-                          </span>
-                          {isTabActive && <Check size={13} className="text-primary" />}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+              {unresolvedQACount > 0 && (
+                <span className="flex items-center gap-1 text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  <span>{unresolvedQACount} respon</span>
+                </span>
               )}
             </div>
+
+            <button
+              type="button"
+              onClick={() => setShowInspector(false)}
+              className="p-1 rounded-md text-muted hover:text-fg hover:bg-fill transition-colors"
+              title="Tutup Panel Co-Pilot"
+            >
+              <X size={14} />
+            </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-3">
+          {/* 3 Segmented Open Tabs (No 3-dot dropdown) */}
+          <div className="p-1.5 border-b border-border bg-panel/40 flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveTab('requirements')}
+              className={`flex-1 py-1.5 px-1 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-all ${
+                activeTab === 'requirements'
+                  ? 'bg-primary-soft text-primary shadow-2xs font-bold'
+                  : 'text-muted hover:text-fg hover:bg-fill-mute'
+              }`}
+            >
+              <ListOrdered size={12} />
+              <span>Kebutuhan</span>
+              <span className="text-[10px] font-mono opacity-80">({requirements.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('qa_assumptions')}
+              className={`flex-1 py-1.5 px-1 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-all ${
+                activeTab === 'qa_assumptions'
+                  ? 'bg-primary-soft text-primary shadow-2xs font-bold'
+                  : 'text-muted hover:text-fg hover:bg-fill-mute'
+              }`}
+            >
+              <AlertTriangle size={12} className={unresolvedQACount > 0 ? 'text-amber-500' : ''} />
+              <span>Tanya & Asumsi</span>
+              {unresolvedQACount > 0 ? (
+                <span className="text-[9px] font-mono px-1 rounded-full bg-amber-500 text-white font-bold animate-pulse">
+                  {unresolvedQACount}
+                </span>
+              ) : (
+                <span className="text-[10px] font-mono opacity-80">({clarifications.length + assumptions.length})</span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('pipeline_audit')}
+              className={`flex-1 py-1.5 px-1 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-all ${
+                activeTab === 'pipeline_audit'
+                  ? 'bg-primary-soft text-primary shadow-2xs font-bold'
+                  : 'text-muted hover:text-fg hover:bg-fill-mute'
+              }`}
+            >
+              <Activity size={12} />
+              <span>Pipeline & Audit</span>
+              {findings.length > 0 && (
+                <span className="text-[9px] font-mono px-1 rounded-full bg-rose-500 text-white font-bold">
+                  {findings.length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-3">
             
-            {/* TAB 1: REQUIREMENTS */}
+            {/* TAB 1: REQUIREMENTS BACKLOG */}
             {activeTab === 'requirements' && (
               <div className="space-y-3">
                 {/* Header Actions: Quick Stats + Manual Extraction Trigger */}
@@ -3323,233 +3382,373 @@ export default function App() {
               </div>
             )}
 
-            {/* TAB 2: VALIDATION FINDINGS */}
-            {activeTab === 'validation' && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-border">
-                  <span className="text-xs font-semibold text-fg">
-                    Inspection Findings ({findings.length})
-                  </span>
-                  <button
-                    onClick={handleRunValidation}
-                    disabled={isValidating}
-                    className="px-2 py-1 rounded bg-primary hover:bg-primary-hover text-white text-[11px] font-medium flex items-center gap-1 disabled:opacity-50"
-                  >
-                    <RefreshCw size={11} className={isValidating ? 'animate-spin' : ''} />
-                    <span>Run Check</span>
-                  </button>
+            {/* TAB 2: TANYA JAWAB & ASUMSI (ACTION CENTER) */}
+            {activeTab === 'qa_assumptions' && (
+              <div className="space-y-4">
+                
+                {/* Sub-section 1: Pertanyaan Klarifikasi AI */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between pb-1 border-b border-border">
+                    <div className="flex items-center gap-1.5">
+                      <MessageSquare size={13} className="text-primary" />
+                      <span className="text-xs font-semibold text-fg">
+                        Pertanyaan AI ({clarifications.length})
+                      </span>
+                    </div>
+                    {clarifications.filter(c => c.status === 'open' && !c.answer).length > 0 && (
+                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold">
+                        {clarifications.filter(c => c.status === 'open' && !c.answer).length} Butuh Jawaban
+                      </span>
+                    )}
+                  </div>
+
+                  {clarifications.length === 0 ? (
+                    <div className="text-center py-4 text-xs text-muted">
+                      Tidak ada pertanyaan klarifikasi terbuka.
+                    </div>
+                  ) : (
+                    clarifications.map((c) => (
+                      <div key={c.id} className="p-3 bg-surface border border-border rounded-xl space-y-2 shadow-2xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] uppercase font-bold text-primary bg-primary-soft px-1.5 py-0.5 rounded">
+                            Clarification
+                          </span>
+                          <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-semibold ${
+                            c.status === 'answered' || c.answer 
+                              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400' 
+                              : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400'
+                          }`}>
+                            {c.status || (c.answer ? 'answered' : 'open')}
+                          </span>
+                        </div>
+                        
+                        <p className="text-xs text-fg leading-relaxed">{c.question}</p>
+
+                        {c.answer ? (
+                          <div className="p-2 rounded-lg bg-fill text-xs space-y-0.5 border border-border/80">
+                            <span className="text-[10px] font-bold text-ok uppercase">Jawaban Anda:</span>
+                            <p className="text-fg text-xs leading-relaxed">{c.answer}</p>
+                          </div>
+                        ) : (
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              handleAnswerClarification(c.id);
+                            }}
+                            className="flex items-center gap-1.5 pt-1"
+                          >
+                            <input
+                              type="text"
+                              value={clarificationAnswers[c.id] || ''}
+                              onChange={(e) => setClarificationAnswers(prev => ({ ...prev, [c.id]: e.target.value }))}
+                              placeholder="Ketik jawaban Anda di sini..."
+                              className="flex-1 px-2.5 py-1 text-xs bg-fill border border-border rounded-lg text-fg placeholder:text-muted focus:outline-none focus:border-primary"
+                            />
+                            <button
+                              type="submit"
+                              disabled={!clarificationAnswers[c.id]?.trim()}
+                              className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold disabled:opacity-40 transition-colors shrink-0 shadow-2xs"
+                            >
+                              Jawab
+                            </button>
+                          </form>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
 
-                {findings.length === 0 ? (
-                  <div className="text-center py-8 text-xs text-muted space-y-2">
-                    <CheckCircle2 size={28} className="mx-auto text-ok" />
-                    <span>Tidak ada isu validasi atau konflik ditemukan!</span>
+                {/* Sub-section 2: Asumsi Sistem (Interactive Confirm, Correct, Reject) */}
+                <div className="space-y-2.5 pt-2 border-t border-border">
+                  <div className="flex items-center justify-between pb-1 border-b border-border">
+                    <div className="flex items-center gap-1.5">
+                      <AlertTriangle size={13} className="text-amber-500" />
+                      <span className="text-xs font-semibold text-fg">
+                        Asumsi Sistem ({assumptions.length})
+                      </span>
+                    </div>
+                    {assumptions.filter(a => a.status === 'confirmed').length > 0 && (
+                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-ok-tint text-ok font-bold">
+                        {assumptions.filter(a => a.status === 'confirmed').length} Terkonfirmasi
+                      </span>
+                    )}
                   </div>
-                ) : (
-                  findings.map((f) => {
-                    const isConflict = f.severity === 'conflict';
-                    return (
-                      <div
-                        key={f.id}
-                        className={`p-3 rounded-lg border text-xs space-y-1.5 ${
-                          isConflict
-                            ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50 text-rose-900 dark:text-rose-200'
-                            : 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/50 text-amber-900 dark:text-amber-200'
-                        }`}
+
+                  <p className="text-[10.5px] text-muted leading-tight">
+                    Asumsi otomatis AI. Konfirmasi jika benar, atau klik <strong>Koreksi</strong> untuk menuliskan fakta proyek yang tepat.
+                  </p>
+
+                  {assumptions.length === 0 ? (
+                    <div className="text-center py-4 text-xs text-muted">
+                      Tidak ada asumsi aktif saat ini.
+                    </div>
+                  ) : (
+                    assumptions.map((a) => {
+                      const isEditing = editingAssumptionId === a.id;
+                      return (
+                        <div key={a.id} className="p-3 bg-surface border border-border rounded-xl space-y-2 text-xs shadow-2xs">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-[10px] uppercase font-bold px-1.5 py-0.2 rounded ${
+                              a.status === 'confirmed'
+                                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400'
+                                : a.status === 'rejected'
+                                ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400'
+                                : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400'
+                            }`}>
+                              {a.status}
+                            </span>
+
+                            {/* Action Buttons if not editing */}
+                            {!isEditing && (
+                              <div className="flex items-center gap-1">
+                                {a.status !== 'confirmed' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateAssumptionStatus(a.id, 'confirmed')}
+                                    className="px-2 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold transition-colors flex items-center gap-0.5"
+                                    title="Konfirmasi bahwa asumsi ini benar"
+                                  >
+                                    <Check size={10} />
+                                    <span>Benar</span>
+                                  </button>
+                                )}
+                                
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingAssumptionId(a.id);
+                                    setEditingAssumptionText(a.description);
+                                  }}
+                                  className="px-2 py-0.5 rounded bg-primary-soft hover:bg-primary/20 text-primary text-[10px] font-semibold transition-colors flex items-center gap-0.5"
+                                  title="Koreksi asumsi ini dengan fakta yang tepat"
+                                >
+                                  <Edit3 size={10} />
+                                  <span>Koreksi</span>
+                                </button>
+
+                                {a.status !== 'rejected' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateAssumptionStatus(a.id, 'rejected')}
+                                    className="px-2 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[10px] font-semibold transition-colors flex items-center gap-0.5"
+                                    title="Tolak asumsi ini (tidak relevan)"
+                                  >
+                                    <X size={10} />
+                                    <span>Tolak</span>
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Inline Correction Form */}
+                          {isEditing ? (
+                            <div className="space-y-1.5 pt-1">
+                              <label className="text-[10.5px] font-semibold text-fg">
+                                Tuliskan fakta / preferensi yang benar:
+                              </label>
+                              <textarea
+                                value={editingAssumptionText}
+                                onChange={(e) => setEditingAssumptionText(e.target.value)}
+                                rows={2}
+                                className="w-full p-2 text-xs bg-fill border border-border rounded-lg text-fg outline-none focus:border-primary resize-none"
+                                placeholder="Contoh: Bukan Stripe, kita pakai Midtrans QRIS..."
+                                autoFocus
+                              />
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingAssumptionId(null)}
+                                  className="px-2 py-1 text-[11px] rounded bg-fill hover:bg-fill-mute text-fg transition-colors"
+                                >
+                                  Batal
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCorrectAssumption(a.id)}
+                                  disabled={!editingAssumptionText.trim()}
+                                  className="px-2.5 py-1 text-[11px] rounded bg-primary hover:bg-primary-hover text-white font-medium transition-colors disabled:opacity-40 shadow-2xs"
+                                >
+                                  Simpan Koreksi
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-fg leading-relaxed">{a.description}</p>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: PIPELINE & AUDIT */}
+            {activeTab === 'pipeline_audit' && (
+              <div className="space-y-4">
+                
+                {/* 1. Interactive Multi-Agent Pipeline Stepper */}
+                <div className="p-3 bg-surface border border-border rounded-xl space-y-2.5 shadow-2xs">
+                  <div className="flex items-center justify-between pb-1 border-b border-border">
+                    <span className="text-xs font-semibold text-fg flex items-center gap-1.5">
+                      <Activity size={13} className="text-primary" />
+                      Status Alur Dokumen
+                    </span>
+                    <span className="text-[10px] font-mono font-bold text-muted">5 Tahap</span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {pipelineSteps.map((s, idx) => {
+                      const isCompleted = s.status === 'completed';
+                      const isDraft = s.status === 'draft';
+                      const isCurrent = currentView === s.id;
+                      return (
+                        <div
+                          key={s.id}
+                          onClick={() => {
+                            if (!s.locked) {
+                              setCurrentView(s.id as any);
+                              setIsEditingDoc(false);
+                            }
+                          }}
+                          className={`p-2 rounded-lg border text-xs flex items-center justify-between transition-all ${
+                            isCurrent
+                              ? 'border-primary/50 bg-primary-soft/60 font-semibold'
+                              : s.locked
+                              ? 'border-border/40 opacity-50 cursor-not-allowed'
+                              : 'border-border bg-fill-soft/40 hover:bg-fill-mute cursor-pointer'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                              isCompleted
+                                ? 'bg-ok text-white'
+                                : isDraft
+                                ? 'bg-amber-500 text-white'
+                                : 'bg-fill text-muted'
+                            }`}>
+                              {isCompleted ? '✓' : idx + 1}
+                            </span>
+                            <span className="text-fg">{s.name}</span>
+                          </div>
+
+                          <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-medium ${
+                            isCompleted 
+                              ? 'bg-ok-tint text-ok font-bold' 
+                              : isDraft 
+                              ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold'
+                              : 'text-muted'
+                          }`}>
+                            {s.desc}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Inspection & Validation Findings */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between pb-1 border-b border-border">
+                    <div className="flex items-center gap-1.5">
+                      <ShieldAlert size={13} className="text-primary" />
+                      <span className="text-xs font-semibold text-fg">
+                        Audit & Temuan ({findings.length})
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRunValidation}
+                      disabled={isValidating}
+                      className="px-2 py-0.5 rounded bg-primary hover:bg-primary-hover text-white text-[10.5px] font-medium flex items-center gap-1 disabled:opacity-50 transition-colors shadow-2xs"
+                    >
+                      <RefreshCw size={10} className={isValidating ? 'animate-spin' : ''} />
+                      <span>{isValidating ? 'Cek...' : 'Audit Ulang'}</span>
+                    </button>
+                  </div>
+
+                  {findings.length === 0 ? (
+                    <div className="text-center py-4 text-xs text-muted space-y-1">
+                      <CheckCircle2 size={24} className="mx-auto text-ok" />
+                      <p>Kualitas dokumen bersih, tidak ada isu atau konflik ditemukan!</p>
+                    </div>
+                  ) : (
+                    findings.map((f) => {
+                      const isConflict = f.severity === 'conflict';
+                      return (
+                        <div
+                          key={f.id}
+                          className={`p-2.5 rounded-lg border text-xs space-y-1 ${
+                            isConflict
+                              ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/50 text-rose-900 dark:text-rose-200'
+                              : 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/50 text-amber-900 dark:text-amber-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold uppercase tracking-wider text-[10px] flex items-center gap-1">
+                              {isConflict ? <ShieldAlert size={12} className="text-rose-600" /> : <AlertTriangle size={12} className="text-amber-600" />}
+                              <span>{f.finding_type.replace(/_/g, ' ')}</span>
+                            </span>
+                            <span className={`text-[9px] uppercase font-bold px-1.5 py-0.2 rounded ${
+                              isConflict ? 'bg-rose-200 text-rose-800' : 'bg-amber-200 text-amber-800'
+                            }`}>
+                              {f.severity}
+                            </span>
+                          </div>
+                          <p className="leading-relaxed text-[11.5px]">{f.description}</p>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* 3. PRD to SRS Traceability Matrix */}
+                <div className="space-y-2.5 pt-2 border-t border-border">
+                  <div className="flex items-center justify-between pb-1 border-b border-border text-xs">
+                    <span className="font-semibold text-fg flex items-center gap-1.5">
+                      <GitBranch size={13} className="text-primary" />
+                      Traceability Matrix
+                    </span>
+                    <span className="text-[10px] font-mono text-muted">{traceabilityMatrix.length} Matched</span>
+                  </div>
+
+                  {traceabilityMatrix.length === 0 ? (
+                    <div className="text-center py-4 text-xs text-muted">
+                      Belum ada mapping requirement tercatat.
+                    </div>
+                  ) : (
+                    traceabilityMatrix.map((item, idx) => (
+                      <div 
+                        key={idx}
+                        className="p-2.5 bg-surface border border-border rounded-lg shadow-2xs space-y-1 text-xs"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold uppercase tracking-wider text-[10px] flex items-center gap-1">
-                            {isConflict ? <ShieldAlert size={12} className="text-rose-600" /> : <AlertTriangle size={12} className="text-amber-600" />}
-                            <span>{f.finding_type.replace(/_/g, ' ')}</span>
+                          <span className="font-mono text-xs font-bold text-primary">
+                            {item.requirement_key}
                           </span>
-                          <span className={`text-[9px] uppercase font-bold px-1.5 py-0.2 rounded ${
-                            isConflict ? 'bg-rose-200 text-rose-800' : 'bg-amber-200 text-amber-800'
+                          <span className={`text-[9.5px] font-medium px-2 py-0.2 rounded-full ${
+                            item.covered_in_srs 
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' 
+                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
                           }`}>
-                            {f.severity}
+                            {item.covered_in_srs ? 'Mapped in SRS' : 'Orphan'}
                           </span>
                         </div>
-                        <p className="leading-relaxed">{f.description}</p>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            )}
-
-            {/* TAB 3: TRACEABILITY MATRIX */}
-            {activeTab === 'traceability' && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-border text-xs">
-                  <span className="font-semibold text-fg">
-                    PRD ➔ SRS Traceability
-                  </span>
-                  <GitBranch size={13} className="text-primary" />
-                </div>
-
-                {traceabilityMatrix.length === 0 ? (
-                  <div className="text-center py-8 text-xs text-muted">
-                    Belum ada mapping requirement tercatat.
-                  </div>
-                ) : (
-                  traceabilityMatrix.map((item, idx) => (
-                    <div 
-                      key={idx}
-                      className="p-3 bg-surface border border-border rounded-lg shadow-2xs space-y-2 text-xs"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs font-bold text-primary">
-                          {item.requirement_key}
-                        </span>
-                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                          item.covered_in_srs 
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' 
-                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                        }`}>
-                          {item.covered_in_srs ? 'Mapped in SRS' : 'Orphan (Not in SRS)'}
-                        </span>
-                      </div>
-                      <div className="font-medium text-fg">
-                        {item.title}
-                      </div>
-                      <div className="text-[11px] text-muted flex items-center justify-between">
-                        <span>Priority: {item.priority}</span>
-                        <span className="capitalize">Status: {item.status}</span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* TAB 4: ASSUMPTIONS */}
-            {activeTab === 'assumptions' && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between pb-1 border-b border-border text-xs font-semibold text-fg">
-                  <span>Assumptions ({assumptions.length})</span>
-                  {assumptions.length > 0 && (
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-ok-tint text-ok font-bold">
-                      {assumptions.filter(a => a.status === 'confirmed').length} Confirmed
-                    </span>
-                  )}
-                </div>
-
-                {assumptions.length === 0 ? (
-                  <div className="text-center py-8 text-xs text-muted">Tidak ada asumsi aktif.</div>
-                ) : (
-                  assumptions.map((a) => (
-                    <div key={a.id} className="p-3 bg-surface border border-border rounded-xl space-y-2 text-xs shadow-2xs">
-                      <div className="flex items-center justify-between">
-                        <span className={`text-[10px] uppercase font-bold px-1.5 py-0.2 rounded ${
-                          a.status === 'confirmed'
-                            ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400'
-                            : a.status === 'rejected'
-                            ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400'
-                            : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400'
-                        }`}>
-                          {a.status}
-                        </span>
-
-                        <div className="flex items-center gap-1">
-                          {a.status !== 'confirmed' && (
-                            <button
-                              type="button"
-                              onClick={() => handleUpdateAssumptionStatus(a.id, 'confirmed')}
-                              className="px-2 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold transition-colors flex items-center gap-0.5"
-                              title="Tandai asumsi ini sebagai valid/terkonfirmasi"
-                            >
-                              <Check size={10} />
-                              <span>Confirm</span>
-                            </button>
-                          )}
-                          {a.status !== 'rejected' && (
-                            <button
-                              type="button"
-                              onClick={() => handleUpdateAssumptionStatus(a.id, 'rejected')}
-                              className="px-2 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[10px] font-semibold transition-colors flex items-center gap-0.5"
-                              title="Tolak asumsi ini"
-                            >
-                              <X size={10} />
-                              <span>Reject</span>
-                            </button>
-                          )}
+                        <div className="font-medium text-fg text-[11.5px] line-clamp-1">
+                          {item.title}
                         </div>
                       </div>
-                      <p className="text-xs text-fg leading-relaxed">{a.description}</p>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* TAB 5: QUESTIONS (CLARIFICATIONS) */}
-            {activeTab === 'questions' && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between pb-1 border-b border-border text-xs font-semibold text-fg">
-                  <span>Clarifications ({clarifications.length})</span>
-                  {clarifications.length > 0 && (
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-ok-tint text-ok font-bold">
-                      {clarifications.filter(c => c.status === 'answered' || c.answer).length} Answered
-                    </span>
+                    ))
                   )}
                 </div>
-
-                {clarifications.length === 0 ? (
-                  <div className="text-center py-8 text-xs text-muted">Tidak ada pertanyaan terbuka.</div>
-                ) : (
-                  clarifications.map((c) => (
-                    <div key={c.id} className="p-3 bg-surface border border-border rounded-xl space-y-2.5 shadow-2xs">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] uppercase font-bold text-primary bg-primary-soft px-1.5 py-0.5 rounded">
-                          Clarification
-                        </span>
-                        <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-semibold ${
-                          c.status === 'answered' || c.answer ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700'
-                        }`}>
-                          {c.status || (c.answer ? 'answered' : 'open')}
-                        </span>
-                      </div>
-                      
-                      <p className="text-xs text-fg leading-relaxed">{c.question}</p>
-
-                      {c.answer ? (
-                        <div className="p-2 rounded-lg bg-fill text-xs space-y-0.5 border border-border/80">
-                          <span className="text-[10px] font-bold text-ok uppercase">Jawaban Anda:</span>
-                          <p className="text-fg text-xs leading-relaxed">{c.answer}</p>
-                        </div>
-                      ) : (
-                        <form
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            handleAnswerClarification(c.id);
-                          }}
-                          className="flex items-center gap-1.5 pt-1"
-                        >
-                          <input
-                            type="text"
-                            value={clarificationAnswers[c.id] || ''}
-                            onChange={(e) => setClarificationAnswers(prev => ({ ...prev, [c.id]: e.target.value }))}
-                            placeholder="Tulis klarifikasi jawaban..."
-                            className="flex-1 px-2.5 py-1 text-xs bg-fill border border-border rounded-lg text-fg focus:outline-none focus:border-primary"
-                          />
-                          <button
-                            type="submit"
-                            disabled={!clarificationAnswers[c.id]?.trim()}
-                            className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold disabled:opacity-40 transition-colors shrink-0 shadow-2xs"
-                          >
-                            Kirim
-                          </button>
-                        </form>
-                      )}
-                    </div>
-                  ))
-                )}
               </div>
             )}
           </div>
 
           {/* Footer Document Stats */}
-          <div className="p-2.5 border-t border-border bg-panel flex items-center justify-between text-xs">
-            <span className="text-muted text-[11px]">Validation Status:</span>
+          <div className="p-2 border-t border-border bg-panel flex items-center justify-between text-xs shrink-0">
+            <span className="text-muted text-[11px]">Audit Health:</span>
             <span className={`font-mono text-[10px] font-semibold px-2 py-0.5 rounded ${
               findings.length === 0 ? 'bg-ok-tint text-ok' : 'bg-warn-bg text-warn'
             }`}>

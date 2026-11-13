@@ -17,6 +17,10 @@ export function ApproveRequirement(id: string): $CancellablePromise<void> {
     return $Call.ByID(1898696884, id);
 }
 
+export function CorrectAssumption(id: string, correctedText: string): $CancellablePromise<void> {
+    return $Call.ByID(1650625553, id, correctedText);
+}
+
 export function ListRequirements(projectID: string): $CancellablePromise<domain$0.Requirement[] | null> {
     return $Call.ByID(2771314592, projectID);
 }
