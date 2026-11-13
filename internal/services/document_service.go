@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/wailsapp/wails/v3/pkg/application"
+
 	"ai-requirements-studio/internal/ai"
 	"ai-requirements-studio/internal/domain"
 	"ai-requirements-studio/internal/storage"
@@ -687,4 +689,34 @@ func (s *DocumentService) ExportAllDocuments(projectID string, targetDir string)
 	}
 
 	return results, nil
+}
+
+func (s *DocumentService) SelectDirectory(title string) (string, error) {
+	app := application.Get()
+	if app == nil || app.Dialog == nil {
+		return "", fmt.Errorf("dialog manager unavailable")
+	}
+	dlg := app.Dialog.OpenFile().
+		CanChooseDirectories(true).
+		CanChooseFiles(false).
+		CanCreateDirectories(true)
+	if title != "" {
+		dlg.SetTitle(title)
+	}
+	return dlg.PromptForSingleSelection()
+}
+
+func (s *DocumentService) SelectSaveFile(title string, defaultFilename string) (string, error) {
+	app := application.Get()
+	if app == nil || app.Dialog == nil {
+		return "", fmt.Errorf("dialog manager unavailable")
+	}
+	dlg := app.Dialog.SaveFile()
+	if title != "" {
+		dlg.SetMessage(title)
+	}
+	if defaultFilename != "" {
+		dlg.SetFilename(defaultFilename)
+	}
+	return dlg.PromptForSingleSelection()
 }

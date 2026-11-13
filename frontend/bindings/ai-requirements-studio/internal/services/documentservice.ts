@@ -79,3 +79,11 @@ export function RegenerateSRSSection(projectID: string, sectionNumber: number): 
 export function SaveManualEdit(projectID: string, docType: string, content: string): $CancellablePromise<domain$0.DocumentVersion | null> {
     return $Call.ByID(1580935285, projectID, docType, content);
 }
+
+export function SelectDirectory(title: string): $CancellablePromise<string> {
+    return $Call.ByID(4043236185, title);
+}
+
+export function SelectSaveFile(title: string, defaultFilename: string): $CancellablePromise<string> {
+    return $Call.ByID(2175121209, title, defaultFilename);
+}

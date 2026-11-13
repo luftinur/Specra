@@ -55,6 +55,9 @@ import {
 } from 'lucide-react';
 import { MarkdownViewer } from './components/MarkdownViewer';
 import { SpecraLogo, SpecraIcon, SpecraWordmark } from './components/SpecraBrand';
+import { ToastContainer, type ToastItem, type ToastType } from './components/Toast';
+import { ConfirmModal } from './components/ConfirmModal';
+import { ExportModal } from './components/ExportModal';
 import { 
   ProjectService, 
   ConversationService, 
@@ -91,6 +94,40 @@ export default function App() {
   const [isProjectManagerOpen, setIsProjectManagerOpen] = useState(false);
   const [projectManagerTab, setProjectManagerTab] = useState<'open' | 'create'>('open');
   const [projectSearchFilter, setProjectSearchFilter] = useState('');
+
+  // In-App Toast & Modal Feedback State
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const notify = (type: ToastType, title: string, message?: string) => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    setToasts(prev => [...prev, { id, title, message, type }]);
+  };
+  const notifySuccess = (title: string, message?: string) => notify('success', title, message);
+  const notifyError = (title: string, message?: string) => notify('error', title, message);
+  const notifyWarn = (title: string, message?: string) => notify('warn', title, message);
+  const notifyInfo = (title: string, message?: string) => notify('info', title, message);
+  void notifyInfo;
+  const dismissToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
+
+  // Custom Confirmation Modal State
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    isDestructive?: boolean;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    isDestructive: true,
+    onConfirm: () => {},
+  });
+
+  // Dedicated Export Modal State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportInitialScope, setExportInitialScope] = useState<'single' | 'all'>('single');
 
   // Core State
   const [projects, setProjects] = useState<Project[]>([]);
@@ -429,9 +466,10 @@ export default function App() {
       applyTheme(generalSettings.theme as any);
       applyFontScale(generalSettings.font_size as any);
       setGeneralSaveSuccess("Pengaturan umum berhasil disimpan!");
+      notifySuccess("Pengaturan Umum", "Pengaturan umum berhasil disimpan.");
       setTimeout(() => setGeneralSaveSuccess(null), 3000);
     } catch (err: any) {
-      alert("Gagal menyimpan pengaturan umum: " + (err?.message || err));
+      notifyError("Pengaturan Umum", "Gagal menyimpan pengaturan umum: " + (err?.message || err));
     }
   };
 
@@ -439,7 +477,7 @@ export default function App() {
     try {
       await ProviderService.OpenWorkspaceInExplorer();
     } catch (err: any) {
-      alert("Gagal membuka folder workspace: " + (err?.message || err));
+      notifyError("Folder Workspace", "Gagal membuka folder workspace: " + (err?.message || err));
     }
   };
 
@@ -510,7 +548,7 @@ export default function App() {
         }
       }
     } catch (err) {
-      if (!silent) alert(`Gagal mendeteksi coding agent: ${String(err)}`);
+      if (!silent) notifyError("Deteksi Coding Agent", `Gagal mendeteksi coding agent: ${String(err)}`);
       else console.warn('Silent agent detection error:', err);
     } finally {
       setIsDetectingAgents(false);
@@ -528,10 +566,11 @@ export default function App() {
       }
       setDetectedAgents(prev => prev.map(a => a.id === agentId ? { ...a, selected_model: modelId } : a));
       setProviderSaveSuccess(`Model untuk ${agentId} diperbarui: ${modelId || '(Default)'}`);
+      notifySuccess("Model Diperbarui", `Model untuk ${agentId} disetel ke: ${modelId || '(Default)'}`);
       await loadProviderStatus();
       setTimeout(() => setProviderSaveSuccess(''), 3000);
     } catch (err) {
-      alert(`Gagal menyimpan model agent: ${String(err)}`);
+      notifyError("Konfigurasi Model", `Gagal menyimpan model agent: ${String(err)}`);
     }
   };
 
@@ -547,12 +586,13 @@ export default function App() {
           setGeminiModelsList(models);
         }
         setProviderSaveSuccess(`Berhasil memuat ${models.length} model untuk ${providerId}`);
+        notifySuccess("Model Dimuat", `Berhasil memuat ${models.length} model untuk ${providerId}`);
         setTimeout(() => setProviderSaveSuccess(''), 3000);
       } else {
-        alert(`Tidak ada model yang ditemukan untuk ${providerId}`);
+        notifyWarn("Model Tidak Ditemukan", `Tidak ada model yang ditemukan untuk ${providerId}`);
       }
     } catch (err) {
-      alert(`Gagal memuat model: ${String(err)}`);
+      notifyError("Gagal Memuat Model", `Gagal memuat model: ${String(err)}`);
     }
   };
 
@@ -561,10 +601,11 @@ export default function App() {
     try {
       await ProviderService.ConfigureProviders(agentId, fallbackProvider, fallbackEnabled);
       setProviderSaveSuccess(`AI Provider diaktifkan: ${agentId}`);
+      notifySuccess("AI Provider Aktif", `Primary provider disetel ke: ${agentId}`);
       await loadProviderStatus();
       setTimeout(() => setProviderSaveSuccess(''), 3000);
     } catch (err) {
-      alert(`Gagal mengubah AI Provider: ${String(err)}`);
+      notifyError("AI Provider", `Gagal mengubah AI Provider: ${String(err)}`);
     }
   };
 
@@ -750,7 +791,7 @@ export default function App() {
       setTraceabilityMatrix(m || []);
       await loadDocumentDetails(activeProject.id);
     } catch (err) {
-      alert(`Gagal validasi: ${String(err)}`);
+      notifyError("Audit Validasi", `Gagal validasi: ${String(err)}`);
     } finally {
       setIsValidating(false);
     }
@@ -759,18 +800,20 @@ export default function App() {
   const handleApproveRequirement = async (id: string) => {
     try {
       await RequirementService.ApproveRequirement(id);
+      notifySuccess("Requirement Disetujui", "Requirement telah disetujui (Approved).");
       if (activeProject) await refreshProjectEntities(activeProject.id);
     } catch (err) {
-      alert(`Gagal approve requirement: ${String(err)}`);
+      notifyError("Approve Requirement", `Gagal approve requirement: ${String(err)}`);
     }
   };
 
   const handleRejectRequirement = async (id: string) => {
     try {
       await RequirementService.RejectRequirement(id);
+      notifyWarn("Requirement Ditolak", "Requirement ditandai sebagai ditolak.");
       if (activeProject) await refreshProjectEntities(activeProject.id);
     } catch (err) {
-      alert(`Gagal reject requirement: ${String(err)}`);
+      notifyError("Reject Requirement", `Gagal reject requirement: ${String(err)}`);
     }
   };
 
@@ -779,16 +822,17 @@ export default function App() {
       await RequirementService.UpdatePriority(id, priority);
       if (activeProject) await refreshProjectEntities(activeProject.id);
     } catch (err) {
-      alert(`Gagal update priority: ${String(err)}`);
+      notifyError("Prioritas Requirement", `Gagal update priority: ${String(err)}`);
     }
   };
 
   const handleUpdateAssumptionStatus = async (id: string, status: string) => {
     try {
       await RequirementService.UpdateAssumptionStatus(id, status);
+      notifySuccess("Status Asumsi", `Asumsi berhasil diubah menjadi: ${status}`);
       if (activeProject) await refreshProjectEntities(activeProject.id);
     } catch (err) {
-      alert(`Gagal update assumption: ${String(err)}`);
+      notifyError("Update Asumsi", `Gagal update assumption: ${String(err)}`);
     }
   };
 
@@ -799,9 +843,10 @@ export default function App() {
       await RequirementService.CorrectAssumption(id, text);
       setEditingAssumptionId(null);
       setEditingAssumptionText('');
+      notifySuccess("Asumsi Dikoreksi", "Koreksi fakta proyek berhasil disimpan.");
       if (activeProject) await refreshProjectEntities(activeProject.id);
     } catch (err) {
-      alert(`Gagal menyimpan koreksi asumsi: ${String(err)}`);
+      notifyError("Koreksi Asumsi", `Gagal menyimpan koreksi asumsi: ${String(err)}`);
     }
   };
 
@@ -823,9 +868,10 @@ export default function App() {
     try {
       await RequirementService.AnswerClarification(id, ans);
       setClarificationAnswers(prev => ({ ...prev, [id]: '' }));
+      notifySuccess("Klarifikasi Dijawab", "Jawaban klarifikasi berhasil disimpan.");
       if (activeProject) await refreshProjectEntities(activeProject.id);
     } catch (err) {
-      alert(`Gagal submit jawaban klarifikasi: ${String(err)}`);
+      notifyError("Jawaban Klarifikasi", `Gagal submit jawaban klarifikasi: ${String(err)}`);
     }
   };
 
@@ -842,8 +888,9 @@ export default function App() {
       const msgs = await ConversationService.ListMessages(activeSession.id);
       setMessages(msgs || []);
       await refreshProjectEntities(activeProject.id);
+      notifySuccess("Ekstraksi AI", "Kebutuhan berhasil diekstrak.");
     } catch (err) {
-      alert(`Gagal mengekstrak requirements: ${String(err)}`);
+      notifyError("Ekstraksi Requirements", `Gagal mengekstrak requirements: ${String(err)}`);
     } finally {
       setIsExtractingReqs(false);
     }
@@ -862,25 +909,36 @@ export default function App() {
       if (p) {
         setOpenProjectIds(prev => prev.includes(p.id) ? prev : [...prev, p.id]);
         setActiveProject(p);
+        notifySuccess("Project Dibuat", `Project "${p.name}" siap digunakan.`);
       }
     } catch (err) {
-      alert(`Error creating project: ${String(err)}`);
+      notifyError("Buat Project", `Error creating project: ${String(err)}`);
     }
   };
 
-  const handleDeleteProject = async (id: string, name: string) => {
-    if (confirm(`Hapus project "${name}" beserta seluruh histori dan requirement-nya?`)) {
-      try {
-        await ProjectService.DeleteProject(id);
-        setOpenProjectIds(prev => prev.filter(pid => pid !== id));
-        if (activeProject?.id === id) {
-          setActiveProject(null);
+  const handleDeleteProject = (id: string, name: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Hapus Project',
+      message: `Hapus project "${name}" beserta seluruh histori percakapan dan spesifikasi yang ada? Tindakan ini tidak dapat dibatalkan.`,
+      confirmLabel: 'Hapus Project',
+      isDestructive: true,
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        try {
+          await ProjectService.DeleteProject(id);
+          setOpenProjectIds(prev => prev.filter(pid => pid !== id));
+          if (activeProject?.id === id) {
+            setActiveProject(null);
+            setActiveSession(null);
+          }
+          await loadProjects();
+          notifySuccess("Project Dihapus", `Project "${name}" berhasil dihapus.`);
+        } catch (err) {
+          notifyError("Hapus Project", `Error deleting project: ${String(err)}`);
         }
-        await loadProjects();
-      } catch (err) {
-        alert(`Error deleting project: ${String(err)}`);
-      }
-    }
+      },
+    });
   };
 
   const handleOpenEditProject = () => {
@@ -905,9 +963,10 @@ export default function App() {
         setActiveProject(updated);
         await loadProjects();
         setShowEditProjectModal(false);
+        notifySuccess("Project Diperbarui", "Perubahan project berhasil disimpan.");
       }
     } catch (err) {
-      alert(`Gagal update project: ${String(err)}`);
+      notifyError("Update Project", `Gagal update project: ${String(err)}`);
     }
   };
 
@@ -916,8 +975,9 @@ export default function App() {
     try {
       const res = await ProviderService.RunDiagnostics();
       setDiagResults(res);
+      notifySuccess("Diagnostik AI Selesai", "Pengecekan provider dan CLI tools berhasil dijalankan.");
     } catch (err) {
-      alert(`Gagal menjalankan diagnostik: ${String(err)}`);
+      notifyError("Diagnostik AI Gagal", `Gagal menjalankan diagnostik: ${String(err)}`);
     } finally {
       setIsRunningDiag(false);
     }
@@ -930,9 +990,10 @@ export default function App() {
       await ProviderService.StoreAPIKey('gemini', apiKeyInput.trim());
       setKeySaveMsg('API Key berhasil disimpan dengan aman di Windows Credential Manager.');
       setApiKeyInput('');
+      notifySuccess("API Key Tersimpan", "Gemini API Key tersimpan aman di Windows Credential Manager.");
       setTimeout(() => setKeySaveMsg(''), 4000);
     } catch (err) {
-      alert(`Gagal menyimpan key: ${String(err)}`);
+      notifyError("Simpan API Key", `Gagal menyimpan key: ${String(err)}`);
     }
   };
 
@@ -966,10 +1027,11 @@ export default function App() {
         await ProviderService.ConfigureGemini(geminiModel, geminiApiKey);
       }
       setProviderSaveSuccess('Konfigurasi AI Provider & Fallback berhasil disimpan!');
+      notifySuccess("Konfigurasi Tersimpan", "Konfigurasi AI Provider & Fallback berhasil disimpan.");
       await loadProviderStatus();
       setTimeout(() => setProviderSaveSuccess(''), 4000);
     } catch (err) {
-      alert(`Gagal menyimpan konfigurasi: ${String(err)}`);
+      notifyError("Simpan Konfigurasi", `Gagal menyimpan konfigurasi: ${String(err)}`);
     }
   };
 
@@ -1019,7 +1081,7 @@ export default function App() {
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      alert('File size exceeds 2 MB limit');
+      notifyWarn("Ukuran File Terlalu Besar", "File melebihi batas ukuran maksimal 2 MB.");
       return;
     }
 
@@ -1063,24 +1125,34 @@ export default function App() {
       setNewSkillDesc('');
       setNewSkillPrompt('');
       setSkillSaveSuccess(`Custom Skill "${newSkillName.trim()}" created successfully!`);
+      notifySuccess("Skill Tersimpan", `Custom Skill "${newSkillName.trim()}" berhasil dibuat.`);
       setIsNewSkillModalOpen(false);
       setTimeout(() => setSkillSaveSuccess(''), 3500);
       await loadSkillsCatalog();
       await loadAgentsAndMCP();
     } catch (err: any) {
-      alert(`Failed to save custom skill: ${err?.message || err}`);
+      notifyError("Buat Custom Skill", `Failed to save custom skill: ${err?.message || err}`);
     }
   };
 
-  const handleDeleteCustomSkill = async (id: string, name: string) => {
-    if (!confirm(`Delete custom skill "${name}"?`)) return;
-    try {
-      await ProviderService.DeleteSkill(id);
-      await loadSkillsCatalog();
-      await loadAgentsAndMCP();
-    } catch (err: any) {
-      alert(`Failed to delete custom skill: ${err?.message || err}`);
-    }
+  const handleDeleteCustomSkill = (id: string, name: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Hapus Custom Skill",
+      message: `Apakah Anda yakin ingin menghapus custom skill "${name}"? Tindakan ini tidak dapat dibatalkan.`,
+      confirmLabel: "Hapus Skill",
+      isDestructive: true,
+      onConfirm: async () => {
+        try {
+          await ProviderService.DeleteSkill(id);
+          await loadSkillsCatalog();
+          await loadAgentsAndMCP();
+          notifySuccess("Skill Dihapus", `Custom skill "${name}" berhasil dihapus.`);
+        } catch (err: any) {
+          notifyError("Hapus Skill", `Failed to delete custom skill: ${err?.message || err}`);
+        }
+      },
+    });
   };
 
   const loadAgentsAndMCP = async () => {
@@ -1111,10 +1183,11 @@ export default function App() {
         system_prompt: editingPrompt,
       });
       setAgentSaveSuccess(`Persona "${agent.name}" saved successfully!`);
+      notifySuccess("Persona Disimpan", `Persona "${agent.name}" berhasil diperbarui.`);
       setTimeout(() => setAgentSaveSuccess(''), 3000);
       await loadAgentsAndMCP();
     } catch (err) {
-      alert(`Failed to save agent persona: ${String(err)}`);
+      notifyError("Simpan Persona", `Failed to save agent persona: ${String(err)}`);
     }
   };
 
@@ -1130,7 +1203,7 @@ export default function App() {
       });
       await loadAgentsAndMCP();
     } catch (err) {
-      alert(`Failed to toggle skill: ${String(err)}`);
+      notifyError("Toggle Skill", `Failed to toggle skill: ${String(err)}`);
     }
   };
 
@@ -1155,21 +1228,31 @@ export default function App() {
       setNewMcpScope('global');
       setNewMcpAssignedAgents([]);
       setMcpSaveSuccess('MCP Server registered successfully!');
+      notifySuccess("MCP Server Terdaftar", `Server MCP "${newMcpName.trim()}" berhasil didaftarkan.`);
       setTimeout(() => setMcpSaveSuccess(''), 3000);
       await loadAgentsAndMCP();
     } catch (err) {
-      alert(`Failed to register MCP server: ${String(err)}`);
+      notifyError("Daftar MCP Server", `Failed to register MCP server: ${String(err)}`);
     }
   };
 
-  const handleDeleteMCPServer = async (id: string) => {
-    if (!confirm('Delete this MCP Server connection?')) return;
-    try {
-      await ProviderService.DeleteMCPServer(id);
-      await loadAgentsAndMCP();
-    } catch (err) {
-      alert(`Failed to delete MCP server: ${String(err)}`);
-    }
+  const handleDeleteMCPServer = (id: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Hapus MCP Server",
+      message: "Apakah Anda yakin ingin menghapus koneksi MCP Server ini? Tindakan ini tidak dapat dibatalkan.",
+      confirmLabel: "Hapus MCP",
+      isDestructive: true,
+      onConfirm: async () => {
+        try {
+          await ProviderService.DeleteMCPServer(id);
+          await loadAgentsAndMCP();
+          notifySuccess("MCP Server Dihapus", "Koneksi MCP Server berhasil dihapus.");
+        } catch (err) {
+          notifyError("Hapus MCP Server", `Failed to delete MCP server: ${String(err)}`);
+        }
+      },
+    });
   };
 
   // Slash Commands Definitions
@@ -1233,7 +1316,7 @@ export default function App() {
           setMessages(msgs || []);
           await refreshProjectEntities(activeProject.id);
         } catch (err) {
-          alert(`Error: ${String(err)}`);
+          notifyError("Clarification AI Error", `Error: ${String(err)}`);
         } finally {
           setIsSending(false);
         }
@@ -1342,7 +1425,7 @@ export default function App() {
       setMessages(msgs || []);
       await refreshProjectEntities(activeProject.id);
     } catch (err) {
-      alert(`AI Execution Error: ${String(err)}`);
+      notifyError("AI Execution Error", String(err));
     } finally {
       setIsSending(false);
     }
@@ -1362,7 +1445,7 @@ export default function App() {
         `Product Analyst telah menyusun draft PRD (20 sections).\n\n- Kebutuhan terdeteksi: **${requirements.length} item**\n- Asumsi aktif: **${assumptions.length} item**\n\n👉 *Buka tab PRD untuk mereview dokumen lengkap, atau diskusikan revisi langsung di sini.*`
       );
     } catch (err) {
-      alert(`Gagal generate PRD: ${String(err)}`);
+      notifyError("Generate PRD Gagal", `Gagal generate PRD: ${String(err)}`);
     } finally {
       setIsDocLoading(false);
     }
@@ -1379,8 +1462,9 @@ export default function App() {
         `PRD Section ${selectedSectionNum} Diperbarui`,
         `Product Analyst telah memperbarui Section ${selectedSectionNum} pada dokumen PRD.`
       );
+      notifySuccess(`PRD Section ${selectedSectionNum} Diperbarui`, "Section berhasil diregenerasi.");
     } catch (err) {
-      alert(`Gagal regenerate section PRD: ${String(err)}`);
+      notifyError("Regenerate Section PRD", `Gagal regenerate section PRD: ${String(err)}`);
     } finally {
       setIsDocLoading(false);
     }
@@ -1395,16 +1479,16 @@ export default function App() {
         'PRD Resmi Disetujui (Approved)',
         'Dokumen PRD resmi disetujui. Gerbang spesifikasi downstream **SRS (IEEE 830, 22 sections)** kini terbuka dan siap digenerate oleh System Analyst.'
       );
-      alert('PRD berhasil disetujui (Approved)! Sekarang dokumen SRS dapat digenerate.');
+      notifySuccess("PRD Disetujui", "Dokumen PRD berhasil disetujui (Approved)! Dokumen SRS dapat digenerate.");
     } catch (err) {
-      alert(`Gagal approve PRD: ${String(err)}`);
+      notifyError("Approve PRD", `Gagal approve PRD: ${String(err)}`);
     }
   };
 
   const handleGenerateSRS = async () => {
     if (!activeProject) return;
     if (prdDetails.document?.status !== 'approved') {
-      alert('SRS Generation Gated: PRD harus di-approve terlebih dahulu!');
+      notifyWarn("SRS Generation Gated", "PRD harus disetujui (Approved) terlebih dahulu sebelum menyusun SRS.");
       return;
     }
 
@@ -1419,7 +1503,7 @@ export default function App() {
         'System Analyst telah menyusun spesifikasi SRS IEEE 830 (22 sections) lengkap dengan pemetaan kebutuhan fungsional (FR-xxx) dan matriks ketertelusuran (*Traceability Matrix*).'
       );
     } catch (err) {
-      alert(`Gagal generate SRS: ${String(err)}`);
+      notifyError("Generate SRS", `Gagal generate SRS: ${String(err)}`);
     } finally {
       setIsDocLoading(false);
     }
@@ -1436,8 +1520,9 @@ export default function App() {
         `SRS Section ${selectedSectionNum} Diperbarui`,
         `System Analyst telah memperbarui Section ${selectedSectionNum} pada spesifikasi SRS.`
       );
+      notifySuccess(`SRS Section ${selectedSectionNum} Diperbarui`, "Section berhasil diregenerasi.");
     } catch (err) {
-      alert(`Gagal regenerate section SRS: ${String(err)}`);
+      notifyError("Regenerate Section SRS", `Gagal regenerate section SRS: ${String(err)}`);
     } finally {
       setIsDocLoading(false);
     }
@@ -1452,16 +1537,16 @@ export default function App() {
         'SRS Resmi Disetujui (Approved)',
         'Dokumen SRS resmi disetujui. Arsitektur sistem (C4 diagram, API contracts, dan STRIDE threat model) siap digenerate oleh **Software Architect**.'
       );
-      alert('SRS berhasil disetujui (Approved)!');
+      notifySuccess("SRS Disetujui", "Dokumen SRS berhasil disetujui (Approved)! Dokumen Arsitektur siap digenerate.");
     } catch (err) {
-      alert(`Gagal approve SRS: ${String(err)}`);
+      notifyError("Approve SRS", `Gagal approve SRS: ${String(err)}`);
     }
   };
 
   const handleGenerateArchitecture = async () => {
     if (!activeProject) return;
     if (prdDetails.document?.status !== 'approved') {
-      alert('Architecture Generation Gated: PRD harus di-approve terlebih dahulu!');
+      notifyWarn("Architecture Generation Gated", "PRD harus disetujui (Approved) terlebih dahulu sebelum menyusun Architecture.");
       return;
     }
 
@@ -1475,7 +1560,7 @@ export default function App() {
         'Software Architect telah merancang arsitektur sistem (16 sections) mencakup diagram C4 konteks & kontainer, spesifikasi REST API, dan strategi mitigasi STRIDE.'
       );
     } catch (err) {
-      alert(`Gagal generate Architecture: ${String(err)}`);
+      notifyError("Generate Architecture", `Gagal generate Architecture: ${String(err)}`);
     } finally {
       setIsDocLoading(false);
     }
@@ -1491,8 +1576,9 @@ export default function App() {
         `Architecture Section ${selectedSectionNum} Diperbarui`,
         `Software Architect telah memperbarui Section ${selectedSectionNum} pada dokumen Arsitektur.`
       );
+      notifySuccess(`Architecture Section ${selectedSectionNum} Diperbarui`, "Section berhasil diregenerasi.");
     } catch (err) {
-      alert(`Gagal regenerate section Architecture: ${String(err)}`);
+      notifyError("Regenerate Section Architecture", `Gagal regenerate section Architecture: ${String(err)}`);
     } finally {
       setIsDocLoading(false);
     }
@@ -1507,16 +1593,16 @@ export default function App() {
         'Architecture Resmi Disetujui (Approved)',
         'Dokumen Arsitektur disetujui. Spesifikasi Design System (16 sections) siap digenerate oleh **UI/UX Agent**.'
       );
-      alert('Architecture (architecture.md) berhasil disetujui (Approved)!');
+      notifySuccess("Architecture Disetujui", "Dokumen Arsitektur (architecture.md) berhasil disetujui (Approved)! Design System siap digenerate.");
     } catch (err) {
-      alert(`Gagal approve Architecture: ${String(err)}`);
+      notifyError("Approve Architecture", `Gagal approve Architecture: ${String(err)}`);
     }
   };
 
   const handleGenerateDesign = async () => {
     if (!activeProject) return;
     if (prdDetails.document?.status !== 'approved') {
-      alert('Design Generation Gated: PRD harus di-approve terlebih dahulu!');
+      notifyWarn("Design Generation Gated", "PRD harus disetujui (Approved) terlebih dahulu sebelum menyusun Design System.");
       return;
     }
 
@@ -1530,7 +1616,7 @@ export default function App() {
         'UI/UX Agent telah menyusun spesifikasi Design System (16 sections) mencakup token visual MQ-Studio, alur interaksi layar, komponen atomik, dan kepatuhan WCAG 2.2 AA.'
       );
     } catch (err) {
-      alert(`Gagal generate Design System: ${String(err)}`);
+      notifyError("Generate Design System", `Gagal generate Design System: ${String(err)}`);
     } finally {
       setIsDocLoading(false);
     }
@@ -1546,8 +1632,9 @@ export default function App() {
         `Design System Section ${selectedSectionNum} Diperbarui`,
         `UI/UX Agent telah memperbarui Section ${selectedSectionNum} pada dokumen Design System.`
       );
+      notifySuccess(`Design System Section ${selectedSectionNum} Diperbarui`, "Section berhasil diregenerasi.");
     } catch (err) {
-      alert(`Gagal regenerate section Design: ${String(err)}`);
+      notifyError("Regenerate Section Design", `Gagal regenerate section Design: ${String(err)}`);
     } finally {
       setIsDocLoading(false);
     }
@@ -1562,9 +1649,9 @@ export default function App() {
         'Design System Resmi Disetujui (Approved)',
         'Seluruh spesifikasi sistem (**PRD**, **SRS**, **Architecture**, dan **Design System**) telah lengkap dan disetujui. Workspace siap untuk fase implementasi teknis.'
       );
-      alert('Design System (design.md) berhasil disetujui (Approved)!');
+      notifySuccess("Design System Disetujui", "Dokumen Design System (design.md) berhasil disetujui (Approved)!");
     } catch (err) {
-      alert(`Gagal approve Design: ${String(err)}`);
+      notifyError("Approve Design", `Gagal approve Design: ${String(err)}`);
     }
   };
 
@@ -1588,47 +1675,35 @@ export default function App() {
       await loadDocumentDetails(activeProject.id);
       await handleRunValidation();
       setIsEditingDoc(false);
+      notifySuccess("Perubahan Disimpan", "Manual edit dokumen berhasil disimpan.");
     } catch (err) {
-      alert(`Gagal menyimpan edit: ${String(err)}`);
+      notifyError("Simpan Manual Edit", `Gagal menyimpan edit: ${String(err)}`);
     } finally {
       setIsDocLoading(false);
     }
   };
 
-  const handleExportDoc = async () => {
-    if (!activeProject) return;
-    const filename = currentView === 'prd' ? 'PRD.md' : currentView === 'srs' ? 'SRS.md' : currentView === 'architecture' ? 'architecture.md' : 'design.md';
-    const defaultPath = prompt(`Tentukan lokasi path penyimpanan file ${filename}:`, `C:\\${filename}`);
-    if (!defaultPath) return;
-
-    try {
-      await DocumentService.ExportDocument(activeProject.id, currentView, defaultPath);
-      alert(`Dokumen berhasil diekspor ke: ${defaultPath}`);
-    } catch (err) {
-      alert(`Gagal mengekspor dokumen: ${String(err)}`);
+  const handleExportDoc = () => {
+    if (!activeProject) {
+      notifyWarn("Export Dokumen", "Pilih project terlebih dahulu sebelum mengekspor.");
+      return;
     }
+    setExportInitialScope('single');
+    setIsExportModalOpen(true);
   };
 
-  const handleExportAllDocs = async () => {
-    if (!activeProject) return;
-    const defaultDir = prompt(
-      `Tentukan path folder untuk ekspor seluruh dokumen spesifikasi (PRD, SRS, Architecture, Design):`,
-      `C:\\specra-exports\\${activeProject.name ? activeProject.name.toLowerCase().replace(/\\s+/g, '-') : 'project'}`
-    );
-    if (!defaultDir) return;
-
-    try {
-      const exported = await DocumentService.ExportAllDocuments(activeProject.id, defaultDir);
-      const count = exported ? Object.keys(exported).length : 0;
-      alert(`Berhasil mengekspor ${count} dokumen spesifikasi ke folder:\n${defaultDir}`);
-    } catch (err) {
-      alert(`Gagal mengekspor dokumen: ${String(err)}`);
+  const handleExportAllDocs = () => {
+    if (!activeProject) {
+      notifyWarn("Export Seluruh Dokumen", "Pilih project terlebih dahulu sebelum mengekspor.");
+      return;
     }
+    setExportInitialScope('all');
+    setIsExportModalOpen(true);
   };
 
   const runAutoPipeline = async (skipClarificationGating = false) => {
     if (!activeProject) {
-      alert('Pilih atau buat project terlebih dahulu!');
+      notifyWarn("Auto Pipeline", "Pilih atau buat project terlebih dahulu!");
       return;
     }
     if (autoPipelineRunning) return;
@@ -1733,7 +1808,7 @@ export default function App() {
       setPipelineCompletedNotice(true);
     } catch (err) {
       console.error('Auto Pipeline Failed:', err);
-      alert(`Auto Pipeline terhenti pada tahap "${autoPipelineStage || 'Eksekusi'}": ${String(err)}`);
+      notifyError("Auto Pipeline Terhenti", `Tahap "${autoPipelineStage || 'Eksekusi'}": ${String(err)}`);
       setAutoPipelineRunning(false);
       setAutoPipelineStage(null);
     }
@@ -5696,6 +5771,61 @@ export default function App() {
 
           </div>
         </div>
+      )}
+
+      {/* Global In-App Toast Notification System */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
+      {/* In-App Confirmation Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmLabel={confirmModal.confirmLabel}
+        cancelLabel={confirmModal.cancelLabel}
+        isDestructive={confirmModal.isDestructive}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+      />
+
+      {/* Dedicated In-App Export Modal with Native OS Path Chooser */}
+      {activeProject && (
+        <ExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          projectId={activeProject.id}
+          projectName={activeProject.name}
+          currentDocType={
+            currentView === 'prd' || currentView === 'srs' || currentView === 'architecture' || currentView === 'design'
+              ? currentView
+              : 'prd'
+          }
+          docStatuses={{
+            prd: {
+              exists: Boolean(prdDetails.current_version),
+              version: prdDetails.current_version?.version_number,
+              status: prdDetails.document?.status,
+            },
+            srs: {
+              exists: Boolean(srsDetails.current_version),
+              version: srsDetails.current_version?.version_number,
+              status: srsDetails.document?.status,
+            },
+            architecture: {
+              exists: Boolean(architectureDetails.current_version),
+              version: architectureDetails.current_version?.version_number,
+              status: architectureDetails.document?.status,
+            },
+            design: {
+              exists: Boolean(designDetails.current_version),
+              version: designDetails.current_version?.version_number,
+              status: designDetails.document?.status,
+            },
+          }}
+          initialScope={exportInitialScope}
+          onExportSuccess={(msg) => notifySuccess('Export Berhasil', msg)}
+          onExportError={(errMsg) => notifyError('Export Gagal', errMsg)}
+        />
       )}
 
     </div>

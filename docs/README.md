@@ -40,6 +40,8 @@ docs/
 │   ├── plan_dynamic_cli_model_detection.md            # Deteksi model dinamis CLI (agy, opencode, gemini) & model selector
 │   ├── plan_comprehensive_security_race_and_hydration_audit.md # Audit security, race conditions, hydration/FOUC & E2E
 │   ├── plan_unified_copilot_assumptions_and_pipeline_ux.md    # Rekonstruksi UX Sidebar Kanan (Project Co-Pilot) & Koreksi Asumsi
+│   ├── plan_custom_toast_dialogs_and_native_export_ux.md     # In-App Toast System, Confirmation Modal & Native File Export Modal
+│   ├── walkthrough_custom_toast_dialogs_and_native_export_ux.md # Walkthrough In-App Toast, Confirm Modal & Native Export
 │   └── walkthrough.md                                 # Rangkuman komprehensif & hasil testing
 └── context_history/
     ├── transcript_01_windows.jsonl                    # Log riwayat sesi awal pengembangan di Windows (1.963 steps)
@@ -71,3 +73,5 @@ docs/
 12. **[`plan_mq_studio_design_system.md`](./artifacts/plan_mq_studio_design_system.md)**: Adaptasi token styling dan layout shell ala MQ-Studio.
 13. **[`business_orchestration_plan.md`](./artifacts/business_orchestration_plan.md)**: Spesifikasi orkestrasi 4 Specialist Personas (*Product Analyst*, *System Analyst*, *Software Architect*, *UI/UX Agent*).
 14. **[`plan_unified_copilot_assumptions_and_pipeline_ux.md`](./artifacts/plan_unified_copilot_assumptions_and_pipeline_ux.md)**: Rencana Komprehensif Rekonstruksi UX: Koreksi Asumsi Interaktif, Sidebar Project Co-Pilot, Sinkronisasi Canvas-to-Chat, dan Penyelarasan Persona & Mode.
+15. **[`plan_custom_toast_dialogs_and_native_export_ux.md`](./artifacts/plan_custom_toast_dialogs_and_native_export_ux.md)**: Rencana Implementasi In-App Toast System, Confirmation Modal, dan Native File/Folder Export Modal.
+16. **[`walkthrough_custom_toast_dialogs_and_native_export_ux.md`](./artifacts/walkthrough_custom_toast_dialogs_and_native_export_ux.md)**: Walkthrough hasil pengujian penggantian browser dialog (`alert`, `confirm`, `prompt`) dengan Toast in-app, Confirm Modal, dan dialog ekspor native OS.
