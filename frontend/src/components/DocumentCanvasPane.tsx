@@ -25,12 +25,14 @@ import {
 import { MarkdownViewer } from './MarkdownViewer';
 import type { Document, DocumentVersion } from '../../bindings/ai-requirements-studio/internal/domain/models';
 
+export type GeneratingDocType = 'prd' | 'srs' | 'architecture' | 'design' | null;
+
 export interface DocumentCanvasPaneProps {
   docType: 'prd' | 'srs' | 'architecture' | 'design';
   document: Document | null;
   currentVersion: DocumentVersion | null;
   sections: string[];
-  isDocLoading: boolean;
+  generatingDoc: GeneratingDocType;
   isEditingDoc: boolean;
   docEditContent: string;
   onDocEditChange: (text: string) => void;
@@ -69,7 +71,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
   document: docModel,
   currentVersion,
   sections,
-  isDocLoading,
+  generatingDoc,
   isEditingDoc,
   docEditContent,
   onDocEditChange,
@@ -133,6 +135,10 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
   }[docType];
 
   const IconComp = docMeta.icon;
+
+  const isThisDocLoading = generatingDoc === docType;
+  const isOtherDocLoading = generatingDoc !== null && generatingDoc !== docType;
+  const isAnyLoading = generatingDoc !== null;
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-surface text-fg select-text">
@@ -208,11 +214,11 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
               <button
                 type="button"
                 onClick={onGeneratePRD}
-                disabled={isDocLoading}
+                disabled={isAnyLoading}
                 className="px-2.5 py-1 rounded-[6px] bg-primary hover:bg-primary-hover text-white font-medium text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-2xs cursor-pointer"
               >
-                {isDocLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                <span>{currentVersion ? 'Regenerate PRD' : 'Generate PRD Draft'}</span>
+                {isThisDocLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                <span>{isThisDocLoading ? 'Menyusun PRD...' : currentVersion ? 'Regenerate PRD' : 'Generate PRD Draft'}</span>
               </button>
 
               {currentVersion && docModel?.status !== 'approved' && (
@@ -238,11 +244,11 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
                   <button
                     type="button"
                     onClick={onGenerateSRS}
-                    disabled={isDocLoading}
+                    disabled={isAnyLoading}
                     className="px-2.5 py-1 rounded-[6px] bg-primary hover:bg-primary-hover text-white font-medium text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-2xs cursor-pointer"
                   >
-                    {isDocLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                    <span>{currentVersion ? 'Regenerate SRS' : 'Generate SRS'}</span>
+                    {isThisDocLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                    <span>{isThisDocLoading ? 'Menyusun SRS...' : currentVersion ? 'Regenerate SRS' : 'Generate SRS'}</span>
                   </button>
 
                   {currentVersion && docModel?.status !== 'approved' && (
@@ -270,11 +276,11 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
                   <button
                     type="button"
                     onClick={onGenerateArchitecture}
-                    disabled={isDocLoading}
+                    disabled={isAnyLoading}
                     className="px-2.5 py-1 rounded-[6px] bg-primary hover:bg-primary-hover text-white font-medium text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-2xs cursor-pointer"
                   >
-                    {isDocLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                    <span>{currentVersion ? 'Regenerate Arch' : 'Generate Arch'}</span>
+                    {isThisDocLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                    <span>{isThisDocLoading ? 'Menyusun Arch...' : currentVersion ? 'Regenerate Arch' : 'Generate Arch'}</span>
                   </button>
 
                   {currentVersion && docModel?.status !== 'approved' && (
@@ -302,11 +308,11 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
                   <button
                     type="button"
                     onClick={onGenerateDesign}
-                    disabled={isDocLoading}
+                    disabled={isAnyLoading}
                     className="px-2.5 py-1 rounded-[6px] bg-primary hover:bg-primary-hover text-white font-medium text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-2xs cursor-pointer"
                   >
-                    {isDocLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                    <span>{currentVersion ? 'Regenerate Design' : 'Generate Design'}</span>
+                    {isThisDocLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                    <span>{isThisDocLoading ? 'Menyusun Design...' : currentVersion ? 'Regenerate Design' : 'Generate Design'}</span>
                   </button>
 
                   {currentVersion && docModel?.status !== 'approved' && (
@@ -349,11 +355,11 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
                     ? onRegenerateArchitectureSection
                     : onRegenerateDesignSection
                 }
-                disabled={isDocLoading}
+                disabled={isAnyLoading}
                 title="Regenerate Section Terpilih Saja"
-                className="p-1 rounded-[6px] border border-border hover:bg-fill-mute text-fg transition-colors cursor-pointer"
+                className="p-1 rounded-[6px] border border-border hover:bg-fill-mute text-fg transition-colors cursor-pointer disabled:opacity-50"
               >
-                <RefreshCw size={12} className={isDocLoading ? 'animate-spin' : ''} />
+                <RefreshCw size={12} className={isThisDocLoading ? 'animate-spin' : ''} />
               </button>
             </div>
           )}
@@ -449,19 +455,32 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
           <button
             type="button"
             onClick={onGenerateSRS}
-            className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-medium cursor-pointer shadow-2xs"
+            disabled={isAnyLoading}
+            className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-medium cursor-pointer shadow-2xs flex items-center gap-1.5 disabled:opacity-50"
           >
-            Regenerate SRS Sekarang
+            {isThisDocLoading && <Loader2 size={11} className="animate-spin" />}
+            <span>{isThisDocLoading ? 'Menyusun SRS...' : 'Regenerate SRS Sekarang'}</span>
           </button>
+        </div>
+      )}
+
+      {/* Other Document Background Generating Banner */}
+      {isOtherDocLoading && (
+        <div className="p-2 bg-primary-soft/60 border-b border-primary/20 text-xs text-primary flex items-center justify-between px-4 shrink-0 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <Loader2 size={12} className="animate-spin text-primary shrink-0" />
+            <span>AI Agent sedang menyusun <strong>{generatingDoc?.toUpperCase()}</strong> di latar belakang. Anda tetap dapat membaca dokumen ini.</span>
+          </div>
         </div>
       )}
 
       {/* 2. Document Content Area */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6 no-scrollbar">
-        {isDocLoading ? (
+        {isThisDocLoading ? (
           <div className="h-64 flex flex-col items-center justify-center space-y-2 text-primary">
             <Loader2 size={30} className="animate-spin" />
-            <span className="text-xs font-medium">AI Agent sedang menyusun spesifikasi dokumen secara real-time...</span>
+            <span className="text-xs font-semibold">AI Agent sedang menyusun spesifikasi {docMeta.title} secara real-time...</span>
+            <span className="text-[11px] text-muted">Proses memerlukan beberapa detik untuk memvalidasi standar dokumen.</span>
           </div>
         ) : isEditingDoc ? (
           <div className="max-w-4xl mx-auto h-full flex flex-col">

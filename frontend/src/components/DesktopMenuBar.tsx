@@ -22,6 +22,7 @@ import {
   HelpCircle,
   Search,
   CheckCircle2,
+  Loader2,
 } from 'lucide-react';
 
 export interface DesktopMenuBarProps {
@@ -39,6 +40,7 @@ export interface DesktopMenuBarProps {
     architecture: { exists: boolean; status?: string };
     design: { exists: boolean; status?: string };
   };
+  generatingDoc?: 'prd' | 'srs' | 'architecture' | 'design' | null;
   activeAgentId: 'product-analyst' | 'system-analyst' | 'software-architect' | 'ui-ux-agent';
   // Actions
   onNewProject: () => void;
@@ -69,6 +71,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
   showRightInspector,
   themeMode,
   docStatuses,
+  generatingDoc,
   activeAgentId,
   onNewProject,
   onOpenProjectManager,
@@ -451,9 +454,16 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
                   <FileText size={13} className="text-tone-blue shrink-0" />
                   <span className="truncate">PRD (Product Requirements)</span>
                 </div>
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-fill text-muted uppercase">
-                  {docStatuses.prd.status || 'Draft'}
-                </span>
+                {generatingDoc === 'prd' ? (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-primary-soft text-primary font-semibold flex items-center gap-1">
+                    <Loader2 size={10} className="animate-spin" />
+                    <span>Generating</span>
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-fill text-muted uppercase">
+                    {docStatuses.prd.status || 'Draft'}
+                  </span>
+                )}
               </button>
               <button
                 type="button"
@@ -467,9 +477,16 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
                   <FileCode2 size={13} className="text-tone-teal shrink-0" />
                   <span className="truncate">SRS (System Requirements)</span>
                 </div>
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-fill text-muted uppercase">
-                  {docStatuses.srs.status || 'Draft'}
-                </span>
+                {generatingDoc === 'srs' ? (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-primary-soft text-primary font-semibold flex items-center gap-1">
+                    <Loader2 size={10} className="animate-spin" />
+                    <span>Generating</span>
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-fill text-muted uppercase">
+                    {docStatuses.srs.status || 'Draft'}
+                  </span>
+                )}
               </button>
               <button
                 type="button"
@@ -483,9 +500,16 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
                   <Cpu size={13} className="text-tone-violet shrink-0" />
                   <span className="truncate">Architecture (C4 & API)</span>
                 </div>
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-fill text-muted uppercase">
-                  {docStatuses.architecture.status || 'Draft'}
-                </span>
+                {generatingDoc === 'architecture' ? (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-primary-soft text-primary font-semibold flex items-center gap-1">
+                    <Loader2 size={10} className="animate-spin" />
+                    <span>Generating</span>
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-fill text-muted uppercase">
+                    {docStatuses.architecture.status || 'Draft'}
+                  </span>
+                )}
               </button>
               <button
                 type="button"
@@ -499,9 +523,16 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
                   <Layers size={13} className="text-tone-orange shrink-0" />
                   <span className="truncate">Design System (Tokens)</span>
                 </div>
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-fill text-muted uppercase">
-                  {docStatuses.design.status || 'Draft'}
-                </span>
+                {generatingDoc === 'design' ? (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-primary-soft text-primary font-semibold flex items-center gap-1">
+                    <Loader2 size={10} className="animate-spin" />
+                    <span>Generating</span>
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-fill text-muted uppercase">
+                    {docStatuses.design.status || 'Draft'}
+                  </span>
+                )}
               </button>
             </div>
           )}
@@ -664,6 +695,20 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
 
       {/* Right Side Quick Indicators */}
       <div className="flex items-center gap-2 text-[11px]">
+        {/* Quick Regenerate All (Pipeline) Button */}
+        {hasActiveProject && (
+          <button
+            type="button"
+            onClick={onRunAutoPipeline}
+            disabled={generatingDoc !== null}
+            className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] bg-primary-soft hover:bg-primary/20 text-primary border border-primary/30 text-[10.5px] font-semibold transition-all cursor-pointer disabled:opacity-50 shadow-2xs hover:scale-[1.02] active:scale-[0.98]"
+            title="Jalankan rangkaian otomatis: Discovery ➔ PRD ➔ SRS ➔ Architecture ➔ Design System"
+          >
+            <Zap size={11} className="fill-current text-amber-500" />
+            <span>Regenerate All</span>
+          </button>
+        )}
+
         {/* Quick Layout Mode Pill */}
         <div className="flex items-center p-0.5 rounded-[5px] bg-fill border border-border/70">
           <button

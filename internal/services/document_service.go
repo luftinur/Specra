@@ -175,6 +175,10 @@ func (s *DocumentService) RegeneratePRDSection(projectID string, sectionNumber i
 		return nil, err
 	}
 
+	if doc.Status == domain.DocStatusOutdated {
+		_ = s.docRepo.UpdateDocumentStatus(ctx, doc.ID, domain.DocStatusDraft)
+	}
+
 	if s.workspace != nil {
 		_ = s.workspace.WriteDocument(projectID, "PRD.md", []byte(updatedContent))
 	}
@@ -257,6 +261,9 @@ func (s *DocumentService) GenerateSRS(projectID string) (*domain.DocumentVersion
 		return nil, fmt.Errorf("failed to save SRS version: %w", err)
 	}
 
+	// Reset status from outdated to draft so the new version is treated as up-to-date draft
+	_ = s.docRepo.UpdateDocumentStatus(ctx, srsDoc.ID, domain.DocStatusDraft)
+
 	if s.workspace != nil {
 		_ = s.workspace.WriteDocument(projectID, "SRS.md", []byte(content))
 	}
@@ -298,6 +305,10 @@ func (s *DocumentService) RegenerateSRSSection(projectID string, sectionNumber i
 	newVer, err := s.docRepo.AddVersion(ctx, doc.ID, updatedContent, &currVer.ID)
 	if err != nil {
 		return nil, err
+	}
+
+	if doc.Status == domain.DocStatusOutdated {
+		_ = s.docRepo.UpdateDocumentStatus(ctx, doc.ID, domain.DocStatusDraft)
 	}
 
 	if s.workspace != nil {
@@ -433,6 +444,10 @@ func (s *DocumentService) RegenerateDesignSection(projectID string, sectionNumbe
 		return nil, err
 	}
 
+	if doc.Status == domain.DocStatusOutdated {
+		_ = s.docRepo.UpdateDocumentStatus(ctx, doc.ID, domain.DocStatusDraft)
+	}
+
 	if s.workspace != nil {
 		_ = s.workspace.WriteDocument(projectID, "design.md", []byte(updatedContent))
 	}
@@ -564,6 +579,10 @@ func (s *DocumentService) RegenerateArchitectureSection(projectID string, sectio
 	newVer, err := s.docRepo.AddVersion(ctx, doc.ID, updatedContent, &currVer.ID)
 	if err != nil {
 		return nil, err
+	}
+
+	if doc.Status == domain.DocStatusOutdated {
+		_ = s.docRepo.UpdateDocumentStatus(ctx, doc.ID, domain.DocStatusDraft)
 	}
 
 	if s.workspace != nil {

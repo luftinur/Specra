@@ -106,4 +106,22 @@ func TestValidationService_TraceabilityAndImpact(t *testing.T) {
 	if updatedSRS.Status != domain.DocStatusOutdated {
 		t.Errorf("expected SRS status to be 'outdated', got %s", updatedSRS.Status)
 	}
+
+	// 4. Regenerate SRS: Newer SRS version clears outdated status back to draft
+	time.Sleep(10 * time.Millisecond) // ensure newer timestamp than PRD
+	_, _ = docRepo.AddVersion(ctx, srsDoc.ID, "# SRS Content Regenerated v2", nil)
+	_ = docRepo.UpdateDocumentStatus(ctx, srsDoc.ID, domain.DocStatusDraft)
+
+	impact2, err := svc.CheckChangeImpact(p.ID)
+	if err != nil {
+		t.Fatalf("failed to check impact after SRS regen: %v", err)
+	}
+	if impact2["srs_outdated"] != false {
+		t.Errorf("expected SRS to no longer be outdated after regeneration")
+	}
+
+	healedSRS, _ := docRepo.GetOrCreate(ctx, p.ID, domain.DocTypeSRS)
+	if healedSRS.Status == domain.DocStatusOutdated {
+		t.Errorf("expected SRS status to be healed from outdated, got %s", healedSRS.Status)
+	}
 }

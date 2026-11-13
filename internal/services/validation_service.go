@@ -103,6 +103,9 @@ func (s *ValidationService) RunValidation(projectID string) ([]domain.Validation
 				FindingType: "outdated_srs",
 				Description: "Change Impact Alert: PRD telah diperbarui setelah SRS dibuat! Dokumen SRS ditandai sebagai 'outdated' dan perlu di-generate ulang.",
 			})
+		} else if srsDoc.Status == domain.DocStatusOutdated {
+			// SRS has been regenerated / is up-to-date with PRD; heal status back to draft
+			_ = s.docRepo.UpdateDocumentStatus(ctx, srsDoc.ID, domain.DocStatusDraft)
 		}
 	}
 
@@ -175,6 +178,8 @@ func (s *ValidationService) CheckChangeImpact(projectID string) (map[string]any,
 		if prdVer.CreatedAt.After(srsVer.CreatedAt) {
 			isOutdated = true
 			_ = s.docRepo.UpdateDocumentStatus(ctx, srsDoc.ID, domain.DocStatusOutdated)
+		} else if srsDoc.Status == domain.DocStatusOutdated {
+			_ = s.docRepo.UpdateDocumentStatus(ctx, srsDoc.ID, domain.DocStatusDraft)
 		}
 	}
 

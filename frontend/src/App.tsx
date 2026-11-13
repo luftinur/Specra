@@ -206,7 +206,7 @@ export default function App() {
   const [isValidating, setIsValidating] = useState(false);
 
   // Document UI State
-  const [isDocLoading, setIsDocLoading] = useState(false);
+  const [generatingDoc, setGeneratingDoc] = useState<'prd' | 'srs' | 'architecture' | 'design' | null>(null);
   const [isEditingDoc, setIsEditingDoc] = useState(false);
   const [docEditContent, setDocEditContent] = useState('');
   const [selectedSectionNum, setSelectedSectionNum] = useState<number>(1);
@@ -1462,7 +1462,7 @@ export default function App() {
   // --- Document Operations ---
   const handleGeneratePRD = async () => {
     if (!activeProject) return;
-    setIsDocLoading(true);
+    setGeneratingDoc('prd');
     try {
       await DocumentService.GeneratePRD(activeProject.id);
       await loadDocumentDetails(activeProject.id);
@@ -1475,13 +1475,13 @@ export default function App() {
     } catch (err) {
       notifyError("Generate PRD Gagal", `Gagal generate PRD: ${String(err)}`);
     } finally {
-      setIsDocLoading(false);
+      setGeneratingDoc(null);
     }
   };
 
   const handleRegeneratePRDSection = async () => {
     if (!activeProject) return;
-    setIsDocLoading(true);
+    setGeneratingDoc('prd');
     try {
       await DocumentService.RegeneratePRDSection(activeProject.id, selectedSectionNum);
       await loadDocumentDetails(activeProject.id);
@@ -1494,7 +1494,7 @@ export default function App() {
     } catch (err) {
       notifyError("Regenerate Section PRD", `Gagal regenerate section PRD: ${String(err)}`);
     } finally {
-      setIsDocLoading(false);
+      setGeneratingDoc(null);
     }
   };
 
@@ -1520,7 +1520,7 @@ export default function App() {
       return;
     }
 
-    setIsDocLoading(true);
+    setGeneratingDoc('srs');
     try {
       await DocumentService.GenerateSRS(activeProject.id);
       await loadDocumentDetails(activeProject.id);
@@ -1533,13 +1533,13 @@ export default function App() {
     } catch (err) {
       notifyError("Generate SRS", `Gagal generate SRS: ${String(err)}`);
     } finally {
-      setIsDocLoading(false);
+      setGeneratingDoc(null);
     }
   };
 
   const handleRegenerateSRSSection = async () => {
     if (!activeProject) return;
-    setIsDocLoading(true);
+    setGeneratingDoc('srs');
     try {
       await DocumentService.RegenerateSRSSection(activeProject.id, selectedSectionNum);
       await loadDocumentDetails(activeProject.id);
@@ -1552,7 +1552,7 @@ export default function App() {
     } catch (err) {
       notifyError("Regenerate Section SRS", `Gagal regenerate section SRS: ${String(err)}`);
     } finally {
-      setIsDocLoading(false);
+      setGeneratingDoc(null);
     }
   };
 
@@ -1578,7 +1578,7 @@ export default function App() {
       return;
     }
 
-    setIsDocLoading(true);
+    setGeneratingDoc('architecture');
     try {
       await DocumentService.GenerateArchitecture(activeProject.id);
       await loadDocumentDetails(activeProject.id);
@@ -1590,13 +1590,13 @@ export default function App() {
     } catch (err) {
       notifyError("Generate Architecture", `Gagal generate Architecture: ${String(err)}`);
     } finally {
-      setIsDocLoading(false);
+      setGeneratingDoc(null);
     }
   };
 
   const handleRegenerateArchitectureSection = async () => {
     if (!activeProject) return;
-    setIsDocLoading(true);
+    setGeneratingDoc('architecture');
     try {
       await DocumentService.RegenerateArchitectureSection(activeProject.id, selectedSectionNum);
       await loadDocumentDetails(activeProject.id);
@@ -1608,7 +1608,7 @@ export default function App() {
     } catch (err) {
       notifyError("Regenerate Section Architecture", `Gagal regenerate section Architecture: ${String(err)}`);
     } finally {
-      setIsDocLoading(false);
+      setGeneratingDoc(null);
     }
   };
 
@@ -1634,7 +1634,7 @@ export default function App() {
       return;
     }
 
-    setIsDocLoading(true);
+    setGeneratingDoc('design');
     try {
       await DocumentService.GenerateDesign(activeProject.id);
       await loadDocumentDetails(activeProject.id);
@@ -1646,13 +1646,13 @@ export default function App() {
     } catch (err) {
       notifyError("Generate Design System", `Gagal generate Design System: ${String(err)}`);
     } finally {
-      setIsDocLoading(false);
+      setGeneratingDoc(null);
     }
   };
 
   const handleRegenerateDesignSection = async () => {
     if (!activeProject) return;
-    setIsDocLoading(true);
+    setGeneratingDoc('design');
     try {
       await DocumentService.RegenerateDesignSection(activeProject.id, selectedSectionNum);
       await loadDocumentDetails(activeProject.id);
@@ -1664,7 +1664,7 @@ export default function App() {
     } catch (err) {
       notifyError("Regenerate Section Design", `Gagal regenerate section Design: ${String(err)}`);
     } finally {
-      setIsDocLoading(false);
+      setGeneratingDoc(null);
     }
   };
 
@@ -1697,7 +1697,7 @@ export default function App() {
 
   const handleSaveEdit = async () => {
     if (!activeProject) return;
-    setIsDocLoading(true);
+    setGeneratingDoc(activeDocType);
     try {
       await DocumentService.SaveManualEdit(activeProject.id, activeDocType, docEditContent);
       await loadDocumentDetails(activeProject.id);
@@ -1707,7 +1707,7 @@ export default function App() {
     } catch (err) {
       notifyError("Simpan Manual Edit", `Gagal menyimpan edit: ${String(err)}`);
     } finally {
-      setIsDocLoading(false);
+      setGeneratingDoc(null);
     }
   };
 
@@ -1872,6 +1872,17 @@ export default function App() {
     }
   };
 
+  const handlePipelineStepClick = (stepId: 'chat' | 'prd' | 'srs' | 'architecture' | 'design') => {
+    if (stepId === 'chat') {
+      setCurrentView('chat');
+      setLayoutMode('chat');
+      setActiveChatAgent('product-analyst');
+    } else {
+      handleOpenDocument(stepId);
+    }
+    setIsEditingDoc(false);
+  };
+
   const unresolvedQACount = useMemo(() => {
     const openQ = clarifications.filter(c => c.status === 'open' && !c.answer).length;
     const unconfA = assumptions.filter(a => a.status === 'unconfirmed').length;
@@ -1922,7 +1933,7 @@ export default function App() {
       document={activeDocDetails.document}
       currentVersion={activeDocDetails.current_version}
       sections={activeDocDetails.sections}
-      isDocLoading={isDocLoading}
+      generatingDoc={generatingDoc}
       isEditingDoc={isEditingDoc}
       docEditContent={docEditContent}
       onDocEditChange={setDocEditContent}
@@ -2150,14 +2161,14 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => {
-                      setCurrentView('prd');
+                      handleOpenDocument('prd');
                       handleGeneratePRD();
                     }}
-                    disabled={isDocLoading}
-                    className="px-3.5 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-2xs transition-all shrink-0 hover:scale-[1.02] active:scale-[0.98]"
+                    disabled={generatingDoc !== null}
+                    className="px-3.5 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-2xs transition-all shrink-0 hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50"
                   >
-                    {isDocLoading ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
-                    <span>Generate Draft PRD</span>
+                    {generatingDoc === 'prd' ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
+                    <span>{generatingDoc === 'prd' ? 'Menyusun PRD...' : 'Generate Draft PRD'}</span>
                   </button>
                 </div>
               )}
@@ -2561,6 +2572,7 @@ export default function App() {
           architecture: { exists: Boolean(architectureDetails.current_version), status: architectureDetails.document?.status },
           design: { exists: Boolean(designDetails.current_version), status: designDetails.document?.status },
         }}
+        generatingDoc={generatingDoc}
         activeAgentId={activeChatAgent}
         onNewProject={() => {
           setProjectManagerTab('create');
@@ -2661,11 +2673,18 @@ export default function App() {
                         <FileText size={14} className={activeDocType === 'prd' && layoutMode !== 'chat' ? 'text-primary shrink-0' : 'text-tone-blue shrink-0'} />
                         <span className="truncate">1. PRD Document</span>
                       </div>
-                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded uppercase font-semibold shrink-0 ${
-                        isPRDApproved ? 'bg-ok-tint text-ok' : prdDetails.current_version ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'bg-fill text-muted'
-                      }`}>
-                        {isPRDApproved ? 'Approved' : prdDetails.current_version ? 'Draft' : 'None'}
-                      </span>
+                      {generatingDoc === 'prd' ? (
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-primary-soft text-primary font-bold flex items-center gap-1 shrink-0 animate-pulse">
+                          <Loader2 size={10} className="animate-spin" />
+                          <span>Generating</span>
+                        </span>
+                      ) : (
+                        <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded uppercase font-semibold shrink-0 ${
+                          isPRDApproved ? 'bg-ok-tint text-ok' : prdDetails.current_version ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'bg-fill text-muted'
+                        }`}>
+                          {isPRDApproved ? 'Approved' : prdDetails.current_version ? 'Draft' : 'None'}
+                        </span>
+                      )}
                     </button>
 
                     <button
@@ -2681,26 +2700,33 @@ export default function App() {
                         <FileCode2 size={14} className={activeDocType === 'srs' && layoutMode !== 'chat' ? 'text-primary shrink-0' : 'text-tone-teal shrink-0'} />
                         <span className="truncate">2. SRS Document</span>
                       </div>
-                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded uppercase font-semibold shrink-0 ${
-                        isSRSOutdated
-                          ? 'bg-err-bg text-err'
-                          : srsDetails.document?.status === 'approved' 
-                          ? 'bg-ok-tint text-ok' 
-                          : !isPRDApproved 
-                          ? 'bg-fill text-muted' 
-                          : 'bg-fill text-muted'
-                      }`}>
-                        {isSRSOutdated ? (
-                          'Outdated'
-                        ) : !isPRDApproved ? (
-                          <span className="flex items-center gap-1 text-[10px]" title="Terkunci: Memerlukan persetujuan PRD">
-                            <Lock size={10} className="text-muted-2" />
-                            <span>Locked</span>
-                          </span>
-                        ) : (
-                          srsDetails.document?.status || (srsDetails.current_version ? 'Draft' : 'Ready')
-                        )}
-                      </span>
+                      {generatingDoc === 'srs' ? (
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-primary-soft text-primary font-bold flex items-center gap-1 shrink-0 animate-pulse">
+                          <Loader2 size={10} className="animate-spin" />
+                          <span>Generating</span>
+                        </span>
+                      ) : (
+                        <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded uppercase font-semibold shrink-0 ${
+                          isSRSOutdated
+                            ? 'bg-err-bg text-err'
+                            : srsDetails.document?.status === 'approved' 
+                            ? 'bg-ok-tint text-ok' 
+                            : !isPRDApproved 
+                            ? 'bg-fill text-muted' 
+                            : 'bg-fill text-muted'
+                        }`}>
+                          {isSRSOutdated ? (
+                            'Outdated'
+                          ) : !isPRDApproved ? (
+                            <span className="flex items-center gap-1 text-[10px]" title="Terkunci: Memerlukan persetujuan PRD">
+                              <Lock size={10} className="text-muted-2" />
+                              <span>Locked</span>
+                            </span>
+                          ) : (
+                            srsDetails.document?.status || (srsDetails.current_version ? 'Draft' : 'Ready')
+                          )}
+                        </span>
+                      )}
                     </button>
 
                     <button
@@ -2716,24 +2742,31 @@ export default function App() {
                         <Cpu size={14} className={activeDocType === 'architecture' && layoutMode !== 'chat' ? 'text-primary shrink-0' : 'text-tone-violet shrink-0'} />
                         <span className="truncate">3. Architecture</span>
                       </div>
-                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded uppercase font-semibold shrink-0 ${
-                        isArchitectureApproved 
-                          ? 'bg-ok-tint text-ok' 
-                          : !isPRDApproved 
-                          ? 'bg-fill text-muted' 
-                          : 'bg-fill text-muted'
-                      }`}>
-                        {isArchitectureApproved ? (
-                          'approved'
-                        ) : !isPRDApproved ? (
-                          <span className="flex items-center gap-1 text-[10px]" title="Terkunci: Memerlukan persetujuan PRD">
-                            <Lock size={10} className="text-muted-2" />
-                            <span>Locked</span>
-                          </span>
-                        ) : (
-                          architectureDetails.document?.status || (architectureDetails.current_version ? 'Draft' : 'Ready')
-                        )}
-                      </span>
+                      {generatingDoc === 'architecture' ? (
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-primary-soft text-primary font-bold flex items-center gap-1 shrink-0 animate-pulse">
+                          <Loader2 size={10} className="animate-spin" />
+                          <span>Generating</span>
+                        </span>
+                      ) : (
+                        <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded uppercase font-semibold shrink-0 ${
+                          isArchitectureApproved 
+                            ? 'bg-ok-tint text-ok' 
+                            : !isPRDApproved 
+                            ? 'bg-fill text-muted' 
+                            : 'bg-fill text-muted'
+                        }`}>
+                          {isArchitectureApproved ? (
+                            'approved'
+                          ) : !isPRDApproved ? (
+                            <span className="flex items-center gap-1 text-[10px]" title="Terkunci: Memerlukan persetujuan PRD">
+                              <Lock size={10} className="text-muted-2" />
+                              <span>Locked</span>
+                            </span>
+                          ) : (
+                            architectureDetails.document?.status || (architectureDetails.current_version ? 'Draft' : 'Ready')
+                          )}
+                        </span>
+                      )}
                     </button>
 
                     <button
@@ -2749,24 +2782,31 @@ export default function App() {
                         <Layers size={14} className={activeDocType === 'design' && layoutMode !== 'chat' ? 'text-primary shrink-0' : 'text-tone-orange shrink-0'} />
                         <span className="truncate">4. Design System</span>
                       </div>
-                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded uppercase font-semibold shrink-0 ${
-                        isDesignApproved 
-                          ? 'bg-ok-tint text-ok' 
-                          : !isPRDApproved 
-                          ? 'bg-fill text-muted' 
-                          : 'bg-fill text-muted'
-                      }`}>
-                        {isDesignApproved ? (
-                          'approved'
-                        ) : !isPRDApproved ? (
-                          <span className="flex items-center gap-1 text-[10px]" title="Terkunci: Memerlukan persetujuan PRD">
-                            <Lock size={10} className="text-muted-2" />
-                            <span>Locked</span>
-                          </span>
-                        ) : (
-                          designDetails.document?.status || (designDetails.current_version ? 'Draft' : 'Ready')
-                        )}
-                      </span>
+                      {generatingDoc === 'design' ? (
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-primary-soft text-primary font-bold flex items-center gap-1 shrink-0 animate-pulse">
+                          <Loader2 size={10} className="animate-spin" />
+                          <span>Generating</span>
+                        </span>
+                      ) : (
+                        <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded uppercase font-semibold shrink-0 ${
+                          isDesignApproved 
+                            ? 'bg-ok-tint text-ok' 
+                            : !isPRDApproved 
+                            ? 'bg-fill text-muted' 
+                            : 'bg-fill text-muted'
+                        }`}>
+                          {isDesignApproved ? (
+                            'approved'
+                          ) : !isPRDApproved ? (
+                            <span className="flex items-center gap-1 text-[10px]" title="Terkunci: Memerlukan persetujuan PRD">
+                              <Lock size={10} className="text-muted-2" />
+                              <span>Locked</span>
+                            </span>
+                          ) : (
+                            designDetails.document?.status || (designDetails.current_version ? 'Draft' : 'Ready')
+                          )}
+                        </span>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -3454,14 +3494,14 @@ export default function App() {
                     {pipelineSteps.map((s, idx) => {
                       const isCompleted = s.status === 'completed';
                       const isDraft = s.status === 'draft';
-                      const isCurrent = currentView === s.id;
+                      const isCurrent = (layoutMode === 'chat' && s.id === 'chat') || (layoutMode !== 'chat' && activeDocType === s.id);
+                      const isGeneratingThis = generatingDoc === s.id || (autoPipelineRunning && autoPipelineStage?.toLowerCase().includes(s.name.toLowerCase().split(' ')[1] || ''));
                       return (
                         <div
                           key={s.id}
                           onClick={() => {
                             if (!s.locked) {
-                              setCurrentView(s.id as any);
-                              setIsEditingDoc(false);
+                              handlePipelineStepClick(s.id as any);
                             }
                           }}
                           className={`p-2 rounded-lg border text-xs flex items-center justify-between transition-all ${
@@ -3473,30 +3513,70 @@ export default function App() {
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                              isCompleted
-                                ? 'bg-ok text-white'
-                                : isDraft
-                                ? 'bg-amber-500 text-white'
-                                : 'bg-fill text-muted'
-                            }`}>
-                              {isCompleted ? '✓' : idx + 1}
-                            </span>
+                            {isGeneratingThis ? (
+                              <span className="w-4 h-4 rounded-full flex items-center justify-center bg-primary-soft text-primary shrink-0">
+                                <Loader2 size={12} className="animate-spin text-primary" />
+                              </span>
+                            ) : (
+                              <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                                isCompleted
+                                  ? 'bg-ok text-white'
+                                  : isDraft
+                                  ? 'bg-amber-500 text-white'
+                                  : 'bg-fill text-muted'
+                              }`}>
+                                {isCompleted ? '✓' : idx + 1}
+                              </span>
+                            )}
                             <span className="text-fg">{s.name}</span>
                           </div>
 
-                          <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-medium ${
-                            isCompleted 
+                          <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded font-medium flex items-center gap-1 ${
+                            isGeneratingThis
+                              ? 'bg-primary-soft text-primary font-bold animate-pulse'
+                              : isCompleted 
                               ? 'bg-ok-tint text-ok font-bold' 
                               : isDraft 
                               ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold'
                               : 'text-muted'
                           }`}>
-                            {s.desc}
+                            {isGeneratingThis && <Loader2 size={9} className="animate-spin" />}
+                            <span>{isGeneratingThis ? 'Menyusun...' : s.desc}</span>
                           </span>
                         </div>
                       );
                     })}
+                  </div>
+
+                  {/* Action: Auto Pipeline (Regenerate All) */}
+                  <div className="pt-2 border-t border-border/70">
+                    {autoPipelineRunning ? (
+                      <div className="p-2.5 rounded-xl bg-primary-soft border border-primary/30 flex items-center justify-between text-xs text-primary animate-pulse shadow-2xs">
+                        <div className="flex items-center gap-2 font-semibold min-w-0">
+                          <Loader2 size={13} className="animate-spin text-primary shrink-0" />
+                          <span className="truncate">{autoPipelineStage || 'Menjalankan Pipeline...'}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => { setAutoPipelineRunning(false); setAutoPipelineStage(null); setGeneratingDoc(null); }}
+                          className="px-2 py-0.5 rounded bg-surface hover:bg-fill text-muted hover:text-err text-[10px] font-mono transition-colors shrink-0 cursor-pointer"
+                          title="Hentikan eksekusi pipeline"
+                        >
+                          Batal
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => runAutoPipeline(false)}
+                        disabled={!activeProject || generatingDoc !== null}
+                        className="w-full py-2 px-3 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-2xs hover:scale-[1.01] active:scale-[0.99] cursor-pointer disabled:opacity-50"
+                        title="Jalankan seluruh rangkaian otomatis: Discovery ➔ PRD ➔ SRS ➔ Architecture ➔ Design System"
+                      >
+                        <Zap size={14} className="fill-current text-amber-300" />
+                        <span>Regenerate All (Full Pipeline)</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
