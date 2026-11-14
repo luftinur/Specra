@@ -47,6 +47,7 @@ docs/
 │   ├── walkthrough_outdated_alert_clear_and_granular_loading.md # Walkthrough Status Outdated & Granular Loading
 │   ├── plan_english_ui_localization.md                # Rencana Komprehensif Lokalisasi Bahasa Inggris Seluruh UI
 │   ├── walkthrough_english_ui_localization.md         # Walkthrough Penerapan Lokalisasi Bahasa Inggris Seluruh UI
+│   ├── plan_public_repo_readme_and_security_audit.md  # Rencana Root README & Audit Keamanan Pre-Public Repo
 │   └── walkthrough.md                                 # Rangkuman komprehensif & hasil testing
 └── context_history/
     ├── transcript_01_windows.jsonl                    # Log riwayat sesi awal pengembangan di Windows (1.963 steps)
@@ -86,3 +87,4 @@ docs/
 20. **[`walkthrough_outdated_alert_clear_and_granular_loading.md`](./artifacts/walkthrough_outdated_alert_clear_and_granular_loading.md)**: Walkthrough Pengujian: Siklus Status Outdated Auto-Clear Pasca-Regenerasi, Granular Loading States, dan Tombol Prominen Regenerate All (Full Pipeline) di Project Co-Pilot & MenuBar.
 21. **[`plan_english_ui_localization.md`](./artifacts/plan_english_ui_localization.md)**: Rencana Komprehensif Lokalisasi Bahasa Inggris: Penerjemahan Seluruh Teks Antarmuka (UI), Menubar, Canvas, Modals, Toasts, Dropdown, dan Pesan Audit ke Bahasa Inggris Standar Profesional.
 22. **[`walkthrough_english_ui_localization.md`](./artifacts/walkthrough_english_ui_localization.md)**: Walkthrough Hasil Penerapan Lokalisasi Bahasa Inggris: Verifikasi Desktop Menu Bar, Document Canvas, Project Co-Pilot, Input Console, Modals, Backend Validation Engine, Hasil Testing Go & Vite Build.
+23. **[`plan_public_repo_readme_and_security_audit.md`](./artifacts/plan_public_repo_readme_and_security_audit.md)**: Rencana Root README Berfokus Produk (Ref: Ghostex), Audit Keamanan & Kredensial Menyeluruh Pra-Publikasi Repositori, dan Hardening .gitignore.
