@@ -46,6 +46,7 @@ docs/
 │   ├── plan_fix_outdated_alert_clear_and_granular_doc_loading.md # Siklus Status Outdated & Granular Loading
 │   ├── walkthrough_outdated_alert_clear_and_granular_loading.md # Walkthrough Status Outdated & Granular Loading
 │   ├── plan_english_ui_localization.md                # Rencana Komprehensif Lokalisasi Bahasa Inggris Seluruh UI
+│   ├── walkthrough_english_ui_localization.md         # Walkthrough Penerapan Lokalisasi Bahasa Inggris Seluruh UI
 │   └── walkthrough.md                                 # Rangkuman komprehensif & hasil testing
 └── context_history/
     ├── transcript_01_windows.jsonl                    # Log riwayat sesi awal pengembangan di Windows (1.963 steps)
@@ -84,3 +85,4 @@ docs/
 19. **[`plan_fix_outdated_alert_clear_and_granular_doc_loading.md`](./artifacts/plan_fix_outdated_alert_clear_and_granular_doc_loading.md)**: Rencana Komprehensif: Siklus Status Outdated Auto-Clear Pasca-Regenerasi, Granular Loading States, dan Tombol Regenerate All (Full Pipeline) yang Tersinkronisasi dengan Project Co-Pilot & MenuBar.
 20. **[`walkthrough_outdated_alert_clear_and_granular_loading.md`](./artifacts/walkthrough_outdated_alert_clear_and_granular_loading.md)**: Walkthrough Pengujian: Siklus Status Outdated Auto-Clear Pasca-Regenerasi, Granular Loading States, dan Tombol Prominen Regenerate All (Full Pipeline) di Project Co-Pilot & MenuBar.
 21. **[`plan_english_ui_localization.md`](./artifacts/plan_english_ui_localization.md)**: Rencana Komprehensif Lokalisasi Bahasa Inggris: Penerjemahan Seluruh Teks Antarmuka (UI), Menubar, Canvas, Modals, Toasts, Dropdown, dan Pesan Audit ke Bahasa Inggris Standar Profesional.
+22. **[`walkthrough_english_ui_localization.md`](./artifacts/walkthrough_english_ui_localization.md)**: Walkthrough Hasil Penerapan Lokalisasi Bahasa Inggris: Verifikasi Desktop Menu Bar, Document Canvas, Project Co-Pilot, Input Console, Modals, Backend Validation Engine, Hasil Testing Go & Vite Build.

@@ -179,7 +179,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Plus size={13} />
-                  <span>Project Baru...</span>
+                  <span>New Project...</span>
                 </div>
                 <span className="text-[10px] text-muted font-mono">Ctrl+N</span>
               </button>
@@ -190,7 +190,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <FolderOpen size={13} />
-                  <span>Buka Project Manager</span>
+                  <span>Open Project Manager</span>
                 </div>
                 <span className="text-[10px] text-muted font-mono">Ctrl+O</span>
               </button>
@@ -200,7 +200,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
                 className="w-full text-left px-3 py-1.5 hover:bg-primary-soft hover:text-primary flex items-center gap-2 transition-colors"
               >
                 <FolderOpen size={13} />
-                <span>Buka Folder Workspace di Explorer</span>
+                <span>Open Workspace in File Explorer</span>
               </button>
 
               <div className="my-1 border-t border-border/60" />
@@ -213,7 +213,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Download size={13} />
-                  <span>Ekspor Dokumen Aktif...</span>
+                  <span>Export Active Document...</span>
                 </div>
                 <span className="text-[10px] text-muted font-mono">.md</span>
               </button>
@@ -225,7 +225,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Download size={13} />
-                  <span>Ekspor Seluruh Dokumen (.md)...</span>
+                  <span>Export All Documents (.md)...</span>
                 </div>
                 <span className="text-[10px] text-muted font-mono">All</span>
               </button>
@@ -239,7 +239,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Settings size={13} />
-                  <span>Pengaturan Studio...</span>
+                  <span>Studio Settings...</span>
                 </div>
                 <span className="text-[10px] text-muted font-mono">Ctrl+,</span>
               </button>
@@ -269,7 +269,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Copy size={13} />
-                  <span>Salin Isi Dokumen</span>
+                  <span>Copy Document Content</span>
                 </div>
                 <span className="text-[10px] text-muted font-mono">Ctrl+C</span>
               </button>
@@ -280,7 +280,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
                 className="w-full text-left px-3 py-1.5 hover:bg-rose-500/10 hover:text-rose-600 flex items-center gap-2 transition-colors text-rose-500 disabled:opacity-40 disabled:pointer-events-none"
               >
                 <Trash2 size={13} />
-                <span>Bersihkan Riwayat Chat</span>
+                <span>Clear Chat History</span>
               </button>
             </div>
           )}
@@ -301,7 +301,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
           {openMenu === 'view' && (
             <div className="absolute top-full left-0 mt-1 w-60 rounded-lg bg-surface border border-border shadow-xl py-1 text-xs z-50 animate-in fade-in zoom-in-95 duration-100">
               <div className="px-3 py-1 text-[10px] uppercase font-bold text-muted-2 tracking-wider">
-                Tata Letak Panel
+                Panel Layout
               </div>
               <button
                 type="button"
@@ -310,7 +310,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Columns size={13} />
-                  <span>Sidebar Kiri (Navigator)</span>
+                  <span>Left Sidebar (Navigator)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] text-muted">{showLeftSidebar ? 'On' : 'Off'}</span>
@@ -324,7 +324,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Layout size={13} />
-                  <span>Sidebar Kanan (Co-Pilot)</span>
+                  <span>Right Sidebar (Co-Pilot)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] text-muted">{showRightInspector ? 'On' : 'Off'}</span>
@@ -335,7 +335,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               <div className="my-1 border-t border-border/60" />
 
               <div className="px-3 py-1 text-[10px] uppercase font-bold text-muted-2 tracking-wider">
-                Mode Tampilan Workspace
+                Workspace View Mode
               </div>
               <button
                 type="button"
@@ -346,7 +346,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Maximize2 size={13} />
-                  <span>Chat Utama Saja</span>
+                  <span>Primary Chat Only</span>
                 </div>
                 <span className="text-[10px] text-muted font-mono">Ctrl+1</span>
               </button>
@@ -359,7 +359,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Columns size={13} />
-                  <span>Split View (Chat + Dokumen)</span>
+                  <span>Split View (Chat + Documents)</span>
                 </div>
                 <span className="text-[10px] text-muted font-mono">Ctrl+2</span>
               </button>
@@ -372,7 +372,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <FileText size={13} />
-                  <span>Dokumen Layar Penuh</span>
+                  <span>Full Document Canvas</span>
                 </div>
                 <span className="text-[10px] text-muted font-mono">Ctrl+3</span>
               </button>
@@ -380,7 +380,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               <div className="my-1 border-t border-border/60" />
 
               <div className="px-3 py-1 text-[10px] uppercase font-bold text-muted-2 tracking-wider">
-                Tema Visual
+                Visual Theme
               </div>
               <button
                 type="button"
@@ -440,7 +440,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
           {openMenu === 'docs' && (
             <div className="absolute top-full left-0 mt-1 w-64 rounded-lg bg-surface border border-border shadow-xl py-1 text-xs z-50 animate-in fade-in zoom-in-95 duration-100">
               <div className="px-3 py-1 text-[10px] uppercase font-bold text-muted-2 tracking-wider">
-                Spesifikasi Sistem
+                System Specifications
               </div>
               <button
                 type="button"
@@ -553,7 +553,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
           {openMenu === 'agent' && (
             <div className="absolute top-full left-0 mt-1 w-64 rounded-lg bg-surface border border-border shadow-xl py-1 text-xs z-50 animate-in fade-in zoom-in-95 duration-100">
               <div className="px-3 py-1 text-[10px] uppercase font-bold text-muted-2 tracking-wider">
-                Persona Spesialis
+                Specialist Personas
               </div>
               <button
                 type="button"
@@ -611,7 +611,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               <div className="my-1 border-t border-border/60" />
 
               <div className="px-3 py-1 text-[10px] uppercase font-bold text-muted-2 tracking-wider">
-                Orchestration & Perintah
+                Orchestration & Commands
               </div>
               <button
                 type="button"
@@ -621,7 +621,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Zap size={13} className="text-amber-500" />
-                  <span>Jalankan Auto-Pipeline</span>
+                  <span>Run Auto-Pipeline</span>
                 </div>
                 <span className="text-[10px] text-muted font-mono">/plan</span>
               </button>
@@ -633,7 +633,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <HelpCircle size={13} />
-                  <span>Trigger Klarifikasi</span>
+                  <span>Trigger Clarifications</span>
                 </div>
                 <span className="text-[10px] text-muted font-mono">/clarify</span>
               </button>
@@ -645,7 +645,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Activity size={13} />
-                  <span>Audit Kualitas Requirements</span>
+                  <span>Audit Requirements Quality</span>
                 </div>
                 <span className="text-[10px] text-muted font-mono">/validate</span>
               </button>
@@ -673,7 +673,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
                 className="w-full text-left px-3 py-1.5 hover:bg-primary-soft hover:text-primary flex items-center gap-2 transition-colors"
               >
                 <Activity size={13} />
-                <span>Diagnostik AI & Keyring</span>
+                <span>AI & Keyring Diagnostics</span>
               </button>
               <button
                 type="button"
@@ -681,7 +681,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
                 className="w-full text-left px-3 py-1.5 hover:bg-primary-soft hover:text-primary flex items-center gap-2 transition-colors"
               >
                 <Search size={13} />
-                <span>Log Pemakaian Token</span>
+                <span>Token Usage Logs</span>
               </button>
               <div className="my-1 border-t border-border/60" />
               <div className="px-3 py-1.5 text-[11px] text-muted space-y-0.5">
@@ -702,7 +702,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
             onClick={onRunAutoPipeline}
             disabled={generatingDoc !== null}
             className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] bg-primary-soft hover:bg-primary/20 text-primary border border-primary/30 text-[10.5px] font-semibold transition-all cursor-pointer disabled:opacity-50 shadow-2xs hover:scale-[1.02] active:scale-[0.98]"
-            title="Jalankan rangkaian otomatis: Discovery ➔ PRD ➔ SRS ➔ Architecture ➔ Design System"
+            title="Run autonomous pipeline: Discovery ➔ PRD ➔ SRS ➔ Architecture ➔ Design System"
           >
             <Zap size={11} className="fill-current text-amber-500" />
             <span>Regenerate All</span>
@@ -717,7 +717,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
             className={`px-1.5 py-0.5 rounded-[4px] text-[10.5px] font-medium transition-colors flex items-center gap-1 cursor-pointer ${
               layoutMode === 'chat' ? 'bg-surface text-primary font-semibold shadow-2xs' : 'text-muted hover:text-fg'
             }`}
-            title="Mode Chat Saja (Ctrl+1)"
+            title="Chat Only Mode (Ctrl+1)"
           >
             <span>💬 Chat</span>
           </button>
@@ -727,7 +727,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
             className={`px-1.5 py-0.5 rounded-[4px] text-[10.5px] font-medium transition-colors flex items-center gap-1 cursor-pointer ${
               layoutMode === 'split' ? 'bg-surface text-primary font-semibold shadow-2xs' : 'text-muted hover:text-fg'
             }`}
-            title="Mode Split: Chat + Dokumen Berdampingan (Ctrl+2)"
+            title="Split Mode: Side-by-Side Chat + Document (Ctrl+2)"
           >
             <span>◫ Split</span>
           </button>
@@ -737,7 +737,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
             className={`px-1.5 py-0.5 rounded-[4px] text-[10.5px] font-medium transition-colors flex items-center gap-1 cursor-pointer ${
               layoutMode === 'doc' ? 'bg-surface text-primary font-semibold shadow-2xs' : 'text-muted hover:text-fg'
             }`}
-            title="Mode Dokumen Penuh (Ctrl+3)"
+            title="Full Document Mode (Ctrl+3)"
           >
             <span>📄 Doc</span>
           </button>

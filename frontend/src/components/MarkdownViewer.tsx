@@ -36,7 +36,7 @@ const CodeBlock: React.FC<{ code: string; language: string }> = ({ code, languag
           className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
             copied ? 'bg-ok-tint text-ok font-semibold' : 'hover:bg-fill-mute text-muted hover:text-fg'
           }`}
-          title="Salin kode"
+          title="Copy code"
         >
           {copied ? <Check size={11} className="text-ok" /> : <Copy size={11} />}
           <span>{copied ? 'Copied!' : 'Copy'}</span>

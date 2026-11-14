@@ -183,7 +183,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
                       ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
                       : 'text-muted hover:text-fg hover:bg-fill-mute'
                   }`}
-                  title="Pratinjau Terformat Markdown & Diagram"
+                  title="Formatted Markdown & Diagram Preview"
                 >
                   <Eye size={12} />
                   <span>Preview</span>
@@ -196,7 +196,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
                       ? 'bg-primary-soft text-primary font-semibold shadow-2xs'
                       : 'text-muted hover:text-fg hover:bg-fill-mute'
                   }`}
-                  title="Lihat Kode Sumber Mentah Markdown"
+                  title="View Raw Markdown Source Code"
                 >
                   <Code size={12} />
                   <span>Source</span>
@@ -218,7 +218,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
                 className="px-2.5 py-1 rounded-[6px] bg-primary hover:bg-primary-hover text-white font-medium text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-2xs cursor-pointer"
               >
                 {isThisDocLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                <span>{isThisDocLoading ? 'Menyusun PRD...' : currentVersion ? 'Regenerate PRD' : 'Generate PRD Draft'}</span>
+                <span>{isThisDocLoading ? 'Drafting PRD...' : currentVersion ? 'Regenerate PRD' : 'Generate PRD Draft'}</span>
               </button>
 
               {currentVersion && docModel?.status !== 'approved' && (
@@ -237,7 +237,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
               {!isPRDApproved ? (
                 <div className="flex items-center gap-1 text-[11px] text-warn bg-warn-bg border border-warn-border px-2 py-0.5 rounded-[6px]">
                   <Lock size={11} />
-                  <span>Gated: PRD Belum Approved</span>
+                  <span>Gated: PRD Not Approved</span>
                 </div>
               ) : (
                 <>
@@ -248,7 +248,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
                     className="px-2.5 py-1 rounded-[6px] bg-primary hover:bg-primary-hover text-white font-medium text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-2xs cursor-pointer"
                   >
                     {isThisDocLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                    <span>{isThisDocLoading ? 'Menyusun SRS...' : currentVersion ? 'Regenerate SRS' : 'Generate SRS'}</span>
+                    <span>{isThisDocLoading ? 'Drafting SRS...' : currentVersion ? 'Regenerate SRS' : 'Generate SRS'}</span>
                   </button>
 
                   {currentVersion && docModel?.status !== 'approved' && (
@@ -269,7 +269,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
               {!isPRDApproved ? (
                 <div className="flex items-center gap-1 text-[11px] text-warn bg-warn-bg border border-warn-border px-2 py-0.5 rounded-[6px]">
                   <Lock size={11} />
-                  <span>Gated: PRD Belum Approved</span>
+                  <span>Gated: PRD Not Approved</span>
                 </div>
               ) : (
                 <>
@@ -280,7 +280,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
                     className="px-2.5 py-1 rounded-[6px] bg-primary hover:bg-primary-hover text-white font-medium text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-2xs cursor-pointer"
                   >
                     {isThisDocLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                    <span>{isThisDocLoading ? 'Menyusun Arch...' : currentVersion ? 'Regenerate Arch' : 'Generate Arch'}</span>
+                    <span>{isThisDocLoading ? 'Drafting Arch...' : currentVersion ? 'Regenerate Arch' : 'Generate Arch'}</span>
                   </button>
 
                   {currentVersion && docModel?.status !== 'approved' && (
@@ -301,7 +301,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
               {!isPRDApproved ? (
                 <div className="flex items-center gap-1 text-[11px] text-warn bg-warn-bg border border-warn-border px-2 py-0.5 rounded-[6px]">
                   <Lock size={11} />
-                  <span>Gated: PRD Belum Approved</span>
+                  <span>Gated: PRD Not Approved</span>
                 </div>
               ) : (
                 <>
@@ -312,7 +312,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
                     className="px-2.5 py-1 rounded-[6px] bg-primary hover:bg-primary-hover text-white font-medium text-xs flex items-center gap-1.5 transition-colors disabled:opacity-50 shadow-2xs cursor-pointer"
                   >
                     {isThisDocLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                    <span>{isThisDocLoading ? 'Menyusun Design...' : currentVersion ? 'Regenerate Design' : 'Generate Design'}</span>
+                    <span>{isThisDocLoading ? 'Drafting Design...' : currentVersion ? 'Regenerate Design' : 'Generate Design'}</span>
                   </button>
 
                   {currentVersion && docModel?.status !== 'approved' && (
@@ -356,7 +356,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
                     : onRegenerateDesignSection
                 }
                 disabled={isAnyLoading}
-                title="Regenerate Section Terpilih Saja"
+                title="Regenerate Selected Section Only"
                 className="p-1 rounded-[6px] border border-border hover:bg-fill-mute text-fg transition-colors cursor-pointer disabled:opacity-50"
               >
                 <RefreshCw size={12} className={isThisDocLoading ? 'animate-spin' : ''} />
@@ -373,7 +373,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
                 className={`p-1 rounded-[6px] border border-border transition-colors cursor-pointer ${
                   copiedFullDoc ? 'bg-ok-tint text-ok border-ok/40' : 'hover:bg-fill-mute text-fg'
                 }`}
-                title="Salin Seluruh Markdown"
+                title="Copy Full Markdown"
               >
                 {copiedFullDoc ? <Check size={12} /> : <Copy size={12} />}
               </button>
@@ -382,7 +382,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
                 type="button"
                 onClick={onExportDoc}
                 className="p-1 rounded-[6px] border border-border hover:bg-fill-mute text-fg transition-colors cursor-pointer"
-                title="Export Dokumen Ini (.md)"
+                title="Export This Document (.md)"
               >
                 <Download size={12} />
               </button>
@@ -392,7 +392,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
                   type="button"
                   onClick={onStartEdit}
                   className="px-2 py-0.5 rounded-[6px] border border-border hover:bg-fill-mute text-fg text-xs flex items-center gap-1 transition-colors cursor-pointer"
-                  title="Edit Manual Dokumen"
+                  title="Manually Edit Document"
                 >
                   <Edit3 size={11} />
                   <span>Edit</span>
@@ -402,10 +402,10 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
                   type="button"
                   onClick={onSaveEdit}
                   className="px-2.5 py-0.5 rounded-[6px] bg-primary hover:bg-primary-hover text-white text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs cursor-pointer"
-                  title="Simpan Perubahan Manual"
+                  title="Save Manual Changes"
                 >
                   <Save size={11} />
-                  <span>Simpan</span>
+                  <span>Save</span>
                 </button>
               )}
             </div>
@@ -418,7 +418,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
                 type="button"
                 onClick={() => onSetLayoutMode('doc')}
                 className="p-1 rounded-[5px] text-muted hover:text-fg hover:bg-fill transition-colors cursor-pointer"
-                title="Maksimalkan Dokumen (Layar Penuh)"
+                title="Maximize Document (Full Screen)"
               >
                 <Maximize2 size={13} />
               </button>
@@ -427,7 +427,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
                 type="button"
                 onClick={() => onSetLayoutMode('split')}
                 className="p-1 rounded-[5px] text-muted hover:text-fg hover:bg-fill transition-colors cursor-pointer"
-                title="Kembali ke Tampilan Split (Chat + Dokumen)"
+                title="Return to Split View (Chat + Document)"
               >
                 <Columns size={13} />
               </button>
@@ -437,7 +437,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
               type="button"
               onClick={onCloseDocPane}
               className="p-1 rounded-[5px] text-muted hover:text-fg hover:bg-fill transition-colors cursor-pointer"
-              title="Tutup Panel Dokumen (Kembali ke Chat Penuh)"
+              title="Close Document Panel (Return to Full Chat)"
             >
               <X size={14} />
             </button>
@@ -449,8 +449,8 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
       {docType === 'srs' && isSRSOutdated && (
         <div className="p-2.5 bg-rose-50 dark:bg-rose-950/60 border-b border-rose-200 dark:border-rose-900/40 text-rose-800 dark:text-rose-200 flex items-center justify-between text-xs px-4 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="font-semibold">⚠️ Dokumen SRS Outdated:</span>
-            <span>PRD mengalami perubahan versi sejak SRS terakhir disetujui. Harap regenerate SRS agar sinkron.</span>
+            <span className="font-semibold">⚠️ Outdated SRS Document:</span>
+            <span>PRD version has been updated since SRS was last approved. Please regenerate SRS to synchronize.</span>
           </div>
           <button
             type="button"
@@ -459,7 +459,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
             className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-medium cursor-pointer shadow-2xs flex items-center gap-1.5 disabled:opacity-50"
           >
             {isThisDocLoading && <Loader2 size={11} className="animate-spin" />}
-            <span>{isThisDocLoading ? 'Menyusun SRS...' : 'Regenerate SRS Sekarang'}</span>
+            <span>{isThisDocLoading ? 'Drafting SRS...' : 'Regenerate SRS Now'}</span>
           </button>
         </div>
       )}
@@ -469,7 +469,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
         <div className="p-2 bg-primary-soft/60 border-b border-primary/20 text-xs text-primary flex items-center justify-between px-4 shrink-0 animate-in fade-in">
           <div className="flex items-center gap-2">
             <Loader2 size={12} className="animate-spin text-primary shrink-0" />
-            <span>AI Agent sedang menyusun <strong>{generatingDoc?.toUpperCase()}</strong> di latar belakang. Anda tetap dapat membaca dokumen ini.</span>
+            <span>AI Agent is drafting <strong>{generatingDoc?.toUpperCase()}</strong> in the background. You can continue reading this document.</span>
           </div>
         </div>
       )}
@@ -479,8 +479,8 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
         {isThisDocLoading ? (
           <div className="h-64 flex flex-col items-center justify-center space-y-2 text-primary">
             <Loader2 size={30} className="animate-spin" />
-            <span className="text-xs font-semibold">AI Agent sedang menyusun spesifikasi {docMeta.title} secara real-time...</span>
-            <span className="text-[11px] text-muted">Proses memerlukan beberapa detik untuk memvalidasi standar dokumen.</span>
+            <span className="text-xs font-semibold">AI Agent is drafting {docMeta.title} specifications in real-time...</span>
+            <span className="text-[11px] text-muted">Please wait a few seconds while document standards and compliance are verified.</span>
           </div>
         ) : isEditingDoc ? (
           <div className="max-w-4xl mx-auto h-full flex flex-col">
@@ -488,15 +488,15 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
               value={docEditContent}
               onChange={(e) => onDocEditChange(e.target.value)}
               className="flex-1 w-full p-4 font-mono text-xs leading-relaxed border border-border rounded-xl bg-surface text-fg outline-none focus:border-primary resize-none min-h-[400px] shadow-2xs"
-              placeholder="Tulis atau edit markdown spesifikasi di sini..."
+              placeholder="Write or edit specification markdown here..."
             />
           </div>
         ) : !currentVersion ? (
           <div className="h-64 flex flex-col items-center justify-center text-muted space-y-3">
             <IconComp size={42} className="text-muted/50" />
-            <p className="text-xs font-medium text-fg">Draft {docMeta.title} Belum Dibuat</p>
+            <p className="text-xs font-medium text-fg">No {docMeta.title} Draft Created Yet</p>
             <p className="text-[11px] text-muted-2 max-w-sm text-center leading-relaxed">
-              Anda dapat mengklik tombol "Generate {docType.toUpperCase()}" di atas atau mendiskusikannya dengan agen spesialis di panel Chat di sebelah kiri.
+              Click "Generate {docType.toUpperCase()}" above or discuss with the specialist agent in Discovery Chat on the left.
             </p>
           </div>
         ) : (
@@ -515,7 +515,7 @@ export const DocumentCanvasPane: React.FC<DocumentCanvasPaneProps> = ({
                     className="flex items-center gap-1 text-[11px] text-primary hover:underline cursor-pointer"
                   >
                     <Copy size={11} />
-                    <span>Salin Source</span>
+                    <span>Copy Source</span>
                   </button>
                 </div>
                 <pre className="p-4 overflow-x-auto font-mono text-xs leading-relaxed bg-fill text-fg-2 whitespace-pre-wrap">

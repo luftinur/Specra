@@ -44,8 +44,8 @@ export class ErrorBoundary extends Component<Props, State> {
                 <AlertTriangle size={20} />
               </div>
               <div>
-                <h3 className="font-semibold text-base text-fg">Terjadi Kesalahan Aplikasi</h3>
-                <p className="text-xs text-muted">Specra Studio mendeteksi unhandled runtime exception.</p>
+                <h3 className="font-semibold text-base text-fg">An Unexpected Application Error Occurred</h3>
+                <p className="text-xs text-muted">Specra Studio detected an unhandled runtime exception.</p>
               </div>
             </div>
 
@@ -62,7 +62,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
               >
                 <RotateCcw size={13} />
-                <span>Muat Ulang Studio</span>
+                <span>Reload Studio</span>
               </button>
             </div>
           </div>

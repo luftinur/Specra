@@ -16,8 +16,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isOpen,
   title,
   message,
-  confirmLabel = 'Konfirmasi',
-  cancelLabel = 'Batal',
+  confirmLabel = 'Confirm',
+  cancelLabel = 'Cancel',
   isDestructive = false,
   onConfirm,
   onCancel,
@@ -51,7 +51,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             type="button"
             onClick={onCancel}
             className="p-1 rounded-md text-muted hover:text-fg hover:bg-fill transition-colors cursor-pointer"
-            title="Batal"
+            title="Cancel"
           >
             <X size={15} />
           </button>

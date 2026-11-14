@@ -29,7 +29,7 @@ func (ve *ValidationEngine) ValidatePRDCompleteness(prdContent string) []domain.
 			ID:          fmt.Sprintf("find-%d", time.Now().UnixNano()),
 			Severity:    domain.SeverityConflict,
 			FindingType: "missing_document",
-			Description: "Dokumen PRD belum memiliki konten draft sama sekali.",
+			Description: "PRD document has no draft content yet.",
 		})
 		return findings
 	}
@@ -42,7 +42,7 @@ func (ve *ValidationEngine) ValidatePRDCompleteness(prdContent string) []domain.
 				ID:          fmt.Sprintf("find-%d", time.Now().UnixNano()+int64(idx)),
 				Severity:    domain.SeverityWarning,
 				FindingType: "missing_prd_section",
-				Description: fmt.Sprintf("PRD Section %d (%s) belum ditemukan atau belum lengkap.", idx+1, sec),
+				Description: fmt.Sprintf("PRD Section %d (%s) is missing or incomplete.", idx+1, sec),
 			})
 		}
 	}
@@ -64,7 +64,7 @@ func (ve *ValidationEngine) ValidateSRSCompleteness(srsContent string) []domain.
 				ID:          fmt.Sprintf("find-%d", time.Now().UnixNano()+int64(idx)),
 				Severity:    domain.SeverityWarning,
 				FindingType: "missing_srs_section",
-				Description: fmt.Sprintf("SRS Section %d (%s) belum ditemukan atau belum lengkap.", idx+1, sec),
+				Description: fmt.Sprintf("SRS Section %d (%s) is missing or incomplete.", idx+1, sec),
 			})
 		}
 	}
@@ -85,7 +85,7 @@ func (ve *ValidationEngine) DetectAmbiguity(reqs []domain.Requirement) []domain.
 					FindingType:   "ambiguous_requirement",
 					RequirementID: &reqID,
 					Description: fmt.Sprintf(
-						"Requirement %s mengandung istilah ambigu '%s'. Disarankan menambahkan acceptance criteria yang terukur.",
+						"Requirement %s contains ambiguous term '%s'. Consider defining measurable acceptance criteria.",
 						r.RequirementKey, w,
 					),
 				})
@@ -104,7 +104,7 @@ func (ve *ValidationEngine) CheckUnconfirmedAssumptions(assumptions []domain.Ass
 				ID:          fmt.Sprintf("find-%d", time.Now().UnixNano()),
 				Severity:    domain.SeverityWarning,
 				FindingType: "unconfirmed_assumption",
-				Description: fmt.Sprintf("Asumsi belum dikonfirmasi: \"%s\". Validasi dengan stakeholder.", a.Description),
+				Description: fmt.Sprintf("Unconfirmed assumption: \"%s\". Validate with stakeholders.", a.Description),
 			})
 		}
 	}

@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"ai-requirements-studio/internal/ai"
 	"ai-requirements-studio/internal/domain"
 	"ai-requirements-studio/internal/storage"
@@ -60,7 +62,7 @@ func (s *ConversationService) SendMessageWithAgent(conversationID, projectID, co
 	}
 
 	// 1. Save user message
-	userMsgID := fmt.Sprintf("msg-%d", time.Now().UnixNano())
+	userMsgID := fmt.Sprintf("msg-%s", uuid.New().String()[:8])
 	userMsg := &domain.Message{
 		ID:             userMsgID,
 		ConversationID: conversationID,
@@ -218,7 +220,7 @@ func (s *ConversationService) SendMessageWithAgent(conversationID, projectID, co
 
 		// Persist clarification questions
 		for _, c := range discovery.Clarifications {
-			clarID := fmt.Sprintf("clar-%d", time.Now().UnixNano())
+			clarID := fmt.Sprintf("clar-%s", uuid.New().String()[:8])
 			_ = s.repo.AddClarification(ctx, &domain.Clarification{
 				ID:        clarID,
 				ProjectID: projectID,
@@ -229,7 +231,7 @@ func (s *ConversationService) SendMessageWithAgent(conversationID, projectID, co
 
 		// Persist assumptions
 		for _, a := range discovery.Assumptions {
-			assumpID := fmt.Sprintf("asmp-%d", time.Now().UnixNano())
+			assumpID := fmt.Sprintf("asmp-%s", uuid.New().String()[:8])
 			_ = s.repo.AddAssumption(ctx, &domain.Assumption{
 				ID:          assumpID,
 				ProjectID:   projectID,
@@ -240,7 +242,7 @@ func (s *ConversationService) SendMessageWithAgent(conversationID, projectID, co
 	}
 
 	// 7. Save Assistant Message
-	aiMsgID := fmt.Sprintf("msg-%d", time.Now().UnixNano()+1)
+	aiMsgID := fmt.Sprintf("msg-%s", uuid.New().String()[:8])
 	var execID *string
 	if resp.ExecutionID != "" {
 		execID = &resp.ExecutionID
@@ -294,7 +296,7 @@ func (s *ConversationService) ListAssumptions(projectID string) ([]domain.Assump
 
 func (s *ConversationService) PostSystemEvent(conversationID, projectID, title, message string) (*domain.Message, error) {
 	ctx := context.Background()
-	msgID := fmt.Sprintf("msg-%d", time.Now().UnixNano())
+	msgID := fmt.Sprintf("msg-%s", uuid.New().String()[:8])
 	formattedContent := fmt.Sprintf("📌 **%s**\n\n%s", title, message)
 	eventMsg := &domain.Message{
 		ID:             msgID,

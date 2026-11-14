@@ -493,11 +493,11 @@ export default function App() {
       await ProviderService.SaveGeneralSettings(generalSettings);
       applyTheme(generalSettings.theme as any);
       applyFontScale(generalSettings.font_size as any);
-      setGeneralSaveSuccess("Pengaturan umum berhasil disimpan!");
-      notifySuccess("Pengaturan Umum", "Pengaturan umum berhasil disimpan.");
+      setGeneralSaveSuccess("General settings saved successfully!");
+      notifySuccess("General Settings", "General settings saved successfully.");
       setTimeout(() => setGeneralSaveSuccess(null), 3000);
     } catch (err: any) {
-      notifyError("Pengaturan Umum", "Gagal menyimpan pengaturan umum: " + (err?.message || err));
+      notifyError("General Settings", "Failed to save general settings: " + (err?.message || err));
     }
   };
 
@@ -505,7 +505,7 @@ export default function App() {
     try {
       await ProviderService.OpenWorkspaceInExplorer();
     } catch (err: any) {
-      notifyError("Folder Workspace", "Gagal membuka folder workspace: " + (err?.message || err));
+      notifyError("Workspace Folder", "Failed to open workspace folder: " + (err?.message || err));
     }
   };
 
@@ -576,7 +576,7 @@ export default function App() {
         }
       }
     } catch (err) {
-      if (!silent) notifyError("Deteksi Coding Agent", `Gagal mendeteksi coding agent: ${String(err)}`);
+      if (!silent) notifyError("Agent Detection", `Failed to detect coding agents: ${String(err)}`);
       else console.warn('Silent agent detection error:', err);
     } finally {
       setIsDetectingAgents(false);
@@ -593,12 +593,12 @@ export default function App() {
         await ProviderService.ConfigureOpenCode(opencodeBaseURL, modelId, opencodeApiKey);
       }
       setDetectedAgents(prev => prev.map(a => a.id === agentId ? { ...a, selected_model: modelId } : a));
-      setProviderSaveSuccess(`Model untuk ${agentId} diperbarui: ${modelId || '(Default)'}`);
-      notifySuccess("Model Diperbarui", `Model untuk ${agentId} disetel ke: ${modelId || '(Default)'}`);
+      setProviderSaveSuccess(`Model for ${agentId} updated: ${modelId || '(Default)'}`);
+      notifySuccess("Model Updated", `Model for ${agentId} set to: ${modelId || '(Default)'}`);
       await loadProviderStatus();
       setTimeout(() => setProviderSaveSuccess(''), 3000);
     } catch (err) {
-      notifyError("Konfigurasi Model", `Gagal menyimpan model agent: ${String(err)}`);
+      notifyError("Model Configuration", `Failed to save agent model: ${String(err)}`);
     }
   };
 
@@ -613,14 +613,14 @@ export default function App() {
         } else if (providerId === 'gemini-direct') {
           setGeminiModelsList(models);
         }
-        setProviderSaveSuccess(`Berhasil memuat ${models.length} model untuk ${providerId}`);
-        notifySuccess("Model Dimuat", `Berhasil memuat ${models.length} model untuk ${providerId}`);
+        setProviderSaveSuccess(`Successfully loaded ${models.length} models for ${providerId}`);
+        notifySuccess("Models Loaded", `Successfully loaded ${models.length} models for ${providerId}`);
         setTimeout(() => setProviderSaveSuccess(''), 3000);
       } else {
-        notifyWarn("Model Tidak Ditemukan", `Tidak ada model yang ditemukan untuk ${providerId}`);
+        notifyWarn("Models Not Found", `No models found for ${providerId}`);
       }
     } catch (err) {
-      notifyError("Gagal Memuat Model", `Gagal memuat model: ${String(err)}`);
+      notifyError("Failed to Load Models", `Failed to load models: ${String(err)}`);
     }
   };
 
@@ -628,12 +628,12 @@ export default function App() {
     setPrimaryProvider(agentId);
     try {
       await ProviderService.ConfigureProviders(agentId, fallbackProvider, fallbackEnabled);
-      setProviderSaveSuccess(`AI Provider diaktifkan: ${agentId}`);
-      notifySuccess("AI Provider Aktif", `Primary provider disetel ke: ${agentId}`);
+      setProviderSaveSuccess(`AI Provider activated: ${agentId}`);
+      notifySuccess("AI Provider Active", `Primary provider set to: ${agentId}`);
       await loadProviderStatus();
       setTimeout(() => setProviderSaveSuccess(''), 3000);
     } catch (err) {
-      notifyError("AI Provider", `Gagal mengubah AI Provider: ${String(err)}`);
+      notifyError("AI Provider", `Failed to switch AI Provider: ${String(err)}`);
     }
   };
 
@@ -819,7 +819,7 @@ export default function App() {
       setTraceabilityMatrix(m || []);
       await loadDocumentDetails(activeProject.id);
     } catch (err) {
-      notifyError("Audit Validasi", `Gagal validasi: ${String(err)}`);
+      notifyError("Validation Audit", `Validation failed: ${String(err)}`);
     } finally {
       setIsValidating(false);
     }
@@ -828,20 +828,20 @@ export default function App() {
   const handleApproveRequirement = async (id: string) => {
     try {
       await RequirementService.ApproveRequirement(id);
-      notifySuccess("Requirement Disetujui", "Requirement telah disetujui (Approved).");
+      notifySuccess("Requirement Approved", "Requirement has been approved.");
       if (activeProject) await refreshProjectEntities(activeProject.id);
     } catch (err) {
-      notifyError("Approve Requirement", `Gagal approve requirement: ${String(err)}`);
+      notifyError("Approve Requirement", `Failed to approve requirement: ${String(err)}`);
     }
   };
 
   const handleRejectRequirement = async (id: string) => {
     try {
       await RequirementService.RejectRequirement(id);
-      notifyWarn("Requirement Ditolak", "Requirement ditandai sebagai ditolak.");
+      notifyWarn("Requirement Rejected", "Requirement marked as rejected.");
       if (activeProject) await refreshProjectEntities(activeProject.id);
     } catch (err) {
-      notifyError("Reject Requirement", `Gagal reject requirement: ${String(err)}`);
+      notifyError("Reject Requirement", `Failed to reject requirement: ${String(err)}`);
     }
   };
 
@@ -850,17 +850,17 @@ export default function App() {
       await RequirementService.UpdatePriority(id, priority);
       if (activeProject) await refreshProjectEntities(activeProject.id);
     } catch (err) {
-      notifyError("Prioritas Requirement", `Gagal update priority: ${String(err)}`);
+      notifyError("Requirement Priority", `Failed to update priority: ${String(err)}`);
     }
   };
 
   const handleUpdateAssumptionStatus = async (id: string, status: string) => {
     try {
       await RequirementService.UpdateAssumptionStatus(id, status);
-      notifySuccess("Status Asumsi", `Asumsi berhasil diubah menjadi: ${status}`);
+      notifySuccess("Assumption Status", `Assumption status changed to: ${status}`);
       if (activeProject) await refreshProjectEntities(activeProject.id);
     } catch (err) {
-      notifyError("Update Asumsi", `Gagal update assumption: ${String(err)}`);
+      notifyError("Update Assumption", `Failed to update assumption: ${String(err)}`);
     }
   };
 
@@ -871,10 +871,10 @@ export default function App() {
       await RequirementService.CorrectAssumption(id, text);
       setEditingAssumptionId(null);
       setEditingAssumptionText('');
-      notifySuccess("Asumsi Dikoreksi", "Koreksi fakta proyek berhasil disimpan.");
+      notifySuccess("Assumption Corrected", "Project fact correction saved successfully.");
       if (activeProject) await refreshProjectEntities(activeProject.id);
     } catch (err) {
-      notifyError("Koreksi Asumsi", `Gagal menyimpan koreksi asumsi: ${String(err)}`);
+      notifyError("Correct Assumption", `Failed to save assumption correction: ${String(err)}`);
     }
   };
 
@@ -896,10 +896,10 @@ export default function App() {
     try {
       await RequirementService.AnswerClarification(id, ans);
       setClarificationAnswers(prev => ({ ...prev, [id]: '' }));
-      notifySuccess("Klarifikasi Dijawab", "Jawaban klarifikasi berhasil disimpan.");
+      notifySuccess("Clarification Answered", "Clarification answer saved successfully.");
       if (activeProject) await refreshProjectEntities(activeProject.id);
     } catch (err) {
-      notifyError("Jawaban Klarifikasi", `Gagal submit jawaban klarifikasi: ${String(err)}`);
+      notifyError("Clarification Answer", `Failed to submit clarification answer: ${String(err)}`);
     }
   };
 
@@ -910,15 +910,15 @@ export default function App() {
       await ConversationService.SendMessageWithAgent(
         activeSession.id,
         activeProject.id,
-        "Analisis seluruh brief, dokumen PRD, dan diskusi project yang ada saat ini. Ekstrak seluruh kebutuhan fungsional (FR-xxx) dan non-fungsional ke dalam format JSON requirements terstruktur.",
+        "Analyze all available briefs, PRD documents, and discussions for this project. Extract all functional (FR-xxx) and non-functional requirements into structured JSON requirements.",
         activeChatAgent
       );
       const msgs = await ConversationService.ListMessages(activeSession.id);
       setMessages(msgs || []);
       await refreshProjectEntities(activeProject.id);
-      notifySuccess("Ekstraksi AI", "Kebutuhan berhasil diekstrak.");
+      notifySuccess("AI Extraction", "Requirements extracted successfully.");
     } catch (err) {
-      notifyError("Ekstraksi Requirements", `Gagal mengekstrak requirements: ${String(err)}`);
+      notifyError("Requirements Extraction", `Failed to extract requirements: ${String(err)}`);
     } finally {
       setIsExtractingReqs(false);
     }
@@ -937,19 +937,19 @@ export default function App() {
       if (p) {
         setOpenProjectIds(prev => prev.includes(p.id) ? prev : [...prev, p.id]);
         setActiveProject(p);
-        notifySuccess("Project Dibuat", `Project "${p.name}" siap digunakan.`);
+        notifySuccess("Project Created", `Project "${p.name}" is ready.`);
       }
     } catch (err) {
-      notifyError("Buat Project", `Error creating project: ${String(err)}`);
+      notifyError("Create Project", `Error creating project: ${String(err)}`);
     }
   };
 
   const handleDeleteProject = (id: string, name: string) => {
     setConfirmModal({
       isOpen: true,
-      title: 'Hapus Project',
-      message: `Hapus project "${name}" beserta seluruh histori percakapan dan spesifikasi yang ada? Tindakan ini tidak dapat dibatalkan.`,
-      confirmLabel: 'Hapus Project',
+      title: 'Delete Project',
+      message: `Delete project "${name}" including all conversation history and system specifications? This action cannot be undone.`,
+      confirmLabel: 'Delete Project',
       isDestructive: true,
       onConfirm: async () => {
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
@@ -961,9 +961,9 @@ export default function App() {
             setActiveSession(null);
           }
           await loadProjects();
-          notifySuccess("Project Dihapus", `Project "${name}" berhasil dihapus.`);
+          notifySuccess("Project Deleted", `Project "${name}" deleted successfully.`);
         } catch (err) {
-          notifyError("Hapus Project", `Error deleting project: ${String(err)}`);
+          notifyError("Delete Project", `Error deleting project: ${String(err)}`);
         }
       },
     });
@@ -991,10 +991,10 @@ export default function App() {
         setActiveProject(updated);
         await loadProjects();
         setShowEditProjectModal(false);
-        notifySuccess("Project Diperbarui", "Perubahan project berhasil disimpan.");
+        notifySuccess("Project Updated", "Project changes saved successfully.");
       }
     } catch (err) {
-      notifyError("Update Project", `Gagal update project: ${String(err)}`);
+      notifyError("Update Project", `Failed to update project: ${String(err)}`);
     }
   };
 
@@ -1003,9 +1003,9 @@ export default function App() {
     try {
       const res = await ProviderService.RunDiagnostics();
       setDiagResults(res);
-      notifySuccess("Diagnostik AI Selesai", "Pengecekan provider dan CLI tools berhasil dijalankan.");
+      notifySuccess("AI Diagnostics Completed", "Provider and CLI tooling diagnostics finished successfully.");
     } catch (err) {
-      notifyError("Diagnostik AI Gagal", `Gagal menjalankan diagnostik: ${String(err)}`);
+      notifyError("AI Diagnostics Failed", `Failed to run diagnostics: ${String(err)}`);
     } finally {
       setIsRunningDiag(false);
     }
@@ -1016,12 +1016,12 @@ export default function App() {
     if (!apiKeyInput.trim()) return;
     try {
       await ProviderService.StoreAPIKey('gemini', apiKeyInput.trim());
-      setKeySaveMsg('API Key berhasil disimpan dengan aman di Windows Credential Manager.');
+      setKeySaveMsg('API Key saved securely in Windows Credential Manager.');
       setApiKeyInput('');
-      notifySuccess("API Key Tersimpan", "Gemini API Key tersimpan aman di Windows Credential Manager.");
+      notifySuccess("API Key Saved", "Gemini API Key saved securely in Windows Credential Manager.");
       setTimeout(() => setKeySaveMsg(''), 4000);
     } catch (err) {
-      notifyError("Simpan API Key", `Gagal menyimpan key: ${String(err)}`);
+      notifyError("Save API Key", `Failed to save key: ${String(err)}`);
     }
   };
 
@@ -1054,12 +1054,12 @@ export default function App() {
       if (geminiModel || geminiApiKey) {
         await ProviderService.ConfigureGemini(geminiModel, geminiApiKey);
       }
-      setProviderSaveSuccess('Konfigurasi AI Provider & Fallback berhasil disimpan!');
-      notifySuccess("Konfigurasi Tersimpan", "Konfigurasi AI Provider & Fallback berhasil disimpan.");
+      setProviderSaveSuccess('AI Provider & Fallback configuration saved successfully!');
+      notifySuccess("Configuration Saved", "AI Provider & Fallback configuration saved successfully.");
       await loadProviderStatus();
       setTimeout(() => setProviderSaveSuccess(''), 4000);
     } catch (err) {
-      notifyError("Simpan Konfigurasi", `Gagal menyimpan konfigurasi: ${String(err)}`);
+      notifyError("Save Configuration", `Failed to save configuration: ${String(err)}`);
     }
   };
 
@@ -1109,7 +1109,7 @@ export default function App() {
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      notifyWarn("Ukuran File Terlalu Besar", "File melebihi batas ukuran maksimal 2 MB.");
+      notifyWarn("File Too Large", "File exceeds the 2 MB maximum size limit.");
       return;
     }
 
@@ -1153,31 +1153,31 @@ export default function App() {
       setNewSkillDesc('');
       setNewSkillPrompt('');
       setSkillSaveSuccess(`Custom Skill "${newSkillName.trim()}" created successfully!`);
-      notifySuccess("Skill Tersimpan", `Custom Skill "${newSkillName.trim()}" berhasil dibuat.`);
+      notifySuccess("Skill Saved", `Custom Skill "${newSkillName.trim()}" created successfully.`);
       setIsNewSkillModalOpen(false);
       setTimeout(() => setSkillSaveSuccess(''), 3500);
       await loadSkillsCatalog();
       await loadAgentsAndMCP();
     } catch (err: any) {
-      notifyError("Buat Custom Skill", `Failed to save custom skill: ${err?.message || err}`);
+      notifyError("Create Custom Skill", `Failed to save custom skill: ${err?.message || err}`);
     }
   };
 
   const handleDeleteCustomSkill = (id: string, name: string) => {
     setConfirmModal({
       isOpen: true,
-      title: "Hapus Custom Skill",
-      message: `Apakah Anda yakin ingin menghapus custom skill "${name}"? Tindakan ini tidak dapat dibatalkan.`,
-      confirmLabel: "Hapus Skill",
+      title: "Delete Custom Skill",
+      message: `Are you sure you want to delete custom skill "${name}"? This action cannot be undone.`,
+      confirmLabel: "Delete Skill",
       isDestructive: true,
       onConfirm: async () => {
         try {
           await ProviderService.DeleteSkill(id);
           await loadSkillsCatalog();
           await loadAgentsAndMCP();
-          notifySuccess("Skill Dihapus", `Custom skill "${name}" berhasil dihapus.`);
+          notifySuccess("Skill Deleted", `Custom skill "${name}" deleted successfully.`);
         } catch (err: any) {
-          notifyError("Hapus Skill", `Failed to delete custom skill: ${err?.message || err}`);
+          notifyError("Delete Skill", `Failed to delete custom skill: ${err?.message || err}`);
         }
       },
     });
@@ -1211,11 +1211,11 @@ export default function App() {
         system_prompt: editingPrompt,
       });
       setAgentSaveSuccess(`Persona "${agent.name}" saved successfully!`);
-      notifySuccess("Persona Disimpan", `Persona "${agent.name}" berhasil diperbarui.`);
+      notifySuccess("Persona Saved", `Persona "${agent.name}" updated successfully.`);
       setTimeout(() => setAgentSaveSuccess(''), 3000);
       await loadAgentsAndMCP();
     } catch (err) {
-      notifyError("Simpan Persona", `Failed to save agent persona: ${String(err)}`);
+      notifyError("Save Persona", `Failed to save agent persona: ${String(err)}`);
     }
   };
 
@@ -1256,28 +1256,28 @@ export default function App() {
       setNewMcpScope('global');
       setNewMcpAssignedAgents([]);
       setMcpSaveSuccess('MCP Server registered successfully!');
-      notifySuccess("MCP Server Terdaftar", `Server MCP "${newMcpName.trim()}" berhasil didaftarkan.`);
+      notifySuccess("MCP Server Registered", `MCP Server "${newMcpName.trim()}" registered successfully.`);
       setTimeout(() => setMcpSaveSuccess(''), 3000);
       await loadAgentsAndMCP();
     } catch (err) {
-      notifyError("Daftar MCP Server", `Failed to register MCP server: ${String(err)}`);
+      notifyError("Register MCP Server", `Failed to register MCP server: ${String(err)}`);
     }
   };
 
   const handleDeleteMCPServer = (id: string) => {
     setConfirmModal({
       isOpen: true,
-      title: "Hapus MCP Server",
-      message: "Apakah Anda yakin ingin menghapus koneksi MCP Server ini? Tindakan ini tidak dapat dibatalkan.",
-      confirmLabel: "Hapus MCP",
+      title: "Delete MCP Server",
+      message: "Are you sure you want to delete this MCP Server connection? This action cannot be undone.",
+      confirmLabel: "Delete MCP",
       isDestructive: true,
       onConfirm: async () => {
         try {
           await ProviderService.DeleteMCPServer(id);
           await loadAgentsAndMCP();
-          notifySuccess("MCP Server Dihapus", "Koneksi MCP Server berhasil dihapus.");
+          notifySuccess("MCP Server Deleted", "MCP Server connection removed successfully.");
         } catch (err) {
-          notifyError("Hapus MCP Server", `Failed to delete MCP server: ${String(err)}`);
+          notifyError("Delete MCP Server", `Failed to delete MCP server: ${String(err)}`);
         }
       },
     });
@@ -1285,16 +1285,16 @@ export default function App() {
 
   // Slash Commands Definitions
   const slashCommands = [
-    { cmd: '/discovery', label: 'Discovery Mode', desc: 'Proaktif menggali ide, celah, & ajukan pertanyaan', icon: Search, action: 'discovery' },
-    { cmd: '/exec', label: 'Execution Mode', desc: 'Pasif, langsung hasilkan spesifikasi tanpa bertanya', icon: Zap, action: 'execution' },
-    { cmd: '/plan', label: 'Create Plan', desc: 'Susun rencana spesifikasi bertahap untuk fitur ini', icon: List, action: 'plan' },
-    { cmd: '/clarify', label: 'Force Clarifications', desc: 'Evaluasi celah konteks dan ajukan pertanyaan klarifikasi', icon: HelpCircle, action: 'clarify' },
-    { cmd: '/prd', label: 'Generate PRD', desc: 'Buat atau update draft dokumen PRD (20 Sections)', icon: FileText, action: 'prd' },
-    { cmd: '/srs', label: 'Generate SRS', desc: 'Buat atau update spesifikasi teknis SRS (22 Sections)', icon: FileCode2, action: 'srs' },
-    { cmd: '/arch', label: 'Generate Architecture', desc: 'Buat topologi C4 Mermaid & API contracts (16 Sections)', icon: Cpu, action: 'arch' },
-    { cmd: '/design', label: 'Generate Design System', desc: 'Buat token desain & screen flows (16 Sections)', icon: Layers, action: 'design' },
-    { cmd: '/validate', label: 'Run Quality Check', desc: 'Audit validasi kelengkapan & keterlacakan requirements', icon: Activity, action: 'validate' },
-    { cmd: '/clear', label: 'Clear Chat History', desc: 'Bersihkan histori sesi percakapan saat ini', icon: Trash2, action: 'clear' },
+    { cmd: '/discovery', label: 'Discovery Mode', desc: 'Proactively uncover ideas, gaps, & ask clarification questions', icon: Search, action: 'discovery' },
+    { cmd: '/exec', label: 'Execution Mode', desc: 'Passive execution, generate specifications without asking questions', icon: Zap, action: 'execution' },
+    { cmd: '/plan', label: 'Create Plan', desc: 'Create structured step-by-step specification plan', icon: List, action: 'plan' },
+    { cmd: '/clarify', label: 'Force Clarifications', desc: 'Evaluate context gaps and trigger clarification questions', icon: HelpCircle, action: 'clarify' },
+    { cmd: '/prd', label: 'Generate PRD', desc: 'Generate or update PRD draft (20 Sections)', icon: FileText, action: 'prd' },
+    { cmd: '/srs', label: 'Generate SRS', desc: 'Generate or update SRS technical specification (22 Sections)', icon: FileCode2, action: 'srs' },
+    { cmd: '/arch', label: 'Generate Architecture', desc: 'Generate C4 Mermaid topology & API contracts (16 Sections)', icon: Cpu, action: 'arch' },
+    { cmd: '/design', label: 'Generate Design System', desc: 'Generate design tokens & screen flows (16 Sections)', icon: Layers, action: 'design' },
+    { cmd: '/validate', label: 'Run Quality Check', desc: 'Run quality audit for completeness & traceability', icon: Activity, action: 'validate' },
+    { cmd: '/clear', label: 'Clear Chat History', desc: 'Clear current conversation session history', icon: Trash2, action: 'clear' },
   ];
 
   const filteredSlashCommands = useMemo(() => {
@@ -1337,7 +1337,7 @@ export default function App() {
           await ConversationService.SendMessageWithAgent(
             activeSession.id,
             activeProject.id,
-            "[MODE: DISCOVERY] Evaluasi seluruh konteks project saat ini. Identifikasi celah ambiguitas dan ajukan 1-3 pertanyaan klarifikasi penting.",
+            "[MODE: DISCOVERY] Evaluate all available project context. Identify ambiguities and ask 1-3 crucial clarification questions.",
             activeChatAgent
           );
           const msgs = await ConversationService.ListMessages(activeSession.id);
@@ -1469,11 +1469,11 @@ export default function App() {
       await handleRunValidation();
       setIsEditingDoc(false);
       await notifyChatMilestone(
-        'PRD Draft v1 Berhasil Dibuat (20 Sections)',
-        `Product Analyst telah menyusun draft PRD (20 sections).\n\n- Kebutuhan terdeteksi: **${requirements.length} item**\n- Asumsi aktif: **${assumptions.length} item**\n\n👉 *Buka tab PRD untuk mereview dokumen lengkap, atau diskusikan revisi langsung di sini.*`
+        'PRD Draft v1 Created Successfully (20 Sections)',
+        `Product Analyst has drafted the PRD (20 sections).\n\n- Detected Requirements: **${requirements.length} items**\n- Active Assumptions: **${assumptions.length} items**\n\n👉 *Open the PRD tab to review the complete document, or discuss revisions directly here.*`
       );
     } catch (err) {
-      notifyError("Generate PRD Gagal", `Gagal generate PRD: ${String(err)}`);
+      notifyError("Generate PRD Failed", `Failed to generate PRD: ${String(err)}`);
     } finally {
       setGeneratingDoc(null);
     }
@@ -1488,11 +1488,11 @@ export default function App() {
       await handleRunValidation();
       await notifyChatMilestone(
         `PRD Section ${selectedSectionNum} Diperbarui`,
-        `Product Analyst telah memperbarui Section ${selectedSectionNum} pada dokumen PRD.`
+        `Product Analyst has updated Section ${selectedSectionNum} in the PRD document.`
       );
-      notifySuccess(`PRD Section ${selectedSectionNum} Diperbarui`, "Section berhasil diregenerasi.");
+      notifySuccess(`PRD Section ${selectedSectionNum} Updated`, "Section regenerated successfully.");
     } catch (err) {
-      notifyError("Regenerate Section PRD", `Gagal regenerate section PRD: ${String(err)}`);
+      notifyError("Regenerate PRD Section", `Failed to regenerate PRD section: ${String(err)}`);
     } finally {
       setGeneratingDoc(null);
     }
@@ -1504,19 +1504,19 @@ export default function App() {
       await DocumentService.ApprovePRD(activeProject.id, prdDetails.current_version.id);
       await loadDocumentDetails(activeProject.id);
       await notifyChatMilestone(
-        'PRD Resmi Disetujui (Approved)',
-        'Dokumen PRD resmi disetujui. Gerbang spesifikasi downstream **SRS (IEEE 830, 22 sections)** kini terbuka dan siap digenerate oleh System Analyst.'
+        'PRD Approved & Locked',
+        'PRD document officially approved. Downstream gate for **SRS (IEEE 830, 22 sections)** is now unlocked and ready for the System Analyst.'
       );
-      notifySuccess("PRD Disetujui", "Dokumen PRD berhasil disetujui (Approved)! Dokumen SRS dapat digenerate.");
+      notifySuccess("PRD Approved", "PRD document approved! SRS specification is now unlocked.");
     } catch (err) {
-      notifyError("Approve PRD", `Gagal approve PRD: ${String(err)}`);
+      notifyError("Approve PRD", `Failed to approve PRD: ${String(err)}`);
     }
   };
 
   const handleGenerateSRS = async () => {
     if (!activeProject) return;
     if (prdDetails.document?.status !== 'approved') {
-      notifyWarn("SRS Generation Gated", "PRD harus disetujui (Approved) terlebih dahulu sebelum menyusun SRS.");
+      notifyWarn("SRS Generation Gated", "PRD must be approved before generating SRS.");
       return;
     }
 
@@ -1527,11 +1527,11 @@ export default function App() {
       await handleRunValidation();
       setIsEditingDoc(false);
       await notifyChatMilestone(
-        'SRS Draft v1 Berhasil Dibuat (22 Sections)',
-        'System Analyst telah menyusun spesifikasi SRS IEEE 830 (22 sections) lengkap dengan pemetaan kebutuhan fungsional (FR-xxx) dan matriks ketertelusuran (*Traceability Matrix*).'
+        'SRS Draft v1 Created Successfully (22 Sections)',
+        'System Analyst has drafted the IEEE 830 SRS specification (22 sections) with functional requirements (FR-xxx) mapping and Traceability Matrix.'
       );
     } catch (err) {
-      notifyError("Generate SRS", `Gagal generate SRS: ${String(err)}`);
+      notifyError("Generate SRS", `Failed to generate SRS: ${String(err)}`);
     } finally {
       setGeneratingDoc(null);
     }
@@ -1546,11 +1546,11 @@ export default function App() {
       await handleRunValidation();
       await notifyChatMilestone(
         `SRS Section ${selectedSectionNum} Diperbarui`,
-        `System Analyst telah memperbarui Section ${selectedSectionNum} pada spesifikasi SRS.`
+        `System Analyst has updated Section ${selectedSectionNum} in the SRS specification.`
       );
-      notifySuccess(`SRS Section ${selectedSectionNum} Diperbarui`, "Section berhasil diregenerasi.");
+      notifySuccess(`SRS Section ${selectedSectionNum} Updated`, "Section regenerated successfully.");
     } catch (err) {
-      notifyError("Regenerate Section SRS", `Gagal regenerate section SRS: ${String(err)}`);
+      notifyError("Regenerate SRS Section", `Failed to regenerate SRS section: ${String(err)}`);
     } finally {
       setGeneratingDoc(null);
     }
@@ -1562,19 +1562,19 @@ export default function App() {
       await DocumentService.ApproveSRS(activeProject.id, srsDetails.current_version.id);
       await loadDocumentDetails(activeProject.id);
       await notifyChatMilestone(
-        'SRS Resmi Disetujui (Approved)',
-        'Dokumen SRS resmi disetujui. Arsitektur sistem (C4 diagram, API contracts, dan STRIDE threat model) siap digenerate oleh **Software Architect**.'
+        'SRS Approved & Locked',
+        'SRS document officially approved. System Architecture (C4 diagrams, API contracts, and STRIDE threat models) is ready to generate.'
       );
-      notifySuccess("SRS Disetujui", "Dokumen SRS berhasil disetujui (Approved)! Dokumen Arsitektur siap digenerate.");
+      notifySuccess("SRS Approved", "SRS document approved! Architecture specification is now unlocked.");
     } catch (err) {
-      notifyError("Approve SRS", `Gagal approve SRS: ${String(err)}`);
+      notifyError("Approve SRS", `Failed to approve SRS: ${String(err)}`);
     }
   };
 
   const handleGenerateArchitecture = async () => {
     if (!activeProject) return;
     if (prdDetails.document?.status !== 'approved') {
-      notifyWarn("Architecture Generation Gated", "PRD harus disetujui (Approved) terlebih dahulu sebelum menyusun Architecture.");
+      notifyWarn("Architecture Generation Gated", "PRD must be approved before generating Architecture.");
       return;
     }
 
@@ -1584,11 +1584,11 @@ export default function App() {
       await loadDocumentDetails(activeProject.id);
       setIsEditingDoc(false);
       await notifyChatMilestone(
-        'Architecture Draft Berhasil Dibuat (16 Sections)',
-        'Software Architect telah merancang arsitektur sistem (16 sections) mencakup diagram C4 konteks & kontainer, spesifikasi REST API, dan strategi mitigasi STRIDE.'
+        'Architecture Draft Created Successfully (16 Sections)',
+        'Software Architect has designed system architecture (16 sections) including C4 Context & Container diagrams, REST API specs, and STRIDE mitigation strategies.'
       );
     } catch (err) {
-      notifyError("Generate Architecture", `Gagal generate Architecture: ${String(err)}`);
+      notifyError("Generate Architecture", `Failed to generate Architecture: ${String(err)}`);
     } finally {
       setGeneratingDoc(null);
     }
@@ -1602,11 +1602,11 @@ export default function App() {
       await loadDocumentDetails(activeProject.id);
       await notifyChatMilestone(
         `Architecture Section ${selectedSectionNum} Diperbarui`,
-        `Software Architect telah memperbarui Section ${selectedSectionNum} pada dokumen Arsitektur.`
+        `Software Architect has updated Section ${selectedSectionNum} in the Architecture document.`
       );
-      notifySuccess(`Architecture Section ${selectedSectionNum} Diperbarui`, "Section berhasil diregenerasi.");
+      notifySuccess(`Architecture Section ${selectedSectionNum} Updated`, "Section regenerated successfully.");
     } catch (err) {
-      notifyError("Regenerate Section Architecture", `Gagal regenerate section Architecture: ${String(err)}`);
+      notifyError("Regenerate Architecture Section", `Failed to regenerate Architecture section: ${String(err)}`);
     } finally {
       setGeneratingDoc(null);
     }
@@ -1618,19 +1618,19 @@ export default function App() {
       await DocumentService.ApproveArchitecture(activeProject.id, architectureDetails.current_version.id);
       await loadDocumentDetails(activeProject.id);
       await notifyChatMilestone(
-        'Architecture Resmi Disetujui (Approved)',
-        'Dokumen Arsitektur disetujui. Spesifikasi Design System (16 sections) siap digenerate oleh **UI/UX Agent**.'
+        'Architecture Approved & Locked',
+        'Architecture document approved. Design System specification (16 sections) is ready to generate by UI/UX Agent.'
       );
-      notifySuccess("Architecture Disetujui", "Dokumen Arsitektur (architecture.md) berhasil disetujui (Approved)! Design System siap digenerate.");
+      notifySuccess("Architecture Approved", "Architecture document approved! Design System is now unlocked.");
     } catch (err) {
-      notifyError("Approve Architecture", `Gagal approve Architecture: ${String(err)}`);
+      notifyError("Approve Architecture", `Failed to approve Architecture: ${String(err)}`);
     }
   };
 
   const handleGenerateDesign = async () => {
     if (!activeProject) return;
     if (prdDetails.document?.status !== 'approved') {
-      notifyWarn("Design Generation Gated", "PRD harus disetujui (Approved) terlebih dahulu sebelum menyusun Design System.");
+      notifyWarn("Design Generation Gated", "PRD must be approved before generating Design System.");
       return;
     }
 
@@ -1640,11 +1640,11 @@ export default function App() {
       await loadDocumentDetails(activeProject.id);
       setIsEditingDoc(false);
       await notifyChatMilestone(
-        'Design System Draft Berhasil Dibuat (16 Sections)',
-        'UI/UX Agent telah menyusun spesifikasi Design System (16 sections) mencakup token visual MQ-Studio, alur interaksi layar, komponen atomik, dan kepatuhan WCAG 2.2 AA.'
+        'Design System Draft Created Successfully (16 Sections)',
+        'UI/UX Agent has drafted Design System specifications (16 sections) including visual tokens, screen flows, atomic components, and WCAG 2.2 AA compliance.'
       );
     } catch (err) {
-      notifyError("Generate Design System", `Gagal generate Design System: ${String(err)}`);
+      notifyError("Generate Design System", `Failed to generate Design System: ${String(err)}`);
     } finally {
       setGeneratingDoc(null);
     }
@@ -1658,11 +1658,11 @@ export default function App() {
       await loadDocumentDetails(activeProject.id);
       await notifyChatMilestone(
         `Design System Section ${selectedSectionNum} Diperbarui`,
-        `UI/UX Agent telah memperbarui Section ${selectedSectionNum} pada dokumen Design System.`
+        `UI/UX Agent has updated Section ${selectedSectionNum} in the Design System document.`
       );
-      notifySuccess(`Design System Section ${selectedSectionNum} Diperbarui`, "Section berhasil diregenerasi.");
+      notifySuccess(`Design System Section ${selectedSectionNum} Updated`, "Section regenerated successfully.");
     } catch (err) {
-      notifyError("Regenerate Section Design", `Gagal regenerate section Design: ${String(err)}`);
+      notifyError("Regenerate Design Section", `Failed to regenerate Design System section: ${String(err)}`);
     } finally {
       setGeneratingDoc(null);
     }
@@ -1674,12 +1674,12 @@ export default function App() {
       await DocumentService.ApproveDesign(activeProject.id, designDetails.current_version.id);
       await loadDocumentDetails(activeProject.id);
       await notifyChatMilestone(
-        'Design System Resmi Disetujui (Approved)',
-        'Seluruh spesifikasi sistem (**PRD**, **SRS**, **Architecture**, dan **Design System**) telah lengkap dan disetujui. Workspace siap untuk fase implementasi teknis.'
+        'Design System Approved & Locked',
+        'All system specifications (**PRD**, **SRS**, **Architecture**, and **Design System**) are complete and approved. Workspace is ready for technical implementation.'
       );
-      notifySuccess("Design System Disetujui", "Dokumen Design System (design.md) berhasil disetujui (Approved)!");
+      notifySuccess("Design System Approved", "Design System document approved!");
     } catch (err) {
-      notifyError("Approve Design", `Gagal approve Design: ${String(err)}`);
+      notifyError("Approve Design", `Failed to approve Design: ${String(err)}`);
     }
   };
 
@@ -1703,9 +1703,9 @@ export default function App() {
       await loadDocumentDetails(activeProject.id);
       await handleRunValidation();
       setIsEditingDoc(false);
-      notifySuccess("Perubahan Disimpan", "Manual edit dokumen berhasil disimpan.");
+      notifySuccess("Changes Saved", "Manual document edit saved successfully.");
     } catch (err) {
-      notifyError("Simpan Manual Edit", `Gagal menyimpan edit: ${String(err)}`);
+      notifyError("Save Manual Edit", `Failed to save manual edit: ${String(err)}`);
     } finally {
       setGeneratingDoc(null);
     }
@@ -1713,7 +1713,7 @@ export default function App() {
 
   const handleExportDoc = () => {
     if (!activeProject) {
-      notifyWarn("Export Dokumen", "Pilih project terlebih dahulu sebelum mengekspor.");
+      notifyWarn("Export Document", "Select a project first before exporting.");
       return;
     }
     setExportInitialScope('single');
@@ -1722,7 +1722,7 @@ export default function App() {
 
   const handleExportAllDocs = () => {
     if (!activeProject) {
-      notifyWarn("Export Seluruh Dokumen", "Pilih project terlebih dahulu sebelum mengekspor.");
+      notifyWarn("Export All Documents", "Select a project first before exporting.");
       return;
     }
     setExportInitialScope('all');
@@ -1731,7 +1731,7 @@ export default function App() {
 
   const runAutoPipeline = async (skipClarificationGating = false) => {
     if (!activeProject) {
-      notifyWarn("Auto Pipeline", "Pilih atau buat project terlebih dahulu!");
+      notifyWarn("Auto Pipeline", "Select or create a project first!");
       return;
     }
     if (autoPipelineRunning) return;
@@ -1743,13 +1743,13 @@ export default function App() {
     try {
       // 1. Discovery & Requirements Extraction if needed
       if (requirements.length === 0) {
-        setAutoPipelineStage('1/5: Mengekstrak Kebutuhan Awal...');
+        setAutoPipelineStage('1/5: Extracting Initial Requirements...');
         if (activeSession) {
           try {
             await ConversationService.SendMessageWithAgent(
               activeSession.id,
               activeProject.id,
-              "Analisis brief dan ide project ini. Ekstrak kebutuhan fungsional (FR-xxx), non-fungsional, pertanyaan klarifikasi yang krusial, dan asumsi awal.",
+              "Analyze this project brief and goals. Extract functional (FR-xxx) and non-functional requirements, crucial clarification questions, and initial assumptions.",
               activeChatAgent
             );
             const msgs = await ConversationService.ListMessages(activeSession.id);
@@ -1768,7 +1768,7 @@ export default function App() {
         if (openClar.length > 0) {
           setClarifications(freshClar || []);
           setAutoPipelineRunning(false);
-          setPipelinePausedReason(`Pipeline Berhenti Sementara: Harap jawab ${openClar.length} pertanyaan klarifikasi.`);
+          setPipelinePausedReason(`Pipeline Paused: Please answer ${openClar.length} clarification questions.`);
           setCurrentView('chat');
           setActiveTab('qa_assumptions');
           setShowInspector(true);
@@ -1777,7 +1777,7 @@ export default function App() {
       }
 
       // 2. PRD Generation & Auto-Approve
-      setAutoPipelineStage('2/5: Menyusun PRD (20 Sections)...');
+      setAutoPipelineStage('2/5: Drafting PRD (20 Sections)...');
       setCurrentView('prd');
       const prdVer = await DocumentService.GeneratePRD(activeProject.id);
       if (prdVer) {
@@ -1786,12 +1786,12 @@ export default function App() {
       await loadDocumentDetails(activeProject.id);
       await handleRunValidation();
       await notifyChatMilestone(
-        'Auto-Pipeline: PRD Selesai & Disetujui (20 Sections)',
-        'Product Analyst telah menyusun draft PRD dan disetujui otomatis untuk membuka gerbang SRS.'
+        'Auto-Pipeline: PRD Completed & Approved (20 Sections)',
+        'Product Analyst has drafted the PRD and approved it automatically to unlock SRS.'
       );
 
       // 3. SRS Generation & Auto-Approve
-      setAutoPipelineStage('3/5: Menyusun SRS IEEE 830 (22 Sections)...');
+      setAutoPipelineStage('3/5: Drafting SRS IEEE 830 (22 Sections)...');
       setCurrentView('srs');
       const srsVer = await DocumentService.GenerateSRS(activeProject.id);
       if (srsVer) {
@@ -1800,12 +1800,12 @@ export default function App() {
       await loadDocumentDetails(activeProject.id);
       await handleRunValidation();
       await notifyChatMilestone(
-        'Auto-Pipeline: SRS Selesai & Disetujui (22 Sections)',
-        'System Analyst telah menyusun spesifikasi SRS IEEE 830 dan disetujui otomatis untuk membuka gerbang Arsitektur.'
+        'Auto-Pipeline: SRS Completed & Approved (22 Sections)',
+        'System Analyst has drafted the IEEE 830 SRS and approved it automatically to unlock Architecture.'
       );
 
       // 4. Architecture Generation & Auto-Approve
-      setAutoPipelineStage('4/5: Menyusun Architecture C4 (16 Sections)...');
+      setAutoPipelineStage('4/5: Designing Architecture C4 (16 Sections)...');
       setCurrentView('architecture');
       const archVer = await DocumentService.GenerateArchitecture(activeProject.id);
       if (archVer) {
@@ -1813,12 +1813,12 @@ export default function App() {
       }
       await loadDocumentDetails(activeProject.id);
       await notifyChatMilestone(
-        'Auto-Pipeline: Architecture Selesai & Disetujui (16 Sections)',
-        'Software Architect telah merancang C4 architecture and disetujui otomatis untuk membuka gerbang Design System.'
+        'Auto-Pipeline: Architecture Completed & Approved (16 Sections)',
+        'Software Architect has designed C4 architecture and approved it automatically to unlock Design System.'
       );
 
       // 5. Design System Generation & Auto-Approve
-      setAutoPipelineStage('5/5: Menyusun Design System (16 Sections)...');
+      setAutoPipelineStage('5/5: Drafting Design System (16 Sections)...');
       setCurrentView('design');
       const desVer = await DocumentService.GenerateDesign(activeProject.id);
       if (desVer) {
@@ -1826,8 +1826,8 @@ export default function App() {
       }
       await loadDocumentDetails(activeProject.id);
       await notifyChatMilestone(
-        'Auto-Pipeline Selesai: Seluruh Dokumen Siap',
-        'Rangkaian spesifikasi lengkap (PRD, SRS, Architecture, Design System) telah selesai digenerate dan disetujui.'
+        'Auto-Pipeline Complete: All Documents Ready',
+        'The complete specification pipeline (PRD, SRS, Architecture, Design System) has finished and is approved.'
       );
       await loadDocumentDetails(activeProject.id);
 
@@ -1836,7 +1836,7 @@ export default function App() {
       setPipelineCompletedNotice(true);
     } catch (err) {
       console.error('Auto Pipeline Failed:', err);
-      notifyError("Auto Pipeline Terhenti", `Tahap "${autoPipelineStage || 'Eksekusi'}": ${String(err)}`);
+      notifyError("Auto Pipeline Halted", `Stage "${autoPipelineStage || 'Execution'}": ${String(err)}`);
       setAutoPipelineRunning(false);
       setAutoPipelineStage(null);
     }
@@ -1976,10 +1976,10 @@ export default function App() {
                     <SpecraIcon size={56} />
                   </div>
                   <h3 className="text-xl font-bold text-fg mb-1 tracking-tight">
-                    Selamat Datang di <span className="font-extrabold">specra</span>
+                    Welcome to <span className="font-extrabold">specra</span>
                   </h3>
                   <p className="text-xs text-muted max-w-md mb-6 leading-relaxed">
-                    Personal requirements engineering workspace untuk mentransformasikan ide dan brief proyek menjadi spesifikasi sistem terstruktur: PRD, SRS, Architecture, dan Design System.
+                    Personal requirements engineering workspace transforming product briefs and ideas into structured system specifications: PRD, SRS, Architecture, and Design System.
                   </p>
 
                   <div className="flex items-center gap-3">
@@ -1992,7 +1992,7 @@ export default function App() {
                       className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-2 transition-all"
                     >
                       <FolderOpen size={15} />
-                      <span>Buka Project Manager</span>
+                      <span>Open Project Manager</span>
                     </button>
                     <button
                       type="button"
@@ -2003,7 +2003,7 @@ export default function App() {
                       className="px-4 py-2.5 bg-surface hover:bg-fill-mute border border-border text-fg rounded-xl text-xs font-semibold shadow-2xs flex items-center gap-2 transition-all"
                     >
                       <Plus size={15} />
-                      <span>+ Buat Project Baru</span>
+                      <span>+ Create New Project</span>
                     </button>
                   </div>
 
@@ -2027,11 +2027,11 @@ export default function App() {
                                 </span>
                               </div>
                               <p className="text-[11px] text-muted line-clamp-1 mt-1">
-                                {proj.description || 'Tidak ada deskripsi'}
+                                {proj.description || 'No description provided'}
                               </p>
                             </div>
                             <div className="mt-2 text-[10px] text-muted-2 flex items-center gap-1 font-mono">
-                              <span>Klik untuk membuka</span>
+                              <span>Click to open</span>
                             </div>
                           </div>
                         ))}
@@ -2042,9 +2042,9 @@ export default function App() {
               ) : messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-2">
                   <FileText size={32} className="text-slate-300 dark:text-slate-700" />
-                  <p className="font-medium text-slate-600 dark:text-slate-400">Mulai Requirement Discovery</p>
+                  <p className="font-medium text-slate-600 dark:text-slate-400">Start Requirement Discovery</p>
                   <p className="text-xs max-w-sm text-center">
-                    Ketik ide atau upload draft Markdown spesifikasi di bawah. {currentSpecialist.name} akan menganalisis kebutuhan dan mengekstrak requirement terstruktur (MoSCoW).
+                    Type an idea or upload a specification draft below. {currentSpecialist.name} will analyze requirements and extract structured specs (MoSCoW).
                   </p>
                 </div>
               ) : (
@@ -2112,7 +2112,7 @@ export default function App() {
                                       type="text"
                                       value={clarificationAnswers[c.id] || ''}
                                       onChange={(e) => setClarificationAnswers(prev => ({ ...prev, [c.id]: e.target.value }))}
-                                      placeholder="Ketik jawaban klarifikasi..."
+                                      placeholder="Type your clarification answer..."
                                       className="flex-1 px-2.5 py-1.5 text-xs bg-fill border border-border rounded-lg text-fg placeholder:text-muted focus:outline-none focus:border-primary"
                                     />
                                     <button
@@ -2120,7 +2120,7 @@ export default function App() {
                                       disabled={!clarificationAnswers[c.id]?.trim()}
                                       className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold disabled:opacity-40 transition-colors shadow-2xs shrink-0"
                                     >
-                                      Simpan Jawaban
+                                      Submit Answer
                                     </button>
                                   </form>
                                 </div>
@@ -2137,7 +2137,7 @@ export default function App() {
               {isSending && (
                 <div className="border-l-2 border-primary pl-4 py-2 flex items-center gap-2 text-xs text-primary font-mono">
                   <Loader2 size={13} className="animate-spin" />
-                  <span>{currentSpecialist.name} sedang menganalisis dan mengekstrak spesifikasi via {primaryProvider}...</span>
+                  <span>{currentSpecialist.name} is analyzing and extracting specifications via {primaryProvider}...</span>
                 </div>
               )}
 
@@ -2150,11 +2150,11 @@ export default function App() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs text-primary">Rekomendasi Pipeline AI</span>
-                        <span className="text-[10px] font-mono bg-ok text-white px-1.5 py-0.2 rounded font-semibold">Discovery Siap</span>
+                        <span className="font-bold text-xs text-primary">AI Pipeline Recommendation</span>
+                        <span className="text-[10px] font-mono bg-ok text-white px-1.5 py-0.2 rounded font-semibold">Discovery Ready</span>
                       </div>
                       <p className="text-xs text-fg-2 mt-0.5 leading-relaxed">
-                        Konteks kebutuhan telah mencukupi ({requirements.length} requirement teridentifikasi). AI merekomendasikan untuk beralih ke tahap penyusunan <strong>PRD (20 Sections)</strong>.
+                        Requirements context is comprehensive ({requirements.length} requirements identified). Ready to advance to <strong>PRD (20 Sections)</strong>.
                       </p>
                     </div>
                   </div>
@@ -2168,7 +2168,7 @@ export default function App() {
                     className="px-3.5 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-2xs transition-all shrink-0 hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50"
                   >
                     {generatingDoc === 'prd' ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
-                    <span>{generatingDoc === 'prd' ? 'Menyusun PRD...' : 'Generate Draft PRD'}</span>
+                    <span>{generatingDoc === 'prd' ? 'Drafting PRD...' : 'Generate PRD Draft'}</span>
                   </button>
                 </div>
               )}
@@ -2191,7 +2191,7 @@ export default function App() {
                       type="button"
                       onClick={() => setAttachedFile(null)}
                       className="ml-1 p-0.5 hover:bg-fill-mute rounded text-primary hover:text-err transition-colors"
-                      title="Hapus lampiran"
+                      title="Remove attachment"
                     >
                       <X size={13} />
                     </button>
@@ -2206,8 +2206,8 @@ export default function App() {
                     className="absolute bottom-[calc(100%+8px)] left-4 right-4 max-w-lg bg-surface border border-border rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-border/60 animate-in fade-in slide-in-from-bottom-2 select-none"
                   >
                     <div className="px-3 py-2 bg-panel flex items-center justify-between text-[11px] font-semibold text-muted">
-                      <span>Perintah Cepat AI Studio</span>
-                      <span className="font-mono text-[10px] text-muted">Gunakan ↑ ↓ Enter atau klik</span>
+                      <span>AI Studio Quick Commands</span>
+                      <span className="font-mono text-[10px] text-muted">Use ↑ ↓ Enter or click</span>
                     </div>
                     <div className="max-h-60 overflow-y-auto overscroll-contain py-1 mqs-scroll">
                       {filteredSlashCommands.map((cmd, idx) => {
@@ -2259,7 +2259,7 @@ export default function App() {
                           type="button"
                           onClick={() => setShowPersonaMenu(!showPersonaMenu)}
                           className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-panel hover:bg-fill-mute text-fg border border-border/80 text-xs font-semibold shadow-2xs transition-colors"
-                          title="Ganti Specialist AI Agent"
+                          title="Change Specialist AI Persona"
                         >
                           {(() => {
                             const CurrIcon = currentSpecialist.icon;
@@ -2273,7 +2273,7 @@ export default function App() {
                         {showPersonaMenu && (
                           <div className="absolute bottom-full left-0 mb-2 w-64 bg-surface border border-border rounded-xl shadow-xl z-50 py-1 divide-y divide-border/50 animate-in fade-in slide-in-from-bottom-2">
                             <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted bg-panel/50">
-                              Pilih Persona Spesialis
+                              Select Specialist Persona
                             </div>
                             {specialistAgents.map((ag) => {
                               const AgIcon = ag.icon;
@@ -2317,10 +2317,10 @@ export default function App() {
                               ? 'bg-primary text-white shadow-2xs'
                               : 'text-muted hover:text-fg'
                           }`}
-                          title="Mode Eksplorasi (Default): AI proaktif menganalisis celah ide, mengajukan pertanyaan klarifikasi, dan mendeteksi asumsi."
+                          title="Exploration Mode (Default): AI proactively discovers gaps, asks clarification questions, and tracks assumptions."
                         >
                           <Search size={12} />
-                          <span>Eksplorasi (Tanya Jawab)</span>
+                          <span>Exploration (Q&A)</span>
                         </button>
                         <button
                           type="button"
@@ -2330,19 +2330,19 @@ export default function App() {
                               ? 'bg-amber-600 text-white shadow-2xs'
                               : 'text-muted hover:text-fg'
                           }`}
-                          title="Mode Eksekusi: AI langsung menyusun draft spesifikasi teknis dan artefak dokumen tanpa bertanya."
+                          title="Execution Mode: AI generates specifications and document artifacts directly without asking questions."
                         >
                           <Zap size={12} />
-                          <span>Eksekusi (Spesifikasi)</span>
+                          <span>Execution (Direct)</span>
                         </button>
                       </div>
                     </div>
 
                     {/* Quick Slash Hint */}
                     <div className="text-[10.5px] font-mono text-muted hidden sm:flex items-center gap-1">
-                      <span>Ketik</span>
+                      <span>Type</span>
                       <kbd className="px-1.5 py-0.5 bg-fill border border-border rounded text-[10px] text-fg font-semibold">/</kbd>
-                      <span>untuk perintah</span>
+                      <span>for commands</span>
                     </div>
                   </div>
 
@@ -2351,7 +2351,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      title="Lampirkan file draft spesifikasi (.md, .txt, .json)"
+                      title="Attach specification draft (.md, .txt, .json)"
                       className="w-8 h-8 flex items-center justify-center text-muted hover:text-primary rounded-lg hover:bg-fill-mute transition-colors shrink-0"
                     >
                       <Paperclip size={15} />
@@ -2391,8 +2391,8 @@ export default function App() {
                       }}
                       placeholder={
                         interactionMode === 'discovery'
-                          ? `Diskusikan ide dengan ${currentSpecialist.name}, atau ketik / untuk perintah...`
-                          : `Berikan instruksi dokumen langsung ke ${currentSpecialist.name} (Execution Mode)...`
+                          ? `Discuss ideas with ${currentSpecialist.name}, or type / for commands...`
+                          : `Direct instructions to ${currentSpecialist.name} (Execution Mode)...`
                       }
                       className="flex-1 bg-transparent text-[13px] font-normal outline-none text-fg placeholder:text-muted px-1 py-1"
                       disabled={isSending}
@@ -2400,7 +2400,7 @@ export default function App() {
 
                     <button 
                       type="submit"
-                      title="Kirim Pesan"
+                      title="Send Message"
                       className="px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary-hover text-white transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 shrink-0 shadow-2xs font-semibold text-xs"
                       disabled={(!inputMessage.trim() && !attachedFile) || isSending}
                     >
@@ -2408,7 +2408,7 @@ export default function App() {
                         <Loader2 size={13} className="animate-spin" />
                       ) : (
                         <>
-                          <span>Kirim</span>
+                          <span>Send</span>
                           <Send size={12} />
                         </>
                       )}
@@ -2506,7 +2506,7 @@ export default function App() {
           <div 
             onClick={() => { setSettingsTab('providers'); setShowSettingsModal(true); loadGeneralSettings(); loadTokenUsage(); handleDetectAgents(true); }}
             className="flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] bg-fill-soft border border-border/60 text-[11px] font-mono cursor-pointer hover:border-primary/50 transition-colors"
-            title={`Active Engine: ${primaryProvider}${providerStatus.model ? ` (${providerStatus.model})` : ''} - Klik untuk kelola`}
+            title={`Active Engine: ${primaryProvider}${providerStatus.model ? ` (${providerStatus.model})` : ''} - Click to manage`}
           >
             <span className={`w-1.5 h-1.5 rounded-full ${providerStatus.available ? 'bg-ok' : 'bg-err'}`} />
             <span className="text-muted">
@@ -2612,7 +2612,7 @@ export default function App() {
               await ConversationService.SendMessageWithAgent(
                 activeSession.id,
                 activeProject.id,
-                "[MODE: DISCOVERY] Evaluasi seluruh konteks project saat ini. Identifikasi celah ambiguitas dan ajukan 1-3 pertanyaan klarifikasi penting.",
+                "[MODE: DISCOVERY] Evaluate all available project context. Identify ambiguities and ask 1-3 crucial clarification questions.",
                 activeChatAgent
               );
               const msgs = await ConversationService.ListMessages(activeSession.id);
@@ -2718,7 +2718,7 @@ export default function App() {
                           {isSRSOutdated ? (
                             'Outdated'
                           ) : !isPRDApproved ? (
-                            <span className="flex items-center gap-1 text-[10px]" title="Terkunci: Memerlukan persetujuan PRD">
+                            <span className="flex items-center gap-1 text-[10px]" title="Locked: Requires approved PRD">
                               <Lock size={10} className="text-muted-2" />
                               <span>Locked</span>
                             </span>
@@ -2758,7 +2758,7 @@ export default function App() {
                           {isArchitectureApproved ? (
                             'approved'
                           ) : !isPRDApproved ? (
-                            <span className="flex items-center gap-1 text-[10px]" title="Terkunci: Memerlukan persetujuan PRD">
+                            <span className="flex items-center gap-1 text-[10px]" title="Locked: Requires approved PRD">
                               <Lock size={10} className="text-muted-2" />
                               <span>Locked</span>
                             </span>
@@ -2798,7 +2798,7 @@ export default function App() {
                           {isDesignApproved ? (
                             'approved'
                           ) : !isPRDApproved ? (
-                            <span className="flex items-center gap-1 text-[10px]" title="Terkunci: Memerlukan persetujuan PRD">
+                            <span className="flex items-center gap-1 text-[10px]" title="Locked: Requires approved PRD">
                               <Lock size={10} className="text-muted-2" />
                               <span>Locked</span>
                             </span>
@@ -2853,7 +2853,7 @@ export default function App() {
                     <div className="p-3 rounded-[8px] border border-border/80 bg-fill-soft/50 text-xs text-muted space-y-1.5">
                       <div className="flex items-center gap-1.5 text-fg-2 font-medium">
                         <FolderKanban size={13} className="text-muted" />
-                        <span>Belum ada project aktif</span>
+                        <span>No active project</span>
                       </div>
                       <p className="text-[11px] text-muted-2 leading-relaxed">
                         Buka project di tab atas atau gunakan tombol pada menu File.
@@ -2873,7 +2873,7 @@ export default function App() {
                     loadGeneralSettings();
                   }}
                   className="w-full flex items-center justify-between text-xs px-2 py-1.5 rounded-[6px] hover:bg-fill-mute text-fg-2 hover:text-fg transition-colors border border-border/50 bg-fill-soft/40 shadow-2xs cursor-pointer"
-                  title="Buka Pengaturan Tampilan & Font"
+                  title="Open Display & Font Settings"
                 >
                   <div className="flex items-center gap-2">
                     <Sliders size={13} className="text-primary" />
@@ -2927,7 +2927,7 @@ export default function App() {
               <AlertTriangle size={16} className="text-amber-500 shrink-0" />
               <div>
                 <span className="font-semibold">{pipelinePausedReason}</span>
-                <p className="text-[11.5px] text-muted mt-0.5">Jawab pertanyaan klarifikasi di bawah agar AI tidak berhalusinasi, atau lanjutkan dengan asumsi saat ini.</p>
+                <p className="text-[11.5px] text-muted mt-0.5">Submit clarification answers below to prevent AI hallucinations, or resume with current assumptions.</p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -2936,14 +2936,14 @@ export default function App() {
                 onClick={() => { setPipelinePausedReason(null); runAutoPipeline(true); }}
                 className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
               >
-                <span>Lanjutkan Pipeline</span>
+                <span>Resume Pipeline</span>
                 <ChevronRight size={13} />
               </button>
               <button
                 type="button"
                 onClick={() => setPipelinePausedReason(null)}
                 className="p-1 hover:bg-fill-mute rounded text-muted hover:text-fg transition-colors"
-                title="Tutup pesan"
+                title="Dismiss notice"
               >
                 <X size={14} />
               </button>
@@ -2957,8 +2957,8 @@ export default function App() {
             <div className="flex items-center gap-2.5">
               <CheckCircle2 size={16} className="text-ok shrink-0" />
               <div>
-                <span className="font-semibold text-fg">Auto Pipeline Selesai! Seluruh 4 Dokumen Spesifikasi Berhasil Disusun</span>
-                <p className="text-[11.5px] text-muted mt-0.5">PRD (20 Sections), SRS (22 Sections), Architecture (16 Sections), dan Design System (16 Sections) siap digunakan.</p>
+                <span className="font-semibold text-fg">Auto Pipeline Complete! All 4 Specification Documents Generated & Approved</span>
+                <p className="text-[11.5px] text-muted mt-0.5">PRD (20 Sections), SRS (22 Sections), Architecture (16 Sections), and Design System (16 Sections) are ready for use.</p>
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -2974,7 +2974,7 @@ export default function App() {
                 type="button"
                 onClick={() => setPipelineCompletedNotice(false)}
                 className="p-1 hover:bg-fill-mute rounded text-muted hover:text-fg transition-colors"
-                title="Tutup pesan"
+                title="Dismiss notice"
               >
                 <X size={14} />
               </button>
@@ -3003,7 +3003,7 @@ export default function App() {
             <div
               onMouseDown={centerSplit.startResize}
               className="w-1.5 hover:w-2 hover:bg-primary/50 cursor-col-resize transition-all shrink-0 z-20 group relative flex items-center justify-center select-none"
-              title="Tarik untuk menyesuaikan rasio lebar Chat vs Dokumen"
+              title="Drag to resize Chat vs Document panel width"
             >
               <div className="w-0.5 h-10 rounded-full bg-border group-hover:bg-primary" />
             </div>
@@ -3058,7 +3058,7 @@ export default function App() {
               type="button"
               onClick={() => setShowInspector(false)}
               className="p-1 rounded-md text-muted hover:text-fg hover:bg-fill transition-colors"
-              title="Tutup Panel Co-Pilot"
+              title="Close Co-Pilot Panel"
             >
               <X size={14} />
             </button>
@@ -3076,7 +3076,7 @@ export default function App() {
               }`}
             >
               <ListOrdered size={12} />
-              <span>Kebutuhan</span>
+              <span>Requirements</span>
               <span className="text-[10px] font-mono opacity-80">({requirements.length})</span>
             </button>
 
@@ -3090,7 +3090,7 @@ export default function App() {
               }`}
             >
               <AlertTriangle size={12} className={unresolvedQACount > 0 ? 'text-amber-500' : ''} />
-              <span>Tanya & Asumsi</span>
+              <span>Q&A & Assumptions</span>
               {unresolvedQACount > 0 ? (
                 <span className="text-[9px] font-mono px-1 rounded-full bg-amber-500 text-white font-bold animate-pulse">
                   {unresolvedQACount}
@@ -3141,7 +3141,7 @@ export default function App() {
                     onClick={handleExtractRequirements}
                     disabled={isExtractingReqs}
                     className="px-2 py-1 rounded bg-primary hover:bg-primary-hover text-white text-[11px] font-medium flex items-center gap-1 disabled:opacity-50 transition-colors shadow-2xs"
-                    title="Analisis dokumen & chat untuk mengekstrak requirements"
+                    title="Analyze documents & chat to extract requirements"
                   >
                     <Sparkles size={11} className={isExtractingReqs ? 'animate-spin' : ''} />
                     <span>{isExtractingReqs ? 'Ekstrak...' : 'Ekstrak AI'}</span>
@@ -3154,9 +3154,9 @@ export default function App() {
                       <ListOrdered size={22} />
                     </div>
                     <div className="space-y-1">
-                      <h4 className="text-xs font-semibold text-fg">Belum Ada Requirement</h4>
+                      <h4 className="text-xs font-semibold text-fg">No Requirements Yet</h4>
                       <p className="text-[11px] leading-relaxed text-muted max-w-[240px]">
-                        Kirim prompt atau klik tombol di bawah agar AI mengekstrak kebutuhan fungsional secara otomatis.
+                        Send a prompt or click below to automatically extract functional requirements.
                       </p>
                     </div>
 
@@ -3167,7 +3167,7 @@ export default function App() {
                       className="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
                     >
                       <Sparkles size={13} className={isExtractingReqs ? 'animate-spin' : ''} />
-                      <span>{isExtractingReqs ? 'Mengekstrak...' : 'Ekstrak Requirements Otomatis'}</span>
+                      <span>{isExtractingReqs ? 'Extracting...' : 'Auto-Extract Requirements'}</span>
                     </button>
 
                     {/* Illustrated Skeleton Placeholders */}
@@ -3212,7 +3212,7 @@ export default function App() {
                             value={req.priority || 'Must Have'}
                             onChange={(e) => handleUpdatePriority(req.id, e.target.value)}
                             className="text-[10px] font-semibold bg-fill border border-border rounded px-1.5 py-0.5 text-fg cursor-pointer focus:outline-none"
-                            title="Ubah MoSCoW Priority"
+                            title="Change MoSCoW Priority"
                           >
                             <option value="Must Have">Must Have</option>
                             <option value="Should Have">Should Have</option>
@@ -3249,7 +3249,7 @@ export default function App() {
                               type="button"
                               onClick={() => handleApproveRequirement(req.id)}
                               className="px-2 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-medium text-[10.5px] flex items-center gap-1 transition-colors"
-                              title="Setujui requirement ini"
+                              title="Approve requirement"
                             >
                               <Check size={11} />
                               <span>Approve</span>
@@ -3260,7 +3260,7 @@ export default function App() {
                               type="button"
                               onClick={() => handleRejectRequirement(req.id)}
                               className="px-2 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-medium text-[10.5px] flex items-center gap-1 transition-colors"
-                              title="Tolak requirement ini"
+                              title="Reject requirement"
                             >
                               <X size={11} />
                               <span>Reject</span>
@@ -3284,19 +3284,19 @@ export default function App() {
                     <div className="flex items-center gap-1.5">
                       <MessageSquare size={13} className="text-primary" />
                       <span className="text-xs font-semibold text-fg">
-                        Pertanyaan AI ({clarifications.length})
+                        AI Clarifications ({clarifications.length})
                       </span>
                     </div>
                     {clarifications.filter(c => c.status === 'open' && !c.answer).length > 0 && (
                       <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold">
-                        {clarifications.filter(c => c.status === 'open' && !c.answer).length} Butuh Jawaban
+                        {clarifications.filter(c => c.status === 'open' && !c.answer).length} Needs Answer
                       </span>
                     )}
                   </div>
 
                   {clarifications.length === 0 ? (
                     <div className="text-center py-4 text-xs text-muted">
-                      Tidak ada pertanyaan klarifikasi terbuka.
+                      No open clarification questions.
                     </div>
                   ) : (
                     clarifications.map((c) => (
@@ -3318,7 +3318,7 @@ export default function App() {
 
                         {c.answer ? (
                           <div className="p-2 rounded-lg bg-fill text-xs space-y-0.5 border border-border/80">
-                            <span className="text-[10px] font-bold text-ok uppercase">Jawaban Anda:</span>
+                            <span className="text-[10px] font-bold text-ok uppercase">Your Answer:</span>
                             <p className="text-fg text-xs leading-relaxed">{c.answer}</p>
                           </div>
                         ) : (
@@ -3333,7 +3333,7 @@ export default function App() {
                               type="text"
                               value={clarificationAnswers[c.id] || ''}
                               onChange={(e) => setClarificationAnswers(prev => ({ ...prev, [c.id]: e.target.value }))}
-                              placeholder="Ketik jawaban Anda di sini..."
+                              placeholder="Type your answer here..."
                               className="flex-1 px-2.5 py-1 text-xs bg-fill border border-border rounded-lg text-fg placeholder:text-muted focus:outline-none focus:border-primary"
                             />
                             <button
@@ -3341,7 +3341,7 @@ export default function App() {
                               disabled={!clarificationAnswers[c.id]?.trim()}
                               className="px-2.5 py-1 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold disabled:opacity-40 transition-colors shrink-0 shadow-2xs"
                             >
-                              Jawab
+                              Submit
                             </button>
                           </form>
                         )}
@@ -3356,23 +3356,23 @@ export default function App() {
                     <div className="flex items-center gap-1.5">
                       <AlertTriangle size={13} className="text-amber-500" />
                       <span className="text-xs font-semibold text-fg">
-                        Asumsi Sistem ({assumptions.length})
+                        System Assumptions ({assumptions.length})
                       </span>
                     </div>
                     {assumptions.filter(a => a.status === 'confirmed').length > 0 && (
                       <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-ok-tint text-ok font-bold">
-                        {assumptions.filter(a => a.status === 'confirmed').length} Terkonfirmasi
+                        {assumptions.filter(a => a.status === 'confirmed').length} Confirmed
                       </span>
                     )}
                   </div>
 
                   <p className="text-[10.5px] text-muted leading-tight">
-                    Asumsi otomatis AI. Konfirmasi jika benar, atau klik <strong>Koreksi</strong> untuk menuliskan fakta proyek yang tepat.
+                    Automated AI assumptions. Confirm if accurate, or click <strong>Correct</strong> to enter the true project facts.
                   </p>
 
                   {assumptions.length === 0 ? (
                     <div className="text-center py-4 text-xs text-muted">
-                      Tidak ada asumsi aktif saat ini.
+                      No active assumptions currently.
                     </div>
                   ) : (
                     assumptions.map((a) => {
@@ -3398,10 +3398,10 @@ export default function App() {
                                     type="button"
                                     onClick={() => handleUpdateAssumptionStatus(a.id, 'confirmed')}
                                     className="px-2 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold transition-colors flex items-center gap-0.5"
-                                    title="Konfirmasi bahwa asumsi ini benar"
+                                    title="Confirm that this assumption is accurate"
                                   >
                                     <Check size={10} />
-                                    <span>Benar</span>
+                                    <span>Confirm</span>
                                   </button>
                                 )}
                                 
@@ -3412,10 +3412,10 @@ export default function App() {
                                     setEditingAssumptionText(a.description);
                                   }}
                                   className="px-2 py-0.5 rounded bg-primary-soft hover:bg-primary/20 text-primary text-[10px] font-semibold transition-colors flex items-center gap-0.5"
-                                  title="Koreksi asumsi ini dengan fakta yang tepat"
+                                  title="Correct this assumption with factual info"
                                 >
                                   <Edit3 size={10} />
-                                  <span>Koreksi</span>
+                                  <span>Correct</span>
                                 </button>
 
                                 {a.status !== 'rejected' && (
@@ -3423,10 +3423,10 @@ export default function App() {
                                     type="button"
                                     onClick={() => handleUpdateAssumptionStatus(a.id, 'rejected')}
                                     className="px-2 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-[10px] font-semibold transition-colors flex items-center gap-0.5"
-                                    title="Tolak asumsi ini (tidak relevan)"
+                                    title="Reject this assumption (irrelevant)"
                                   >
                                     <X size={10} />
-                                    <span>Tolak</span>
+                                    <span>Reject</span>
                                   </button>
                                 )}
                               </div>
@@ -3437,14 +3437,14 @@ export default function App() {
                           {isEditing ? (
                             <div className="space-y-1.5 pt-1">
                               <label className="text-[10.5px] font-semibold text-fg">
-                                Tuliskan fakta / preferensi yang benar:
+                                Enter accurate project facts / preferences:
                               </label>
                               <textarea
                                 value={editingAssumptionText}
                                 onChange={(e) => setEditingAssumptionText(e.target.value)}
                                 rows={2}
                                 className="w-full p-2 text-xs bg-fill border border-border rounded-lg text-fg outline-none focus:border-primary resize-none"
-                                placeholder="Contoh: Bukan Stripe, kita pakai Midtrans QRIS..."
+                                placeholder="e.g. We use PostgreSQL instead of MongoDB..."
                                 autoFocus
                               />
                               <div className="flex items-center justify-end gap-1.5">
@@ -3453,7 +3453,7 @@ export default function App() {
                                   onClick={() => setEditingAssumptionId(null)}
                                   className="px-2 py-1 text-[11px] rounded bg-fill hover:bg-fill-mute text-fg transition-colors"
                                 >
-                                  Batal
+                                  Cancel
                                 </button>
                                 <button
                                   type="button"
@@ -3461,7 +3461,7 @@ export default function App() {
                                   disabled={!editingAssumptionText.trim()}
                                   className="px-2.5 py-1 text-[11px] rounded bg-primary hover:bg-primary-hover text-white font-medium transition-colors disabled:opacity-40 shadow-2xs"
                                 >
-                                  Simpan Koreksi
+                                  Save Correction
                                 </button>
                               </div>
                             </div>
@@ -3485,9 +3485,9 @@ export default function App() {
                   <div className="flex items-center justify-between pb-1 border-b border-border">
                     <span className="text-xs font-semibold text-fg flex items-center gap-1.5">
                       <Activity size={13} className="text-primary" />
-                      Status Alur Dokumen
+                      Document Pipeline Stepper
                     </span>
-                    <span className="text-[10px] font-mono font-bold text-muted">5 Tahap</span>
+                    <span className="text-[10px] font-mono font-bold text-muted">5 Stages</span>
                   </div>
 
                   <div className="space-y-1.5">
@@ -3541,7 +3541,7 @@ export default function App() {
                               : 'text-muted'
                           }`}>
                             {isGeneratingThis && <Loader2 size={9} className="animate-spin" />}
-                            <span>{isGeneratingThis ? 'Menyusun...' : s.desc}</span>
+                            <span>{isGeneratingThis ? 'Generating...' : s.desc}</span>
                           </span>
                         </div>
                       );
@@ -3554,15 +3554,15 @@ export default function App() {
                       <div className="p-2.5 rounded-xl bg-primary-soft border border-primary/30 flex items-center justify-between text-xs text-primary animate-pulse shadow-2xs">
                         <div className="flex items-center gap-2 font-semibold min-w-0">
                           <Loader2 size={13} className="animate-spin text-primary shrink-0" />
-                          <span className="truncate">{autoPipelineStage || 'Menjalankan Pipeline...'}</span>
+                          <span className="truncate">{autoPipelineStage || 'Running Pipeline...'}</span>
                         </div>
                         <button
                           type="button"
                           onClick={() => { setAutoPipelineRunning(false); setAutoPipelineStage(null); setGeneratingDoc(null); }}
                           className="px-2 py-0.5 rounded bg-surface hover:bg-fill text-muted hover:text-err text-[10px] font-mono transition-colors shrink-0 cursor-pointer"
-                          title="Hentikan eksekusi pipeline"
+                          title="Cancel pipeline execution"
                         >
-                          Batal
+                          Cancel
                         </button>
                       </div>
                     ) : (
@@ -3571,7 +3571,7 @@ export default function App() {
                         onClick={() => runAutoPipeline(false)}
                         disabled={!activeProject || generatingDoc !== null}
                         className="w-full py-2 px-3 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-2xs hover:scale-[1.01] active:scale-[0.99] cursor-pointer disabled:opacity-50"
-                        title="Jalankan seluruh rangkaian otomatis: Discovery ➔ PRD ➔ SRS ➔ Architecture ➔ Design System"
+                        title="Run full autonomous pipeline: Discovery ➔ PRD ➔ SRS ➔ Architecture ➔ Design System"
                       >
                         <Zap size={14} className="fill-current text-amber-300" />
                         <span>Regenerate All (Full Pipeline)</span>
@@ -3586,7 +3586,7 @@ export default function App() {
                     <div className="flex items-center gap-1.5">
                       <ShieldAlert size={13} className="text-primary" />
                       <span className="text-xs font-semibold text-fg">
-                        Audit & Temuan ({findings.length})
+                        Audit & Findings ({findings.length})
                       </span>
                     </div>
                     <button
@@ -3596,14 +3596,14 @@ export default function App() {
                       className="px-2 py-0.5 rounded bg-primary hover:bg-primary-hover text-white text-[10.5px] font-medium flex items-center gap-1 disabled:opacity-50 transition-colors shadow-2xs"
                     >
                       <RefreshCw size={10} className={isValidating ? 'animate-spin' : ''} />
-                      <span>{isValidating ? 'Cek...' : 'Audit Ulang'}</span>
+                      <span>{isValidating ? 'Checking...' : 'Re-Audit'}</span>
                     </button>
                   </div>
 
                   {findings.length === 0 ? (
                     <div className="text-center py-4 text-xs text-muted space-y-1">
                       <CheckCircle2 size={24} className="mx-auto text-ok" />
-                      <p>Kualitas dokumen bersih, tidak ada isu atau konflik ditemukan!</p>
+                      <p>Clean document health: no conflicts or orphan requirements found!</p>
                     </div>
                   ) : (
                     findings.map((f) => {
@@ -3647,7 +3647,7 @@ export default function App() {
 
                   {traceabilityMatrix.length === 0 ? (
                     <div className="text-center py-4 text-xs text-muted">
-                      Belum ada mapping requirement tercatat.
+                      No requirement mapping recorded yet.
                     </div>
                   ) : (
                     traceabilityMatrix.map((item, idx) => (
@@ -3897,14 +3897,14 @@ export default function App() {
         <div className="fixed inset-0 bg-black/45 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-surface border border-border rounded-[10px] p-5 w-full max-w-md shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-border pb-2">
-              <h3 className="font-semibold text-sm text-fg">Edit Metadata Project</h3>
+              <h3 className="font-semibold text-sm text-fg">Edit Project Metadata</h3>
               <button onClick={() => setShowEditProjectModal(false)} className="text-muted hover:text-fg">
                 <X size={14} />
               </button>
             </div>
             <form onSubmit={handleUpdateProject} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-fg mb-1">Nama Project</label>
+                <label className="block text-xs font-semibold text-fg mb-1">Project Name</label>
                 <input 
                   type="text"
                   required
@@ -3914,7 +3914,7 @@ export default function App() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-fg mb-1">Deskripsi Project</label>
+                <label className="block text-xs font-semibold text-fg mb-1">Project Description</label>
                 <textarea 
                   value={editProjectDesc}
                   onChange={(e) => setEditProjectDesc(e.target.value)}
@@ -3923,7 +3923,7 @@ export default function App() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-fg mb-1">Status Project</label>
+                <label className="block text-xs font-semibold text-fg mb-1">Project Status</label>
                 <select
                   value={editProjectStatus}
                   onChange={(e) => setEditProjectStatus(e.target.value)}
@@ -3935,8 +3935,8 @@ export default function App() {
                 </select>
               </div>
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowEditProjectModal(false)} className="px-3.5 py-1.5 text-xs text-muted hover:text-fg hover:bg-fill rounded-md">Batal</button>
-                <button type="submit" className="px-4 py-1.5 text-xs font-medium rounded-md bg-primary hover:bg-primary-hover text-white shadow-2xs">Simpan Perubahan</button>
+                <button type="button" onClick={() => setShowEditProjectModal(false)} className="px-3.5 py-1.5 text-xs text-muted hover:text-fg hover:bg-fill rounded-md">Cancel</button>
+                <button type="submit" className="px-4 py-1.5 text-xs font-medium rounded-md bg-primary hover:bg-primary-hover text-white shadow-2xs">Save Changes</button>
               </div>
             </form>
           </div>
@@ -3958,7 +3958,7 @@ export default function App() {
               <button 
                 onClick={() => setShowSettingsModal(false)} 
                 className="w-8 h-8 flex items-center justify-center text-muted hover:text-fg hover:bg-fill rounded-md transition-colors"
-                title="Tutup (Esc)"
+                title="Close (Esc)"
               >
                 <X size={16} />
               </button>
@@ -4022,7 +4022,7 @@ export default function App() {
                 <div>
                   <h4 className="text-lg font-semibold text-fg">General & Appearance</h4>
                   <p className="text-xs text-muted mt-0.5">
-                    Kelola tema warna tampilan, skala font sistem, direktori workspace, dan preferensi output dokumen AI.
+                    Manage color themes, system font scaling, workspace directories, and AI document output preferences.
                   </p>
                 </div>
 
@@ -4041,7 +4041,7 @@ export default function App() {
                       Appearance & Interface Scaling
                     </h4>
                     <p className="text-xs text-muted mt-0.5">
-                      Sesuaikan tema warna antarmuka dan rasio skala tampilan agar nyaman di monitor standar maupun layar HiDPI.
+                      Customize interface color theme and display scaling ratio for standard monitors and HiDPI screens.
                     </p>
                   </div>
 
@@ -4128,7 +4128,7 @@ export default function App() {
                         Workspace & Local Storage (Penyimpanan Lokal)
                       </h4>
                       <p className="text-xs text-muted mt-0.5">
-                        Dokumen PRD, SRS, Architecture, dan Design System disimpan terlindungi di direktori lokal komputer Anda.
+                        PRD, SRS, Architecture, and Design System documents are stored securely in your computer's local directory.
                       </p>
                     </div>
                     <button
@@ -4153,8 +4153,8 @@ export default function App() {
 
                   <div className="pt-1 flex items-center justify-between">
                     <div>
-                      <span className="font-semibold text-xs text-fg">Auto-Save Dokumen Draf</span>
-                      <p className="text-[11.5px] text-muted">Otomatis menyimpan perubahan teks draf saat Anda mengedit dokumen PRD/SRS.</p>
+                      <span className="font-semibold text-xs text-fg">Auto-Save Draft Documents</span>
+                      <p className="text-[11.5px] text-muted">Automatically saves draft text changes as you edit PRD/SRS documents.</p>
                     </div>
                     <input
                       type="checkbox"
@@ -4175,7 +4175,7 @@ export default function App() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                     <div>
                       <label className="block font-semibold text-xs text-fg mb-1">
-                        Bahasa Utama Dokumen (Document Language)
+                        Primary Document Language
                       </label>
                       <select
                         value={generalSettings.language}
@@ -4189,7 +4189,7 @@ export default function App() {
 
                     <div>
                       <label className="block font-semibold text-xs text-fg mb-1">
-                        Kedalaman Template Dokumen
+                        Document Template Depth
                       </label>
                       <select
                         value={generalSettings.default_doc_depth}
@@ -4205,7 +4205,7 @@ export default function App() {
                   <div className="pt-2 border-t border-border flex items-center justify-between">
                     <div>
                       <span className="font-semibold text-xs text-fg">Proactive Requirement Clarification</span>
-                      <p className="text-[11.5px] text-muted">Agen spesialis otomatis mendeteksi celah ambigu dan mengajukan pertanyaan klarifikasi.</p>
+                      <p className="text-[11.5px] text-muted">Specialist agents automatically detect ambiguities and ask clarification questions.</p>
                     </div>
                     <input
                       type="checkbox"
@@ -4220,7 +4220,7 @@ export default function App() {
                 <div className="p-4 bg-fill-soft rounded-xl border border-border flex items-center justify-between">
                   <div>
                     <span className="font-semibold text-xs text-fg">Desktop Notifications</span>
-                    <p className="text-[11.5px] text-muted">Beri tahu via notifikasi desktop Windows saat proses AI generate dokumen panjang selesai di background.</p>
+                    <p className="text-[11.5px] text-muted">Notify via desktop system notifications when long background AI document generations complete.</p>
                   </div>
                   <input
                     type="checkbox"
@@ -4238,7 +4238,7 @@ export default function App() {
                     className="px-5 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-semibold shadow-2xs flex items-center gap-1.5 transition-colors"
                   >
                     <Save size={14} />
-                    <span>Simpan Pengaturan Umum</span>
+                    <span>Save General Settings</span>
                   </button>
                 </div>
               </div>
@@ -4250,7 +4250,7 @@ export default function App() {
                 <div>
                   <h4 className="text-lg font-semibold text-fg">Specialist Personas & Skills</h4>
                   <p className="text-xs text-muted mt-0.5">
-                    Konfigurasi prompt 4 agen spesialis requirements engineering dan kelola library custom prompt directives.
+                    Configure prompts for the 4 specialist requirements engineering agents and manage custom prompt directive libraries.
                   </p>
                 </div>
                 {agentSaveSuccess && (
@@ -4274,7 +4274,7 @@ export default function App() {
                       Specialist Personas & Custom Skills Library
                     </h4>
                     <p className="text-xs text-muted mt-0.5">
-                      Kelola 4 specialist persona AI dan buat skill kustom tambahan untuk di-tanamkan ke persona tertentu.
+                      Manage the 4 specialist AI personas and create custom skills to equip specific agents.
                     </p>
                   </div>
                   <button
@@ -4437,7 +4437,7 @@ export default function App() {
 
                                     {unattachedSkills.length === 0 ? (
                                       <div className="px-3 py-4 text-center text-xs text-muted">
-                                        Semua skill dalam katalog sudah terpasang pada persona ini!
+                                        All skills in the catalog are already equipped on this persona!
                                       </div>
                                     ) : (
                                       unattachedSkills.map((sk) => (
@@ -4459,7 +4459,7 @@ export default function App() {
                                             </span>
                                           </div>
                                           <p className="text-[11px] text-muted leading-tight line-clamp-1">
-                                            {sk.description || 'Tidak ada deskripsi.'}
+                                            {sk.description || 'No description available.'}
                                           </p>
                                         </button>
                                       ))
@@ -4487,9 +4487,9 @@ export default function App() {
                             {activeSkillsList.length === 0 ? (
                               <div className="text-center py-6 px-4 text-muted text-xs border border-dashed border-border rounded-xl bg-surface/40 space-y-1.5">
                                 <Sparkles size={20} className="mx-auto text-muted/60" />
-                                <p className="font-medium text-fg">Belum Ada Skill Aktif</p>
+                                <p className="font-medium text-fg">No Active Skills</p>
                                 <p className="text-[11.5px] max-w-sm mx-auto">
-                                  Persona ini belum memiliki skill khusus. Klik tombol <strong>+ Add Skill</strong> di atas untuk memasang skill dari katalog.
+                                  This persona has no assigned skills yet. Click <strong>+ Add Skill</strong> above to equip skills from the catalog.
                                 </p>
                               </div>
                             ) : (
@@ -4523,7 +4523,7 @@ export default function App() {
                                     </div>
 
                                     <p className="text-[11.5px] text-muted leading-relaxed line-clamp-2">
-                                      {sk.description || 'Tidak ada deskripsi.'}
+                                      {sk.description || 'No description available.'}
                                     </p>
                                     
                                     {sk.prompt && (
@@ -4556,7 +4556,7 @@ export default function App() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
                           {agentMCPs.length === 0 ? (
                             <div className="col-span-2 text-center py-4 text-muted text-xs border border-dashed border-border rounded-xl">
-                              Belum ada MCP tool yang terhubung ke persona ini. Konfigurasikan di tab MCP Connections.
+                              No MCP tools connected to this persona yet. Configure them in the MCP Connections tab.
                             </div>
                           ) : (
                             agentMCPs.map((mcp) => {
@@ -4596,7 +4596,7 @@ export default function App() {
                                 Custom Skills Repository ({skillsCatalog.filter(s => s.custom).length})
                               </label>
                               <p className="text-[11.5px] text-muted">
-                                Skill kustom yang Anda buat. Dapat dipasang ke persona manapun melalui menu <strong>+ Add Skill</strong> di atas.
+                                Custom skills you create. Can be equipped to any persona via the <strong>+ Add Skill</strong> menu above.
                               </p>
                             </div>
                           </div>
@@ -4617,7 +4617,7 @@ export default function App() {
                                   type="button"
                                   onClick={() => handleDeleteCustomSkill(csk.id, csk.name)}
                                   className="p-1.5 text-muted hover:text-err rounded-md hover:bg-fill transition-colors shrink-0"
-                                  title="Hapus skill kustom permanen"
+                                  title="Delete custom skill permanently"
                                 >
                                   <Trash2 size={13} />
                                 </button>
@@ -4700,7 +4700,7 @@ export default function App() {
                           </label>
                           <input
                             type="text"
-                            placeholder="Ringkasan kemampuan skill ini..."
+                            placeholder="Summary of this skill's capabilities..."
                             value={newSkillDesc}
                             onChange={(e) => setNewSkillDesc(e.target.value)}
                             className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-fg focus:outline-none focus:border-primary"
@@ -4714,7 +4714,7 @@ export default function App() {
                           <textarea
                             rows={4}
                             required
-                            placeholder="Masukkan arahan prompt AI, standar kepatuhan, atau batasan arsitektur spesifik..."
+                            placeholder="Enter AI prompt directives, compliance standards, or architecture constraints..."
                             value={newSkillPrompt}
                             onChange={(e) => setNewSkillPrompt(e.target.value)}
                             className="w-full p-3 bg-surface border border-border rounded-lg text-xs font-mono text-fg focus:outline-none focus:border-primary"
@@ -4727,13 +4727,13 @@ export default function App() {
                             onClick={() => setIsNewSkillModalOpen(false)}
                             className="px-4 py-2 border border-border rounded-lg text-xs font-medium text-muted hover:text-fg hover:bg-fill transition-colors"
                           >
-                            Batal
+                            Cancel
                           </button>
                           <button
                             type="submit"
                             className="px-5 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors"
                           >
-                            Simpan Custom Skill
+                            Save Custom Skill
                           </button>
                         </div>
                       </form>
@@ -4776,7 +4776,7 @@ export default function App() {
                   <div className="space-y-2.5 mt-2">
                     {mcpList.length === 0 ? (
                       <div className="text-center py-8 text-muted text-xs border border-dashed border-border rounded-xl">
-                        Belum ada MCP Server terdaftar. Daftarkan server stdio atau sse di formulir bawah.
+                        No MCP Servers registered yet. Register a stdio or sse server in the form below.
                       </div>
                     ) : (
                       mcpList.map((srv) => {
@@ -4799,7 +4799,7 @@ export default function App() {
                                 </span>
                                 {isGlobal ? (
                                   <span className="text-xs font-mono px-2 py-0.5 rounded bg-tone-blue-bg text-tone-blue border border-tone-blue/30 font-semibold flex items-center gap-1">
-                                    <Globe size={11} /> Global (Semua Persona)
+                                    <Globe size={11} /> Global (All Personas)
                                   </span>
                                 ) : (
                                   <span className="text-xs font-mono px-2 py-0.5 rounded bg-tone-violet-bg text-tone-violet border border-tone-violet/30 font-semibold flex items-center gap-1">
@@ -4815,7 +4815,7 @@ export default function App() {
                               type="button"
                               onClick={() => handleDeleteMCPServer(srv.id)}
                               className="p-1.5 text-muted hover:text-err rounded-lg hover:bg-fill transition-colors"
-                              title="Hapus MCP Server"
+                              title="Delete MCP Server"
                             >
                               <Trash2 size={16} />
                             </button>
@@ -4905,7 +4905,7 @@ export default function App() {
                         />
                         <span className="text-xs text-fg font-medium flex items-center gap-1.5">
                           <Globe size={13} className="text-primary" />
-                          Global (Semua Persona Spesialis)
+                          Global (All Specialist Personas)
                         </span>
                       </label>
 
@@ -4920,7 +4920,7 @@ export default function App() {
                         />
                         <span className="text-xs text-fg font-medium flex items-center gap-1.5">
                           <Layers size={13} className="text-primary" />
-                          Persona-Spesifik (Pilih Persona Tertentu)
+                          Persona-Specific (Select Specific Personas)
                         </span>
                       </label>
                     </div>
@@ -4982,7 +4982,7 @@ export default function App() {
                 <div>
                   <h4 className="text-lg font-semibold text-fg">Coding Agents & AI Providers</h4>
                   <p className="text-xs text-muted mt-0.5">
-                    Pilih mesin eksekusi AI utama (Antigravity CLI, OpenCode, atau Gemini REST API) dengan Zero-Mock policy.
+                    Select primary AI execution engine (Antigravity CLI, OpenCode, or Gemini REST API) with Zero-Mock policy.
                   </p>
                 </div>
                 {/* 1.1 Device Agent Detection Section */}
@@ -5330,7 +5330,7 @@ export default function App() {
                       type="submit"
                       className="px-4 py-2 rounded-md bg-primary hover:bg-primary-hover text-white font-medium shadow-2xs transition-colors"
                     >
-                      Simpan Konfigurasi AI Provider
+                      Save AI Provider Configuration
                     </button>
                   </div>
                 </form>
@@ -5343,7 +5343,7 @@ export default function App() {
                 <div>
                   <h4 className="text-lg font-semibold text-fg">Token Usage & Telemetry</h4>
                   <p className="text-xs text-muted mt-0.5">
-                    Pantau statistik penggunaan token, estimasi biaya komputasi, dan riwayat request ke AI provider.
+                    Monitor token usage statistics, estimated compute costs, and AI provider request history.
                   </p>
                 </div>
                 {/* 2.1 Metrics Summary Cards */}
@@ -5412,7 +5412,7 @@ export default function App() {
                           {executionLogs.length === 0 ? (
                             <tr>
                               <td colSpan={6} className="py-6 text-center text-muted italic">
-                                Belum ada riwayat eksekusi prompt tercatat.
+                                No recorded prompt execution history yet.
                               </td>
                             </tr>
                           ) : (
@@ -5461,7 +5461,7 @@ export default function App() {
                 <div>
                   <h4 className="text-lg font-semibold text-fg">Diagnostics & Security</h4>
                   <p className="text-xs text-muted mt-0.5">
-                    Validasi kesehatan mesin CLI, uji latensi respon, dan kelola kredensial API key di OS Keyring.
+                    Validate CLI engine health, benchmark response latency, and manage API key credentials in OS Keyring.
                   </p>
                 </div>
 
@@ -5521,7 +5521,7 @@ export default function App() {
                   ) : (
                     <div className="p-3 bg-surface/60 border border-dashed border-border rounded-lg text-xs text-muted flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-muted-2" />
-                      <span>Belum ada hasil uji. Klik "Jalankan Diagnostik" untuk memvalidasi performa dan integritas sistem.</span>
+                      <span>No diagnostic results yet. Click "Run Diagnostics" to validate system performance and integrity.</span>
                     </div>
                   )}
                 </div>
@@ -5545,14 +5545,14 @@ export default function App() {
                           type={showApiKey ? 'text' : 'password'}
                           value={apiKeyInput}
                           onChange={(e) => setApiKeyInput(e.target.value)}
-                          placeholder="Simpan Google Gemini / OpenCode API Key..."
+                          placeholder="Enter Google Gemini / OpenCode API Key..."
                           className="w-full border border-border rounded-lg pl-3 pr-10 py-2 text-xs bg-surface font-mono text-fg placeholder:text-muted outline-none focus:border-primary shadow-2xs transition-colors"
                         />
                         <button
                           type="button"
                           onClick={() => setShowApiKey(!showApiKey)}
                           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-fg p-1 rounded transition-colors"
-                          title={showApiKey ? 'Sembunyikan Kunci' : 'Perlihatkan Kunci'}
+                          title={showApiKey ? 'Hide Key' : 'Show Key'}
                         >
                           {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
                         </button>
@@ -5561,13 +5561,13 @@ export default function App() {
                         type="submit"
                         className="px-4 py-2 text-xs font-semibold rounded-lg bg-primary hover:bg-primary-hover text-white shrink-0 shadow-2xs transition-colors"
                       >
-                        Simpan ke Keyring
+                        Save to Keyring
                       </button>
                     </div>
 
                     <div className="flex items-center gap-1.5 text-[11px] text-muted-2">
                       <Lock size={12} className="text-ok shrink-0" />
-                      <span>Kunci API dienkripsi secara hardware/OS level. Tidak pernah ditulis ke disk atau database SQLite.</span>
+                      <span>API Key is securely encrypted via OS-level Keyring. Never written to disk or plain SQLite files.</span>
                     </div>
 
                     {keySaveMsg && (
@@ -5623,7 +5623,7 @@ export default function App() {
                 onClick={() => setShowSettingsModal(false)} 
                 className="px-4 py-2 text-xs font-semibold rounded-lg bg-fill text-fg hover:bg-fill-mute transition-colors border border-border shadow-2xs"
               >
-                Tutup
+                Close
               </button>
             </div>
 
@@ -5686,8 +5686,8 @@ export default function App() {
             },
           }}
           initialScope={exportInitialScope}
-          onExportSuccess={(msg) => notifySuccess('Export Berhasil', msg)}
-          onExportError={(errMsg) => notifyError('Export Gagal', errMsg)}
+          onExportSuccess={(msg) => notifySuccess('Export Successful', msg)}
+          onExportError={(errMsg) => notifyError('Export Failed', errMsg)}
         />
       )}
 

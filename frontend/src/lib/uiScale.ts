@@ -12,14 +12,14 @@ export interface ScaleOption {
 }
 
 export const SCALE_OPTIONS: ScaleOption[] = [
-  { id: 'auto', label: 'Auto (Adaptive HiDPI)', factor: 1.0, baseFont: 14, desc: 'Otomatis menyesuaikan skala optimal layar Anda tanpa memotong kolom.' },
-  { id: '90', label: '90% — Compact (13px)', factor: 0.90, baseFont: 13, desc: 'Tampilan padat, memuat lebih banyak baris kode & dokumen.' },
-  { id: '100', label: '100% — Default Standard (14px)', factor: 1.0, baseFont: 14, desc: 'Skala seimbang & tajam, standar desktop.' },
-  { id: '105', label: '105% — Standard Plus (14.5px)', factor: 1.05, baseFont: 14.5, desc: 'Sedikit lebih lega dengan tata letak tetap proporsional.' },
-  { id: '110', label: '110% — Medium (15px)', factor: 1.10, baseFont: 15, desc: 'Teks lebih terbaca jelas dan nyaman untuk mata.' },
-  { id: '115', label: '115% — Comfort (16px)', factor: 1.15, baseFont: 16, desc: 'Ideal untuk monitor 2K/3K atau laptop HiDPI berskala 175%.' },
-  { id: '120', label: '120% — Large (17px)', factor: 1.20, baseFont: 17, desc: 'Teks besar dan anti-lelah untuk jarak baca sedang.' },
-  { id: '125', label: '125% — Extra Large (18px)', factor: 1.25, baseFont: 18, desc: 'Skala maksimal yang tetap menjaga ruang kolom tengah.' },
+  { id: 'auto', label: 'Auto (Adaptive HiDPI)', factor: 1.0, baseFont: 14, desc: 'Automatically adjusts the optimal scale based on window dimensions without clipping panels.' },
+  { id: '90', label: '90% — Compact (13px)', factor: 0.90, baseFont: 13, desc: 'Compact layout, displaying more code lines and document content.' },
+  { id: '100', label: '100% — Default Standard (14px)', factor: 1.0, baseFont: 14, desc: 'Balanced and crisp scale, standard desktop experience.' },
+  { id: '105', label: '105% — Standard Plus (14.5px)', factor: 1.05, baseFont: 14.5, desc: 'Slightly more spacious while maintaining proportional panel distribution.' },
+  { id: '110', label: '110% — Medium (15px)', factor: 1.10, baseFont: 15, desc: 'Enhanced text legibility and comfortable on the eyes.' },
+  { id: '115', label: '115% — Comfort (16px)', factor: 1.15, baseFont: 16, desc: 'Ideal for 2K/3K monitors or HiDPI laptops with 175% OS scaling.' },
+  { id: '120', label: '120% — Large (17px)', factor: 1.20, baseFont: 17, desc: 'Large, fatigue-free typography for medium viewing distances.' },
+  { id: '125', label: '125% — Extra Large (18px)', factor: 1.25, baseFont: 18, desc: 'Maximum scale preserving essential center column space.' },
 ];
 
 /** Baseline desktop artboard dimensions */

@@ -64,7 +64,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     setIsBrowsing(true);
     try {
       if (exportScope === 'all') {
-        const dir = await DocumentService.SelectDirectory('Pilih Folder Tujuan Ekspor Dokumen');
+        const dir = await DocumentService.SelectDirectory('Select Destination Folder for Documents');
         if (dir) setTargetPath(dir);
       } else {
         const filename = currentDocType === 'prd' 
@@ -74,7 +74,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           : currentDocType === 'architecture' 
           ? 'architecture.md' 
           : 'design.md';
-        const file = await DocumentService.SelectSaveFile('Pilih Lokasi Penyimpanan Dokumen', filename);
+        const file = await DocumentService.SelectSaveFile('Save Document As', filename);
         if (file) setTargetPath(file);
       }
     } catch (err) {
@@ -86,7 +86,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   const handleExecuteExport = async () => {
     if (!targetPath.trim()) {
-      onExportError('Tentukan lokasi penyimpanan file atau folder terlebih dahulu.');
+      onExportError('Please specify a destination file or folder path first.');
       return;
     }
 
@@ -95,15 +95,15 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       if (exportScope === 'all') {
         const results = await DocumentService.ExportAllDocuments(projectId, targetPath.trim());
         const count = results ? Object.keys(results).length : 0;
-        onExportSuccess(`Berhasil mengekspor ${count} dokumen spesifikasi ke: ${targetPath.trim()}`);
+        onExportSuccess(`Successfully exported ${count} specification document(s) to: ${targetPath.trim()}`);
         onClose();
       } else {
         await DocumentService.ExportDocument(projectId, currentDocType, targetPath.trim());
-        onExportSuccess(`Dokumen ${currentDocType.toUpperCase()} berhasil diekspor ke: ${targetPath.trim()}`);
+        onExportSuccess(`${currentDocType.toUpperCase()} document successfully exported to: ${targetPath.trim()}`);
         onClose();
       }
     } catch (err) {
-      onExportError(`Gagal mengekspor dokumen: ${String(err)}`);
+      onExportError(`Failed to export document(s): ${String(err)}`);
     } finally {
       setIsExporting(false);
     }
@@ -129,15 +129,15 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               <Download size={16} />
             </div>
             <div>
-              <h4 className="font-bold text-sm text-fg">Ekspor Dokumen Spesifikasi</h4>
-              <p className="text-[11px] text-muted">Proyek: {projectName}</p>
+              <h4 className="font-bold text-sm text-fg">Export Specification Documents</h4>
+              <p className="text-[11px] text-muted">Project: {projectName}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="p-1 rounded-md text-muted hover:text-fg hover:bg-fill transition-colors cursor-pointer"
-            title="Tutup"
+            title="Close"
           >
             <X size={15} />
           </button>
@@ -147,7 +147,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         <div className="p-5 space-y-4 overflow-y-auto">
           {/* Scope Selector */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-fg">Cakupan Ekspor</label>
+            <label className="text-xs font-semibold text-fg">Export Scope</label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -158,7 +158,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     : 'border-border bg-fill-soft/40 hover:bg-fill-mute text-fg'
                 }`}
               >
-                <div className="text-xs font-bold">Semua Dokumen (4)</div>
+                <div className="text-xs font-bold">All Documents (4)</div>
                 <div className="text-[10.5px] text-muted mt-0.5">PRD, SRS, Architecture, & Design</div>
               </button>
 
@@ -171,8 +171,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     : 'border-border bg-fill-soft/40 hover:bg-fill-mute text-fg'
                 }`}
               >
-                <div className="text-xs font-bold">Dokumen Aktif Saja</div>
-                <div className="text-[10.5px] text-muted mt-0.5">Hanya {currentDocType.toUpperCase()}.md</div>
+                <div className="text-xs font-bold">Active Document Only</div>
+                <div className="text-[10.5px] text-muted mt-0.5">Only {currentDocType.toUpperCase()}.md</div>
               </button>
             </div>
           </div>
@@ -180,7 +180,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           {/* Target Location Input with Browse Button */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-fg">
-              {exportScope === 'all' ? 'Folder Tujuan Ekspor' : 'Lokasi File Penyimpanan'}
+              {exportScope === 'all' ? 'Destination Folder' : 'Save File Path'}
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -195,7 +195,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 onClick={handleBrowse}
                 disabled={isBrowsing}
                 className="px-3 py-2 bg-surface hover:bg-fill-mute border border-border rounded-xl text-xs font-semibold text-fg flex items-center gap-1.5 transition-colors shrink-0 shadow-2xs cursor-pointer"
-                title="Pilih folder secara visual melalui dialog sistem"
+                title="Browse folder visually using native system dialog"
               >
                 {isBrowsing ? <Loader2 size={13} className="animate-spin text-primary" /> : <FolderOpen size={13} className="text-primary" />}
                 <span>Browse...</span>
@@ -203,15 +203,15 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             </div>
             <p className="text-[10.5px] text-muted">
               {exportScope === 'all' 
-                ? 'Seluruh dokumen spesifikasi akan diekspor sebagai file Markdown (.md) ke dalam folder ini.' 
-                : 'Dokumen akan disimpan langsung ke file target di atas.'}
+                ? 'All specification documents will be exported as Markdown (.md) files into this folder.' 
+                : 'Document will be saved directly to the target file above.'}
             </p>
           </div>
 
           {/* Document Readiness Checklist */}
           <div className="space-y-1.5 pt-1 border-t border-border">
             <div className="text-[11px] font-semibold text-muted uppercase tracking-wider">
-              Status Kesiapan Dokumen
+              Document Readiness Status
             </div>
             <div className="space-y-1">
               {docList.map((doc) => {
@@ -236,12 +236,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                       {doc.exists ? (
                         <span className="text-[10px] font-mono font-bold text-ok flex items-center gap-1">
                           <CheckCircle2 size={11} />
-                          <span>Siap (v{doc.version || 1})</span>
+                          <span>Ready (v{doc.version || 1})</span>
                         </span>
                       ) : (
                         <span className="text-[10px] font-mono text-muted flex items-center gap-1">
                           <AlertCircle size={11} />
-                          <span>Belum Ada</span>
+                          <span>Not Generated</span>
                         </span>
                       )}
                     </div>
@@ -260,7 +260,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             disabled={isExporting}
             className="px-3.5 py-1.5 rounded-lg border border-border bg-surface hover:bg-fill-mute text-fg text-xs font-medium transition-colors cursor-pointer"
           >
-            Batal
+            Cancel
           </button>
           <button
             type="button"
@@ -269,7 +269,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             className="px-4 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
           >
             {isExporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-            <span>{isExporting ? 'Mengekspor...' : 'Ekspor Sekarang'}</span>
+            <span>{isExporting ? 'Exporting...' : 'Export Now'}</span>
           </button>
         </div>
       </div>

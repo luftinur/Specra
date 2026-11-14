@@ -80,7 +80,7 @@ export const MermaidBlock: React.FC<MermaidBlockProps> = ({ code, isDark = false
       } catch (err: any) {
         if (isMounted) {
           console.warn('Mermaid compilation error:', err);
-          setError(err?.message || 'Gagal memproses sintaks diagram Mermaid');
+          setError(err?.message || 'Failed to parse Mermaid diagram syntax');
         }
       }
     };
@@ -191,7 +191,7 @@ export const MermaidBlock: React.FC<MermaidBlockProps> = ({ code, isDark = false
                 ? 'bg-ok-tint text-ok border-ok/40 font-semibold'
                 : 'bg-surface hover:bg-fill-mute text-fg border-border'
             }`}
-            title="Salin kode Mermaid ke clipboard"
+            title="Copy Mermaid diagram to clipboard"
           >
             {copied ? <Check size={12} className="text-ok" /> : <Copy size={12} />}
             <span>{copied ? 'Copied!' : 'Copy Mermaid'}</span>
@@ -217,12 +217,12 @@ export const MermaidBlock: React.FC<MermaidBlockProps> = ({ code, isDark = false
           <div className="flex items-start gap-2 text-warn text-xs">
             <AlertTriangle size={15} className="shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold">Sintaks Mermaid tidak dapat dirender secara visual:</p>
+              <p className="font-semibold">Mermaid syntax could not be rendered visually:</p>
               <p className="text-[11px] font-mono opacity-80 mt-0.5">{error}</p>
             </div>
           </div>
           <div className="pt-2">
-            <p className="text-[11px] text-muted mb-1 font-medium">Kode Sumber Diagram:</p>
+            <p className="text-[11px] text-muted mb-1 font-medium">Diagram Source Code:</p>
             <pre className="p-3 overflow-x-auto font-mono text-xs leading-relaxed bg-fill text-fg-2 rounded-lg border border-border">
               <code>{code}</code>
             </pre>

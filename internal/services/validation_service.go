@@ -87,7 +87,7 @@ func (s *ValidationService) RunValidation(projectID string) ([]domain.Validation
 					Severity:      domain.SeverityWarning,
 					FindingType:   "orphan_requirement",
 					RequirementID: &reqID,
-					Description:   fmt.Sprintf("Orphan Requirement: %s (%s) belum dipetakan atau direferensikan dalam SRS.", r.RequirementKey, r.Title),
+					Description:   fmt.Sprintf("Orphan Requirement: %s (%s) is not mapped or referenced in the SRS document.", r.RequirementKey, r.Title),
 				})
 			}
 		}
@@ -101,7 +101,7 @@ func (s *ValidationService) RunValidation(projectID string) ([]domain.Validation
 				ID:          fmt.Sprintf("find-%d", time.Now().UnixNano()),
 				Severity:    domain.SeverityConflict,
 				FindingType: "outdated_srs",
-				Description: "Change Impact Alert: PRD telah diperbarui setelah SRS dibuat! Dokumen SRS ditandai sebagai 'outdated' dan perlu di-generate ulang.",
+				Description: "Change Impact Alert: PRD was updated after SRS was created. SRS document is marked as outdated and should be regenerated.",
 			})
 		} else if srsDoc.Status == domain.DocStatusOutdated {
 			// SRS has been regenerated / is up-to-date with PRD; heal status back to draft
