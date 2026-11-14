@@ -2,22 +2,22 @@
 
 ## 1. Goal Description
 
-Rencana implementasi ini menyelesaikan dua kebutuhan mendesak:
-1. **Perbaikan Fatal Error Windows CLI (`The filename or extension is too long`)**:
-   - **Akar Masalah**: Saat membuat dokumen hilir seperti SRS, Architecture, atau Design System, seluruh isi dokumen hulu (PRD 20 Sections dan skema JSON) dimasukkan sebagai argumen baris perintah (`-p "<prompt>"` dan `--json-schema "<schema>"`).
-   - Di Windows OS, fungsi kernel `CreateProcess` memiliki batasan keras **32.767 karakter**. Melebihi batasan ini menyebabkan kernel Windows melempar error code 206: `The filename or extension is too long`.
-   - **Solusi**: Mengubah adapter `antigravity` dan `opencode` agar menyalurkan prompt melalui **`cmd.Stdin` (`strings.NewReader(req.Prompt)`)** dan menyimpan schema panjang ke berkas sementara (`temp-schema-*.json`). Argumen baris perintah menyusut menjadi hanya ~50 karakter dan tidak akan pernah terkena limit Windows lagi.
+This implementation resolves two pressing requirements:
+1. **Fatal Windows CLI Error Resolution (`The filename or extension is too long`)**:
+   - **Root Cause**: When generating downstream specifications (SRS, Architecture, Design System), upstream specifications (PRD 20 Sections and complete JSON schemas) were passed as CLI arguments (`-p "<prompt>"` and `--json-schema "<schema>"`).
+   - On Windows OS, kernel `CreateProcess` imposes a strict **32,767 character limit**. Exceeding this boundary triggers kernel error 206: `The filename or extension is too long`.
+   - **Solution**: Refactor `antigravity` and `opencode` adapters to stream prompts via **`cmd.Stdin = strings.NewReader(req.Prompt)`** and persist verbose schemas to temporary files (`temp-schema-*.json`). Command line arguments shrink to ~50 characters, permanently resolving Windows limits.
 
 2. **Autonomous Requirements Pipeline Orchestrator ("Auto Pipeline")**:
-   - **Masalah UX Saat Ini**: Alur saat ini membingungkan bagi pengguna baru karena harus berpindah tab secara manual, mengekstrak requirement, meng-approve PRD di tab terpisah, berpindah ke tab SRS untuk klik generate dan approve, lalu mengulanginya untuk Architecture dan Design System.
-   - **Solusi**: Menghadirkan fitur **Auto Pipeline Orchestrator** yang dapat dijalankan dengan satu klik (`[ ⚡ Jalankan Auto Pipeline ]`):
-     - **Fase 1 (Discovery & Requirement Extraction)**: AI mengekstrak MoSCoW requirements, clarifications, dan assumptions dari brief/obrolan.
-     - **Clarification Gating**: Jika AI menemukan pertanyaan klarifikasi pending, pipeline **otomatis berhenti sementara (*paused*)** dan menampilkan kartu pertanyaan klarifikasi. Setelah pengguna menjawab (atau memilih *"Lanjutkan dengan Asumsi"*), pipeline otomatis berlanjut.
-     - **Fase 2 (PRD Generation & Auto-Approve)**: Menyusun 20 Sections PRD.
-     - **Fase 3 (SRS Generation & Auto-Approve)**: Menyusun 22 Sections IEEE 830 SRS.
-     - **Fase 4 (Architecture Generation & Auto-Approve)**: Menyusun 16 Sections C4 Architecture.
-     - **Fase 5 (Design System Generation & Auto-Approve)**: Menyusun 16 Sections Semantic Design System.
-     - **Completion**: Menampilkan status sukses komprehensif dengan opsi langsung `[ 📥 Export All (.md) ]`.
+   - **Prior UX Friction**: Generating all four specifications required repetitive manual tab switching, individual approvals, and sequential button clicks.
+   - **Solution**: Introduce the **Auto Pipeline Orchestrator** executable via a single action (`[ ⚡ Auto Pipeline ]`):
+     - **Phase 1 (Discovery & Requirements Extraction)**: AI extracts MoSCoW requirements, clarifications, and assumptions from raw briefs.
+     - **Clarification Gating**: If pending clarification questions exist, the pipeline **automatically pauses** and highlights the question cards. Once answered, the pipeline resumes.
+     - **Phase 2 (PRD Generation & Auto-Approve)**: Authors 20-section PRD.
+     - **Phase 3 (SRS Generation & Auto-Approve)**: Authors 22-section IEEE 830 SRS.
+     - **Phase 4 (Architecture Generation & Auto-Approve)**: Authors 16-section C4 Architecture.
+     - **Phase 5 (Design System Generation & Auto-Approve)**: Authors 16-section Semantic Design System.
+     - **Completion**: Displays unified success status with a direct `[ 📥 Export All (.md) ]` action.
 
 ---
 
@@ -25,8 +25,8 @@ Rencana implementasi ini menyelesaikan dua kebutuhan mendesak:
 
 > [!IMPORTANT]
 > **Clarification Gating Behavior**:
-> Saat Auto Pipeline berjalan, jika ada pertanyaan klarifikasi penting dari AI (misalnya model autentikasi, batas latensi, atau payment gateway), pipeline akan **berhenti sejenak dan menyorot pertanyaan tersebut** di chat agar spesifikasi sistem tidak berhalusinasi.
-> Pengguna cukup menjawab pertanyaan tersebut lalu menekan tombol `[ ➔ Lanjutkan Pipeline ]`, dan sistem akan langsung menyelesaikan sisa dokumen hingga Design System.
+> During Auto Pipeline execution, if critical ambiguities emerge, the pipeline **pauses and directs focus to the question card** in chat.
+> Once the user answers and clicks `[ ➔ Resume Pipeline ]`, the orchestrator completes the pipeline through to the Design System.
 
 ---
 
@@ -35,8 +35,8 @@ Rencana implementasi ini menyelesaikan dua kebutuhan mendesak:
 ### A. AI Adapters: Stdin Piping & Schema Temp Files ([`internal/ai/adapters/antigravity/adapter.go`](file:///E:/dev-agent-assistant/internal/ai/adapters/antigravity/adapter.go) & [`internal/ai/adapters/opencode/adapter.go`](file:///E:/dev-agent-assistant/internal/ai/adapters/opencode/adapter.go))
 
 #### [MODIFY] `internal/ai/adapters/antigravity/adapter.go`
-- Hapus `-p` dari baris perintah. Alirkan `req.Prompt` melalui `cmd.Stdin = strings.NewReader(req.Prompt)`.
-- Jika `req.JSONSchema` panjang, tulis ke berkas sementara di direktori OS temp dan operkan jalurnya via `--json-schema <filepath>` lalu bersihkan dengan `defer os.Remove(...)`.
+- Omit `-p` flag. Stream `req.Prompt` via `cmd.Stdin = strings.NewReader(req.Prompt)`.
+- If `req.JSONSchema` is long, persist to a temp file and pass via `--json-schema <filepath>`, followed by `defer os.Remove(...)`.
 ```go
 func (a *Adapter) Generate(ctx context.Context, req ai.GenerateRequest) (*ai.GenerateResponse, error) {
 	args := []string{
@@ -71,57 +71,57 @@ func (a *Adapter) Generate(ctx context.Context, req ai.GenerateRequest) (*ai.Gen
 ```
 
 #### [MODIFY] `internal/ai/adapters/opencode/adapter.go`
-- Alirkan prompt melalui `cmd.Stdin = strings.NewReader(fullPrompt)` dengan flag `run --format default`.
+- Stream prompt via `cmd.Stdin = strings.NewReader(fullPrompt)` with `run --format default`.
 
 ---
 
 ### B. Frontend Auto Pipeline Orchestrator ([`frontend/src/App.tsx`](file:///E:/dev-agent-assistant/frontend/src/App.tsx))
 
 #### [MODIFY] `frontend/src/App.tsx`
-1. **State Auto Pipeline**:
+1. **Pipeline State**:
    ```ts
    const [autoPipelineRunning, setAutoPipelineRunning] = useState(false);
    const [autoPipelineStage, setAutoPipelineStage] = useState<string | null>(null);
    const [pipelinePausedReason, setPipelinePausedReason] = useState<string | null>(null);
    ```
-2. **Fungsi `runAutoPipeline()`**:
+2. **`runAutoPipeline()` Execution Routine**:
    ```ts
    const runAutoPipeline = async () => {
      setAutoPipelineRunning(true);
      setPipelinePausedReason(null);
      
-     // 1. Ekstraksi Requirements jika belum ada
+     // 1. Extract requirements if empty
      if (requirements.length === 0) {
-       setAutoPipelineStage('Mengekstrak Kebutuhan Awal (Discovery)...');
+       setAutoPipelineStage('Extracting Initial Requirements (Discovery)...');
        await handleExtractRequirements();
      }
 
-     // Gating Check: Pertanyaan Klarifikasi
+     // Gating Check: Clarification Questions
      const openClar = clarifications.filter(c => c.status !== 'answered' && !c.answer);
      if (openClar.length > 0) {
        setAutoPipelineRunning(false);
-       setPipelinePausedReason(`Pipeline Dihentikan Sementara: Harap jawab ${openClar.length} pertanyaan klarifikasi.`);
+       setPipelinePausedReason(`Pipeline Paused: Please answer ${openClar.length} clarification question(s).`);
        setCurrentView('chat');
        return;
      }
 
      // 2. Generate & Approve PRD
-     setAutoPipelineStage('Menyusun PRD (20 Sections)...');
+     setAutoPipelineStage('Generating PRD (20 Sections)...');
      await handleGeneratePRD();
      await DocumentService.ApproveDocument(activeProject.id, 'prd');
 
      // 3. Generate & Approve SRS
-     setAutoPipelineStage('Menyusun SRS IEEE 830 (22 Sections)...');
+     setAutoPipelineStage('Generating SRS IEEE 830 (22 Sections)...');
      await handleGenerateSRS();
      await DocumentService.ApproveDocument(activeProject.id, 'srs');
 
      // 4. Generate & Approve Architecture
-     setAutoPipelineStage('Menyusun Architecture C4 (16 Sections)...');
+     setAutoPipelineStage('Generating Architecture C4 (16 Sections)...');
      await handleGenerateArchitecture();
      await DocumentService.ApproveDocument(activeProject.id, 'architecture');
 
      // 5. Generate & Approve Design System
-     setAutoPipelineStage('Menyusun Design System (16 Sections)...');
+     setAutoPipelineStage('Generating Design System (16 Sections)...');
      await handleGenerateDesign();
      await DocumentService.ApproveDocument(activeProject.id, 'design');
 
@@ -130,9 +130,9 @@ func (a *Adapter) Generate(ctx context.Context, req ai.GenerateRequest) (*ai.Gen
    };
    ```
 3. **UI Integration**:
-   - Menambahkan tombol aksi cepat **`[ ⚡ Auto Pipeline ]`** di Header Stepper Bar dan di Inspector/Chat banner.
-   - Menampilkan status progres aktif (misal: *"Menyusun SRS (22 Sections)..."*) dengan loader spinner.
-   - Menampilkan banner pemberitahuan saat pipeline selesai atau saat menunggu jawaban klarifikasi.
+   - Quick action **`[ ⚡ Auto Pipeline ]`** in Stepper Bar and Co-Pilot.
+   - Stage status updates with loader animations.
+   - Notification banners for completion and paused clarification states.
 
 ---
 
@@ -143,20 +143,17 @@ func (a *Adapter) Generate(ctx context.Context, req ai.GenerateRequest) (*ai.Gen
    ```bash
    go test -v ./internal/...
    ```
-   *Ekspektasi: 13 test suites lolos 100%.*
+   *Expectation: All 13 test suites pass 100%.*
 2. **Frontend Compilation**:
    ```bash
-   cd frontend && npm run build
+   npm --prefix frontend run build
    ```
-   *Ekspektasi: 0 error TypeScript.*
+   *Expectation: 0 TypeScript errors.*
 
 ### Manual Verification
-1. **Verifikasi Perbaikan CLI Windows (SRS Generation)**:
-   - Klik generate SRS pada proyek dengan PRD panjang -> Verifikasi bahwa perintah `agy.exe` berhasil mengeksekusi tanpa error `The filename or extension is too long`.
-2. **Verifikasi Auto Pipeline**:
-   - Buat proyek baru atau buka proyek aktif.
-   - Klik tombol `[ ⚡ Auto Pipeline ]`.
-   - Perhatikan alur berjalan otomatis:
-     - Berhenti saat ada klarifikasi pending.
-     - Melanjutkan otomatis menyusun PRD ➔ SRS ➔ Architecture ➔ Design System.
-   - Verifikasi seluruh dokumen tersusun lengkap dan berstatus *approved*.
+1. **Windows CLI Length Fix (SRS Generation)**:
+   - Generate SRS on a project with a long PRD; verify `agy.exe` succeeds without error `The filename or extension is too long`.
+2. **Auto Pipeline Workflow**:
+   - Trigger Auto Pipeline on a fresh project.
+   - Verify pipeline pauses cleanly on pending clarification questions.
+   - Submit answers; verify pipeline resumes and generates PRD ➔ SRS ➔ Architecture ➔ Design System.

@@ -1,27 +1,27 @@
-# Rencana Implementasi: In-App Toast System, Confirmation Dialogs & Native File Export Modal
+# Implementation Plan: In-App Toast System, Confirmation Dialogs & Native File Export Modal
 
 ## 1. Goal Description
-Pengguna meminta perbaikan menyeluruh pada interaksi dialog sistem:
-> *"ui alert nya jangan bawaan browser dialog gitu donk ada uinya, terus untuk export all juga mending dialog file ya, gitu kan coba cek lagi dan perbaiki uinya"*
+Addressing user feedback regarding browser dialogs:
+> *"Don't use default browser dialog alerts, provide proper in-app UI, and for export all use native file dialogs..."*
 
-Saat ini aplikasi masih menggunakan fungsi bawaan browser (`window.alert`, `window.confirm`, `window.prompt`):
-1. **`alert(...)` (40+ pemanggilan)**: Membekukan render WebView, memblokir interaksi secara kasar, dan menampilkan dialog standar OS/browser yang tidak estetik.
-2. **`confirm(...)` (3 pemanggilan untuk delete project, skill, dan MCP)**: Menggunakan popup konfirmasi bawaan browser yang monoton dan berisiko salah klik.
-3. **`prompt(...)` (2 pemanggilan untuk ekspor dokumen)**: Meminta pengguna mengetikkan path file/folder secara manual via kotak teks browser biasa.
+Previously, the app used default browser dialogs (`window.alert`, `window.confirm`, `window.prompt`):
+1. **`alert(...)` (40+ invocations)**: Froze WebView rendering and displayed unstyled browser popups.
+2. **`confirm(...)` (3 invocations for deleting projects, skills, and MCP servers)**: Unstyled modal popups risking accidental clicks.
+3. **`prompt(...)` (2 invocations for document export)**: Required users to manually type destination paths into a basic browser input.
 
-Rencana ini merekonstruksi dialog tersebut menjadi antarmuka native modern yang elegan, halus, dan terintegrasi penuh dengan styling token MQ-Studio.
+This plan reconstructs all dialogs into native, elegant desktop components adhering to the MQ-Studio Token System.
 
 ---
 
 ## 2. User Review Required
 > [!IMPORTANT]
-> 1. Seluruh `alert()` akan digantikan oleh **Toast Notification System** yang otomatis menghilang setelah 3,5 detik dan dapat ditutup manual.
-> 2. Dialog `confirm()` untuk tindakan destruktif (hapus project, custom skill, MCP server) digantikan oleh **Modal Konfirmasi Berbayang (Backdrop Blur)** dengan tombol aksi tegas merah/primer.
-> 3. Fungsi `prompt()` pada ekspor dokumen digantikan oleh **Dedicated Export Modal** yang dilengkapi tombol **"Browse Folder..."** memanggil native Windows Explorer / macOS Finder directory picker via Wails v3.
+> 1. All `alert()` calls are replaced by a **Toast Notification System** with 3.5s auto-dismiss and manual dismiss controls.
+> 2. Destructive `confirm()` popups are replaced by a **Backdrop Blur Confirmation Modal** featuring distinct red/primary action buttons.
+> 3. Document export `prompt()` inputs are replaced by a **Dedicated Export Modal** with a **"Browse..."** button launching the native Windows Explorer / macOS Finder directory picker via Wails v3.
 
 ---
 
-## 3. Arsitektur Komponen Baru
+## 3. Architecture
 
 ```mermaid
 flowchart TD
@@ -44,7 +44,7 @@ flowchart TD
 
 ### A. Backend Layer (Wails v3 Dialog Manager)
 #### [MODIFY] `internal/services/document_service.go`
-- Tambahkan integrasi `application.Get().Dialog` untuk membuka dialog pemilih folder dan file penyimpanan asli sistem operasi:
+- Integrate `application.Get().Dialog` to launch native OS directory and file pickers:
   ```go
   func (s *DocumentService) SelectDirectory(title string) (string, error) {
       app := application.Get()
@@ -78,7 +78,7 @@ flowchart TD
   ```
 
 #### [MODIFY] `frontend/bindings/ai-requirements-studio/internal/services/documentservice.ts`
-- Tambahkan TypeScript bindings dengan ID hash:
+- TypeScript bindings with method hashes:
   - `SelectDirectory(title: string): $CancellablePromise<string>` (`ID: 4043236185`)
   - `SelectSaveFile(title: string, defaultFilename: string): $CancellablePromise<string>` (`ID: 2175121209`)
 
@@ -87,34 +87,34 @@ flowchart TD
 ### B. Frontend Layer (React 19 & Tailwind CSS)
 
 #### [NEW] `frontend/src/components/Toast.tsx`
-- Komponen Toast Notification Stack:
-  - Tipe: `success`, `error`, `info`, `warn`.
-  - Icon spesifik per tipe (`CheckCircle2`, `AlertTriangle`, `XCircle`, `Info`).
-  - Animasi fade-in & slide-in dengan progress timer halus.
-  - Tombol tutup manual `[✕]`.
+- Toast Notification Stack:
+  - Types: `success`, `error`, `info`, `warn`.
+  - Type-specific icons (`CheckCircle2`, `AlertTriangle`, `XCircle`, `Info`).
+  - Fade-in and slide-in animations with a progress timer bar.
+  - Manual dismiss button (`[✕]`).
 
 #### [NEW] `frontend/src/components/ConfirmModal.tsx`
-- Modal konfirmasi tindakan destruktif:
-  - Judul, pesan deskriptif, dan peringatan dampak (misal penghapusan workspace data).
-  - Tombol aksi destruktif (merah) atau konfirmasi primer, serta tombol batal.
+- Modal dialog for destructive actions:
+  - Title, description, and impact warnings.
+  - Destructive red action button or primary confirmation button, plus cancel action.
 
 #### [NEW] `frontend/src/components/ExportModal.tsx`
-- Dedicated Export Modal untuk dokumen spesifikasi:
-  - Pilihan scope:
-    - **Dokumen Aktif** (PRD / SRS / Architecture / Design System).
-    - **Semua Dokumen Spesifikasi** (PRD 20 Sec, SRS 22 Sec, Arch 16 Sec, Design 16 Sec).
-  - Target Path input dengan tombol **"Browse..."** yang memanggil dialog native Windows/macOS.
-  - Pratinjau daftar dokumen yang siap diekspor beserta status ketersediaannya.
-  - Tombol eksekusi **"Ekspor Sekarang"** dengan feedback loading.
+- Dedicated Specification Document Export Modal:
+  - Scope options:
+    - **Active Document** (PRD / SRS / Architecture / Design System).
+    - **All Specification Documents** (PRD 20 Sec, SRS 22 Sec, Arch 16 Sec, Design 16 Sec).
+  - Target path input with **"Browse..."** action invoking native OS directory picker.
+  - Preview checklist of available specification documents with readiness status.
+  - **"Export Now"** execution button with loading feedback.
 
 #### [MODIFY] `frontend/src/App.tsx`
-- Gantikan seluruh pemanggilan `alert(...)` dengan fungsi pembantu:
+- Replace `alert(...)` with helper methods:
   - `notifySuccess(title, message)`
   - `notifyError(title, message)`
   - `notifyWarn(title, message)`
   - `notifyInfo(title, message)`
-- Gantikan `confirm(...)` pada hapus project, hapus custom skill, dan hapus MCP server dengan state `confirmDialog`.
-- Gantikan `prompt(...)` pada tombol ekspor dengan state `isExportModalOpen`.
+- Replace `confirm(...)` with `confirmDialog` state.
+- Replace `prompt(...)` with `isExportModalOpen` state.
 
 ---
 
@@ -126,20 +126,19 @@ flowchart TD
    go test -v ./internal/services -run TestRequirementService
    go test -v ./internal/...
    ```
-2. **Frontend Strict TypeScript & Vite Build**:
+2. **Frontend TypeScript Strict & Vite Build**:
    ```powershell
    npm --prefix frontend run build
    ```
 
 ### Manual Verification
-1. **Verifikasi Toast**:
-   - Jalankan tindakan seperti generate PRD, approve PRD, simpan settings.
-   - Pastikan muncul Toast hijau/biru di pojok kanan bawah yang otomatis menutup dalam 3,5 detik tanpa browser dialog.
-2. **Verifikasi Confirm Modal**:
-   - Buka menu hapus project atau hapus custom skill.
-   - Pastikan muncul modal kustom dengan tombol "Batal" dan "Hapus" yang berfungsi dengan mulus.
-3. **Verifikasi Export Modal & Native File Dialog**:
-   - Klik tombol **Export** di toolbar dokumen.
-   - Pastikan modal Export terbuka dengan rapi.
-   - Klik tombol **"Browse..."** dan pastikan dialog native folder/file explorer Windows terbuka untuk memilih direktori.
-   - Klik "Ekspor Sekarang", pastikan dokumen tersimpan dan muncul notifikasi Toast sukses.
+1. **Toast Verification**:
+   - Perform actions (e.g. generate PRD, approve PRD, save settings).
+   - Verify green/blue toast renders in bottom-right corner and auto-dismisses after 3.5s.
+2. **Confirm Modal Verification**:
+   - Trigger project deletion or custom skill deletion.
+   - Verify custom modal appears with "Cancel" and "Delete" actions.
+3. **Export Modal & Native File Dialog**:
+   - Click document Export action.
+   - Verify Export modal opens; click "Browse..." to verify native Windows Explorer / macOS Finder opens.
+   - Click "Export Now" and verify toast notification appears on completion.

@@ -1,100 +1,100 @@
 # AGENTS.md — Mandatory Guidelines for AI Agents & Developers
 
-Dokumen ini adalah **Authoritative Guidelines & Primary Source of Truth** bagi seluruh AI Coding Agent dan pengembang yang bekerja pada repositori **Specra (`Specra` / `dev-agent-assistant`)**. Setiap agen wajib membaca, mematuhi, dan menerapkan seluruh aturan di bawah ini sebelum dan selama melakukan perubahan pada basis kode.
+This document serves as the **Authoritative Guidelines & Primary Source of Truth** for all AI Coding Agents and developers contributing to the **Specra (`Specra` / `dev-agent-assistant`)** repository. Every agent must read, strictly adhere to, and enforce all rules outlined below prior to and during any codebase modifications.
 
 ---
 
 ## 1. Project Mission & Identity
 
-- **Nama Aplikasi**: AI Requirements Studio
-- **Tipe Aplikasi**: Desktop Application (Local-first, Chat-first)
-- **Tujuan Utama**: Personal requirements engineering workspace yang mentransformasikan ide/brief pengguna menjadi spesifikasi sistem terstruktur: PRD (20 sections), SRS (22 sections), Architecture (16 sections), dan Design System (16 sections).
+- **Application Name**: Specra (AI Requirements Studio)
+- **Application Type**: Desktop Application (Local-first, Chat-first)
+- **Primary Objective**: A personal requirements engineering workspace that transforms user ideas and project briefs into structured, production-ready system specifications: PRD (20 sections), SRS (22 sections), System Architecture (16 sections), and Design System (16 sections).
 - **Core Technology Stack**:
   - **Backend Core**: Go 1.24+ / 1.27+ (Modular domain services, SQLite WAL mode, OS keyring credential storage)
-  - **Desktop Shell**: Wails v3 (Native WebKit/Cocoa di macOS, WebView2 di Windows)
+  - **Desktop Shell**: Wails v3 (Native WebKit/Cocoa on macOS, WebView2 on Windows)
   - **Frontend UI**: React 19, TypeScript (Strict Mode), Tailwind CSS v3/v4
-  - **Design System Tokens**: MQ-Studio 0.4.2 Token Scale (`src/design/tokens.css`, Warm Stone / Obsidian Slate / System Auto). *(Catatan Kebijakan: MQ-Studio murni referensi teknis styling CSS shell aplikasi saat fase awal pengembangan; BUKAN acuan, nama, atau subjek sistem bagi proyek pengguna).*
+  - **Design System Tokens**: MQ-Studio 0.4.2 Token Scale (`src/design/tokens.css`, Warm Stone / Obsidian Slate / System Auto). *(Policy Note: MQ-Studio is purely a technical styling reference for the application shell during early development; it is NOT the subject, benchmark, or domain of user project specifications).*
   - **AI Provider Integrations**: Pure Real AI execution (Antigravity CLI `agy`, OpenCode CLI `opencode`, Google Gemini 1.5/2.5 REST API) — **Zero-Mock Policy**.
-  - **Strict Domain Isolation**: Seluruh prompt AI dan eksekusi subproses wajib diisolasi (`cmd.Dir` sandbox proyek pengguna). Dilarang membocorkan konteks internal developer (MQ-Studio / Specra dev tools) ke dalam dokumen kebutuhan pengguna.
+  - **Strict Domain Isolation**: All AI prompts and subprocess executions must run in isolated sandboxes (`cmd.Dir` in the user project directory). Leaking internal developer context (MQ-Studio / Specra dev tools) into user specification documents is strictly prohibited.
 
 ---
 
 ## 2. Mandatory Artifact & Context History Synchronization Protocol
 
-Setiap AI Agent yang menjalankan instruksi, perbaikan bug, atau penambahan fitur **WAJIB** mematuhi protokol dokumentasi berikut:
+Every AI Agent executing instructions, bug fixes, or feature additions **MUST** strictly follow this documentation protocol:
 
-### A. Sinkronisasi Artefak Perencanaan (`docs/artifacts/`)
-1. Setiap kali membuat atau memperbarui file perencanaan (`/plan`, arsitektur, audit PRD/SRS, rencana UI, atau walkthrough) di direktori internal Antigravity (`~/.gemini/antigravity-cli/brain/<conversation-id>/`), salinannya **WAJIB langsung disinkronkan / disalin** ke:
+### A. Planning Artifact Synchronization (`docs/artifacts/`)
+1. Whenever creating or updating planning files (`/plan`, architecture designs, PRD/SRS audits, UI refactors, or walkthroughs) within Antigravity's internal directory (`~/.gemini/antigravity-cli/brain/<conversation-id>/`), an exact copy **MUST be immediately synchronized** to:
    ```text
-   docs/artifacts/<nama_file>.md
+   docs/artifacts/<filename>.md
    ```
-2. Dilarang meninggalkan dokumen perencanaan hanya di folder temporary internal tanpa menyimpannya ke `docs/artifacts/`.
+2. Leaving planning documents only in temporary internal scratch folders without persisting them to `docs/artifacts/` is strictly prohibited.
 
-### B. Pemisahan Riwayat Transkrip Percakapan (`docs/context_history/`)
-1. **Dilarang menimpa (*never overwrite*)** file transkrip sebelumnya.
-2. Riwayat transkrip disimpan berseri berdasarkan sesi dan lingkungan pengembangan:
-   - `transcript_01_windows.jsonl`: Sesi awal (Phase 1-6 pengembangan desktop di Windows, 1.963 langkah).
-   - `transcript_02_macos.jsonl`: Sesi lanjutan di macOS (pembentukan `AGENTS.md` dan setup lingkungan Mac).
-   - `transcript_03_<topik>.jsonl`: Sesi-sesi berikutnya bernomor urut sesuai milestone fitur.
-3. Di akhir sesi atau milestone, salin file transkrip aktif dari:
+### B. Conversation Transcript Serialization (`docs/context_history/`)
+1. **Never overwrite** previous session transcript files.
+2. Transcript history is serialized by development session and environment:
+   - `transcript_01_windows.jsonl`: Initial desktop development session on Windows (Phases 1–6, 1,963 steps).
+   - `transcript_02_macos.jsonl`: Migration session on macOS (formalization of `AGENTS.md` and Mac dev environment setup).
+   - `transcript_03_<topic>.jsonl`: Subsequent sessions sequentially numbered according to feature milestones.
+3. At the end of a session or milestone, copy the active transcript file from:
    `~/.gemini/antigravity-cli/brain/<conversation-id>/.system_generated/logs/transcript.jsonl`
-   ke file nomor urut berikutnya di `docs/context_history/`.
+   to the next sequential file in `docs/context_history/`.
 
-### C. Pemeliharaan Katalog `docs/README.md`
-Setiap ada penambahan file di `docs/artifacts/` atau `docs/context_history/`, agen wajib memperbarui daftar tautan dokumen di [`docs/README.md`](./docs/README.md).
+### C. Master Catalog Maintenance (`docs/README.md`)
+Whenever any file is added to `docs/artifacts/` or `docs/context_history/`, the agent must update the document catalog in [`docs/README.md`](./docs/README.md).
 
 ---
 
 ## 3. Specialist Personas & Interconnected Pipeline
 
-Sistem memiliki 4 Persona Spesialis dengan alur kerja berjenjang (*upstream-to-downstream context inheritance*):
+The system features 4 Specialist Personas organized in a cascading, upstream-to-downstream context inheritance pipeline:
 
 1. **Product Analyst Agent (`product-analyst`)**:
-   - Memimpin fase Discovery awal dari project brief.
-   - Bertanggung jawab atas pembuatan dan regenerasi **`PRD.md` (20 Sections)**.
-   - Menetapkan persona pengguna, use case, dan MoSCoW prioritization.
+   - Leads the initial Discovery phase from user briefs and raw ideas.
+   - Responsible for generating and revising the **`PRD.md` (20 Sections)**.
+   - Defines target personas, user journeys, and MoSCoW prioritization.
 2. **System Analyst Agent (`system-analyst`)**:
-   - Mewarisi konteks dari PRD yang telah disetujui (*Approved PRD*).
-   - Bertanggung jawab atas **`SRS.md` (22 Sections)** berstandar IEEE 830.
-   - Memodelkan kebutuhan fungsional (FR-xxx), non-fungsional, data schema, dan *Traceability Matrix*.
+   - Inherits full context from the approved PRD (*Approved PRD*).
+   - Responsible for generating the **`SRS.md` (22 Sections)** complying with IEEE 830 standards.
+   - Models functional requirements (FR-xxx), non-functional requirements, data schemas, and the *Traceability Matrix*.
 3. **Software Architect Agent (`software-architect`)**:
-   - Mewarisi konteks dari PRD dan SRS.
-   - Bertanggung jawab atas **`architecture.md` (16 Sections)**.
-   - Menghasilkan diagram C4 (Mermaid), kontrak API (REST/gRPC), strategi skalabilitas, dan analisis keamanan STRIDE.
+   - Inherits full context from both PRD and SRS.
+   - Responsible for generating the **`architecture.md` (16 Sections)**.
+   - Produces C4 Mermaid diagrams, API contracts (REST/gRPC), scalability strategies, and STRIDE threat modeling.
 4. **UI/UX Agent (`ui-ux-agent`)**:
-   - Mewarisi konteks dari PRD (persona), SRS (flows), dan Architecture.
-   - Bertanggung jawab atas **`design.md` (16 Sections)**.
-   - Menghasilkan Semantic Design Tokens, screen flows (Mermaid), komponen atomik, dan kepatuhan WCAG 2.2 AA.
+   - Inherits context from PRD (personas), SRS (flows), and Architecture.
+   - Responsible for generating the **`design.md` (16 Sections)**.
+   - Establishes Semantic Design Tokens, screen flow diagrams (Mermaid), atomic component specs, and WCAG 2.2 AA compliance.
 
 ### Approval Gating Rules:
-- Dokumen turunan (SRS, Architecture, Design) **terkunci / terproteksi** sampai dokumen hulu (PRD) berstatus `Approved`.
-- Jika PRD mengalami revisi besar setelah disetujui, dokumen turunan wajib ditandai `Outdated` dan di-regenerate sesuai konteks terbaru.
+- Downstream documents (SRS, Architecture, Design) are **locked and protected** until upstream documents (PRD) are marked as `Approved`.
+- If a major revision occurs on an approved PRD, downstream documents are automatically marked as `Outdated` and must be regenerated to reflect the latest context.
 
 ---
 
 ## 4. Coding & Architecture Rules
 
 1. **Zero-Mock Policy & Real Fail-Fast**:
-   - Dilarang membuat respons AI palsu / mock sintetis pada layer produksi atau fallback silent.
-   - Jika CLI AI (`agy`, `opencode`) atau REST API gagal, sistem harus melempar error riil langsung ke UI agar transparan dan dapat segera diperbaiki oleh pengguna.
+   - Producing synthetic/mock AI responses in production code or silent fallbacks is strictly forbidden.
+   - If AI CLIs (`agy`, `opencode`) or REST APIs encounter an error, the system must surface the real error immediately to the UI so it is transparent and actionable for the user.
 2. **Strict TypeScript & No `any`**:
-   - Semua binding Wails di `frontend/bindings/` dan komponen React harus bertipe ketat.
-   - Dilarang menggunakan tipe `any` tanpa alasan teknis yang kuat.
+   - All Wails bindings in `frontend/bindings/` and React components must be strictly typed.
+   - Using the `any` type without compelling technical justification is prohibited.
 3. **High-Contrast Typography & Design System**:
-   - Mengikuti token `tokens.css` MQ-Studio: font dasar **`14px/1.55`**, tidak menggunakan font mikro (`text-[10px]` dilarang, minimal `12px`).
-   - Warna teks wajib memiliki kontras tinggi yang lolos WCAG AA (Light: `--c-fg: #171513`, Dark: `--c-fg: #f7f5f3`).
-   - Selalu dukung 3 tema: Light Warm Stone, Dark Obsidian Slate, dan System Auto.
+   - Follow the MQ-Studio `tokens.css` token scale: base typography **`14px/1.55`**, no micro-fonts (prohibit `text-[10px]`, minimum `12px`).
+   - Text colors must maintain high contrast passing WCAG AA standards (Light: `--c-fg: #171513`, Dark: `--c-fg: #f7f5f3`).
+   - Always support 3 themes: Light Warm Stone, Dark Obsidian Slate, and System Auto.
 4. **Local-First & Path Traversal Security**:
-   - Semua project data tersimpan di `workspaces/projects/{id}/` secara lokal.
-   - Operasi file attachment dan dokumen wajib divalidasi dari celah path traversal (`filepath.Clean` & proteksi direktori).
+   - All project data is stored locally under `workspaces/projects/{id}/`.
+   - File attachment and document operations must prevent path traversal attacks (`filepath.Clean` and sandboxed directory enforcement).
 5. **Credential Security**:
-   - Kunci API (Gemini/OpenAI) disimpan aman menggunakan OS Keyring (Credential Manager / Keychain) atau SQLite terenkripsi. Dilarang mencetak API key di file log biasa.
+   - API keys (Gemini/OpenAI) must be stored securely using OS Keyring (Windows Credential Manager / macOS Keychain) or encrypted SQLite. Never log or leak API keys in plain text.
 
 ---
 
 ## 5. Development & Testing Commands
 
-### Di Lingkungan macOS:
+### On macOS / Linux:
 ```bash
 # Frontend
 cd frontend && npm install
@@ -108,4 +108,16 @@ wails3 dev -config ./build/config.yml -port 9245
 
 # Native Build
 wails3 task build
+```
+
+### On Windows (PowerShell):
+```powershell
+# Frontend
+cd frontend; npm install; npm run build
+
+# Backend Tests
+go test -v ./internal/...
+
+# Dev Mode (Wails v3)
+wails3 dev -config ./build/config.yml -port 9245
 ```

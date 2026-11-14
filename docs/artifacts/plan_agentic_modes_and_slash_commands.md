@@ -1,111 +1,110 @@
 # Implementation Plan: Agentic AI Interaction, Slash Commands & Interactive Clarification UX
 
-Dokumen rencana teknis ini merancang transformasi antarmuka chat workspace menjadi **Agentic AI Workspace** modern setara standar tool coding/agentic AI (Cursor, Windsurf, Claude Artifacts, Antigravity).
+Technical planning document designing the evolution of the chat workspace into a modern **Agentic AI Workspace** on par with leading developer tools (Cursor, Windsurf, Claude Artifacts, Antigravity).
 
 ---
 
 ## 1. Goal Description
-Transformasi chat discovery menjadi lingkungan agen yang interaktif dengan 3 pilar utama:
+Transforming chat discovery into an agentic environment through 3 foundational pillars:
 1. **Interactive Clarification Cards (The Q&A Loop)**:
-   - AI mendeteksi celah konteks (*Gap & Ambiguity Detection*) dan menghasilkan pertanyaan klarifikasi terstruktur.
-   - Pertanyaan AI **dirender langsung di dalam chat bubble asisten** sebagai form/kartu interaktif (bukan teks polos).
-   - Pengguna dapat mengetik jawaban langsung pada kartu di chat bubble, yang otomatis tersimpan ke SQLite dan memperbarui konteks discovery secara terstruktur.
+   - Proactive gap and ambiguity detection generating structured clarification questions.
+   - Questions render **directly inside the assistant's chat bubble** as interactive cards (not plain prose).
+   - Users can answer directly within the card, persisting answers to SQLite and refreshing project context.
 2. **Slash Commands System (`/` commands)**:
-   - Menghadirkan command bar autocomplete saat pengguna mengetik `/` pada prompt input.
-   - Perintah cepat untuk mengubah mode, meminta rencana, mengekstraksi requirements, atau men-trigger generasi dokumen:
-     - `/discovery` atau `/explore` — Aktifkan Discovery Mode (proaktif bertanya, gali asumsi & blindspots).
-     - `/plan [fitur]` — Minta agen menyusun rencana bertahap sebelum dokumen dibuat.
-     - `/exec` atau `/generate` — Beralih ke Execution Mode (berhenti bertanya, langsung eksekusi).
-     - `/clarify` — Paksa AI mengevaluasi celah konteks dan ajukan pertanyaan terarah.
-     - `/prd` — Eksekusi pembuatan `PRD.md` (20 sections).
-     - `/srs` — Eksekusi pembuatan `SRS.md` (22 sections, IEEE 830).
-     - `/arch` — Eksekusi pembuatan `architecture.md` (16 sections).
-     - `/design` — Eksekusi pembuatan `design.md` (16 sections).
-     - `/validate` — Jalankan validasi kelengkapan & audit ambiguitas dokumen.
-     - `/clear` — Bersihkan histori percakapan sesi aktif.
+   - Command bar autocomplete triggered when users type `/` into the prompt input.
+   - Quick actions to switch modes, request plans, extract requirements, or trigger document generation:
+     - `/discovery` or `/explore` — Activate Discovery Mode (proactive exploration, surfacing assumptions).
+     - `/plan [feature]` — Request a step-by-step feature implementation plan.
+     - `/exec` or `/generate` — Switch to Execution Mode (direct generation without probing questions).
+     - `/clarify` — Force the AI to audit context gaps and ask targeted questions.
+     - `/prd` — Generate `PRD.md` (20 sections).
+     - `/srs` — Generate `SRS.md` (22 sections, IEEE 830).
+     - `/arch` — Generate `architecture.md` (16 sections).
+     - `/design` — Generate `design.md` (16 sections).
+     - `/validate` — Run completeness audit and ambiguity checks.
+     - `/clear` — Clear active session chat history.
 3. **Agentic Interaction Modes**:
-   - Toggle/Dropdown mode interaksi di atas prompt bar:
-     - 🔍 **Discovery Mode (Default)**: Proaktif, eksploratif, deteksi celah logika, ajukan 1–3 pertanyaan terstruktur.
-     - 📋 **Product Analyst Mode**: Fokus nilai bisnis, persona, user journey, MoSCoW prioritization.
-     - ⚙️ **System Analyst Mode**: Fokus arsitektur teknis, data model, business logic, NFRs, traceability.
-     - ⚡ **Execution / Generation Mode**: Pasif, no probing questions, langsung gunakan seluruh confirmed requirements untuk generate dokumen.
+   - Mode selector pill above the prompt bar:
+     - 🔍 **Discovery Mode (Default)**: Proactive, exploratory, gap-detecting, generates 1–3 structured questions.
+     - 📋 **Product Analyst Mode**: Focuses on business value, personas, user journeys, MoSCoW prioritization.
+     - ⚙️ **System Analyst Mode**: Focuses on technical architecture, data schemas, business logic, NFRs, traceability.
+     - ⚡ **Execution / Generation Mode**: Passive, zero probing questions, directly synthesizes confirmed requirements into final documents.
 
 ---
 
-## 2. Arsitektur Alur & State Transition
+## 2. Architecture & State Transition Flow
 
 ```mermaid
 flowchart TD
-    UserPrompt["User Input (e.g. 'Buat fitur sistem poin loyalitas' atau '/plan loyalitas')"]
-    ModeCheck{"Cek Interaction Mode"}
+    UserPrompt["User Input (e.g. 'Build loyalty points system' or '/plan loyalty')"]
+    ModeCheck{"Check Interaction Mode"}
     
-    SlashCheck{"Apakah Slash Command?"}
+    SlashCheck{"Is Slash Command?"}
     UserPrompt --> SlashCheck
     
-    SlashCheck -- Ya (/prd, /srs, /validate) --> ActionHandler["Trigger Action Langsung (Generate PRD/SRS/Validation)"]
-    SlashCheck -- Mode Switch (/exec, /discovery) --> SetMode["Ubah Mode & Lanjutkan Prompt"]
+    SlashCheck -- Yes (/prd, /srs, /validate) --> ActionHandler["Trigger Direct Action (Generate PRD/SRS/Validation)"]
+    SlashCheck -- Mode Switch (/exec, /discovery) --> SetMode["Update Mode & Forward Prompt"]
     SlashCheck -- Normal Chat --> ModeCheck
     
-    ModeCheck -- Discovery Mode --> DiscoveryPrompt["Injeksi Proactive Directives: Deteksi celah & buat Clarification Questions"]
-    ModeCheck -- Execution Mode --> ExecPrompt["Injeksi Execution Directives: Jangan bertanya lagi, langsung deliver draft final"]
+    ModeCheck -- Discovery Mode --> DiscoveryPrompt["Inject Proactive Directives: Detect gaps & formulate Clarification Questions"]
+    ModeCheck -- Execution Mode --> ExecPrompt["Inject Execution Directives: Direct output, no probing questions"]
     
     DiscoveryPrompt --> LLMExecution["Pure Real AI Execution (CLI / Gemini REST API)"]
     ExecPrompt --> LLMExecution
     
     LLMExecution --> ParseResult["Parse Discovery JSON (Reply, Reqs, Clarifications, Assumptions)"]
-    ParseResult --> SaveDB["Simpan ke SQLite (requirements, clarifications, assumptions)"]
+    ParseResult --> SaveDB["Persist to SQLite (requirements, clarifications, assumptions)"]
     
-    SaveDB --> RenderBubble["Render Chat Bubble Asisten"]
-    RenderBubble --> ClarificationCard["Render Interactive Clarification Card di Dalam Chat Bubble"]
+    SaveDB --> RenderBubble["Render Assistant Chat Bubble"]
+    RenderBubble --> ClarificationCard["Render Interactive Clarification Card Inside Bubble"]
     
-    ClarificationCard --> UserAnswers["User Mengetik Jawaban Langsung di Card"]
-    UserAnswers --> UpdateConfirmed["Update Status ke 'answered' & Simpan sebagai Confirmed Context"]
-    UpdateConfirmed --> ReadyForExec["Siap Ditransisikan ke Execution Mode (/exec atau /prd)"]
+    ClarificationCard --> UserAnswers["User Submits Inline Answer"]
+    UserAnswers --> UpdateConfirmed["Update Status to 'answered' & Persist as Confirmed Context"]
+    UpdateConfirmed --> ReadyForExec["Ready to Transition to Execution Mode (/exec or /prd)"]
 ```
 
 ---
 
-## 3. Rincian Desain & Komponen
+## 3. Component Details
 
 ### A. Slash Commands Menu (`SlashCommandPopover`)
-*   **Trigger**: Terbuka otomatis saat karakter pertama yang diketik pengguna adalah `/`.
-*   **Navigasi**: Mendukung navigasi panah atas/bawah (`ArrowUp`, `ArrowDown`), tombol `Enter` untuk memilih, dan tombol `Escape` untuk menutup.
-*   **Daftar Command**:
+*   **Trigger**: Opens automatically when the first input character is `/`.
+*   **Navigation**: Arrow key navigation (`ArrowUp`, `ArrowDown`), `Enter` to select, `Escape` to dismiss.
+*   **Command Catalog**:
 
-| Command | Icon | Label & Deskripsi | Efek / Aksi |
+| Command | Icon | Label & Description | Action / Effect |
 |---|---|---|---|
-| `/discovery` | `Search` | **Discovery Mode** — Gali ide, temukan celah, & ajukan pertanyaan | Mengubah `interactionMode` ke `discovery` |
-| `/exec` | `Zap` | **Execution Mode** — Eksekusi langsung tanpa probing | Mengubah `interactionMode` ke `execution` |
-| `/plan` | `List` | **Create Feature Plan** — Susun rencana spesifikasi bertahap | Menulis instruksi rencana bertahap ke prompt |
-| `/clarify` | `HelpCircle` | **Force Clarifications** — Ajukan pertanyaan untuk celah konteks | Meminta AI menganalisis celah dan bertanya |
-| `/prd` | `FileText` | **Generate PRD** — Buat draft PRD (20 sections) | Memanggil `handleGeneratePRD()` |
-| `/srs` | `FileCheck` | **Generate SRS** — Buat draft SRS (22 sections) | Memanggil `handleGenerateSRS()` |
-| `/arch` | `Cpu` | **Generate Architecture** — Buat topologi sistem & API | Memanggil `handleGenerateArchitecture()` |
-| `/design` | `Layers` | **Generate Design System** — Buat token & screen flows | Memanggil `handleGenerateDesign()` |
-| `/validate` | `Activity` | **Run Quality Check** — Audit ambiguitas & kelengkapan | Memanggil `handleRunValidation()` |
-| `/clear` | `Trash2` | **Clear Chat** — Hapus histori percakapan | Memanggil reset session chat |
+| `/discovery` | `Search` | **Discovery Mode** — Explore ideas, detect gaps, & ask questions | Sets `interactionMode` to `discovery` |
+| `/exec` | `Zap` | **Execution Mode** — Direct execution without probing | Sets `interactionMode` to `execution` |
+| `/plan` | `List` | **Create Feature Plan** — Formulate step-by-step specification plan | Injects structured planning prompt |
+| `/clarify` | `HelpCircle` | **Force Clarifications** — Pose questions for ambiguous items | Prompts AI to probe context gaps |
+| `/prd` | `FileText` | **Generate PRD** — Draft 20-section PRD | Calls `handleGeneratePRD()` |
+| `/srs` | `FileCheck` | **Generate SRS** — Draft 22-section SRS | Calls `handleGenerateSRS()` |
+| `/arch` | `Cpu` | **Generate Architecture** — System topology & API contracts | Calls `handleGenerateArchitecture()` |
+| `/design` | `Layers` | **Generate Design System** — Tokens & screen flows | Calls `handleGenerateDesign()` |
+| `/validate` | `Activity` | **Run Quality Check** — Audit ambiguity & completeness | Calls `handleRunValidation()` |
+| `/clear` | `Trash2` | **Clear Chat** — Reset active session conversation | Calls chat session reset |
 
-### B. Interactive Clarification Card di Dalam Chat Bubble
-*   Saat AI mengembalikan pesan asisten yang memuat pertanyaan klarifikasi:
-    *   Di bawah teks balasan asisten, dirender kartu elegan ber-border `border border-amber-200/60 dark:border-amber-900/40 bg-amber-50/20 dark:bg-amber-950/20 rounded-xl p-3 space-y-2`.
-    *   Terdapat badge status: `Clarification Needed (Q&A Loop)` berwarna amber.
-    *   Teks pertanyaan spesifik (misal: *"Berapa rasio konversi poin ke rupiah?"*).
-    *   **Form Jawaban Inline**:
-        - Input teks berfokus nyaman: `Ketik jawaban Anda di sini...`
-        - Tombol aksi `Simpan Jawaban` (`bg-primary hover:bg-primary-hover text-white rounded-lg px-3 py-1 text-xs`).
-    *   Saat disimpan:
-        - Kartu otomatis berubah menjadi ber-border hijau `border-ok/40 bg-ok-tint/20`.
-        - Menampilkan badge `Confirmed Answer` dan menampilkan teks jawaban pengguna.
-        - Memanggil `RequirementService.AnswerClarification` ke SQLite dan me-refresh context project.
+### B. Interactive Clarification Card Inside Chat Bubble
+*   When AI responses contain clarification items:
+    *   Renders an elegant card below the text response with `border border-amber-200/60 dark:border-amber-900/40 bg-amber-50/20 dark:bg-amber-950/20 rounded-xl p-3 space-y-2`.
+    *   Displays badge: `Clarification Needed (Q&A Loop)` in amber.
+    *   Presents specific question text (e.g. *"What is the point conversion ratio to currency?"*).
+    *   **Inline Answer Form**:
+        - Focused input: `Enter your answer here...`
+        - Action button: `Save Answer` (`bg-primary hover:bg-primary-hover text-white rounded-lg px-3 py-1 text-xs`).
+    *   Upon saving:
+        - Card borders transition to green `border-ok/40 bg-ok-tint/20`.
+        - Displays `Confirmed Answer` badge with user response text.
+        - Invokes `RequirementService.AnswerClarification` in SQLite and refreshes project context.
 
 ### C. Mode Selector Switcher (Discovery vs Execution)
-*   Diletakkan tepat di atas prompt bar (atau di samping pill agent switcher) sebagai Segmented Control ringkas:
-    *   🔘 **Discovery (Q&A Proaktif)**: Ikon `Search`, warna biru aksen.
-    *   ⚡ **Execution (Direct)**: Ikon `Zap`, warna amber/ungu aksen.
-*   Dapat diubah secara instan dengan 1 klik atau melalui slash command `/discovery` dan `/exec`.
-*   Direktif prompt:
-    - **Discovery**: AI diperintahkan aktif mendeteksi gap dan selalu menghasilkan 1–3 clarification questions terstruktur.
-    - **Execution**: AI dilarang mengajukan pertanyaan balik, mengasumsikan standar industri, dan langsung meng-generate spesifikasi konkret.
+*   Compact segmented control above the prompt bar:
+    *   🔘 **Discovery (Proactive Q&A)**: `Search` icon, blue accent.
+    *   ⚡ **Execution (Direct)**: `Zap` icon, amber/purple accent.
+*   Prompt directives:
+    - **Discovery**: AI actively detects gaps and outputs 1–3 structured questions.
+    - **Execution**: AI assumes industry standards and generates specifications directly without questions.
 
 ---
 
@@ -113,29 +112,29 @@ flowchart TD
 
 ### Component 1: Frontend Chat Workspace (`frontend/src/App.tsx`)
 #### [MODIFY] `frontend/src/App.tsx`
-1. **Tambah State**:
+1. **State Management**:
    - `interactionMode: 'discovery' | 'execution'` (default: `'discovery'`).
    - `slashQuery: string`, `showSlashMenu: boolean`, `selectedSlashIndex: number`.
-2. **Tambah Komponen Autocomplete Popover**:
-   - Muncul saat `inputMessage.startsWith('/')`.
-   - Menampilkan daftar 10 perintah dengan icon dan deskripsi.
-   - Mendukung pemilihan via keyboard (`Enter`, `ArrowDown`, `ArrowUp`, `Escape`).
-3. **Render Interactive Clarification Cards di Bubble Asisten**:
-   - Untuk setiap message asisten, periksa apakah ada clarification items yang berelasi atau open.
-   - Render form inline jawaban klarifikasi langsung di dalam bubble.
-4. **Kirim Mode Directive pada Chat Request**:
-   - Di `handleSendMessage`, sisipkan header directive:
-     `[MODE: DISCOVERY - PROACTIVE Q&A & GAP DETECTION]` atau
+2. **Autocomplete Popover Component**:
+   - Triggered when `inputMessage.startsWith('/')`.
+   - Displays 10 commands with icons and descriptions.
+   - Keyboard navigation support (`Enter`, `ArrowDown`, `ArrowUp`, `Escape`).
+3. **Render Interactive Clarification Cards in Assistant Bubbles**:
+   - Check for open clarification items tied to the assistant message.
+   - Render inline answer forms within the bubble.
+4. **Mode Directive Headers**:
+   - In `handleSendMessage`, inject header directive:
+     `[MODE: DISCOVERY - PROACTIVE Q&A & GAP DETECTION]` or
      `[MODE: EXECUTION - DIRECT OUTPUT, NO PROBING QUESTIONS]`.
 
 ### Component 2: Backend AI Discovery Engine (`internal/ai/discovery.go`)
 #### [MODIFY] `internal/ai/discovery.go`
-- Tambahkan parameter `mode string` pada `BuildDiscoveryPrompt`.
-- Jika mode adalah `execution`:
-  - Perintahkan AI untuk **tidak mengajukan clarification questions** (`clarifications: []`).
-  - Fokus 100% pada ekstraksi requirement terstruktur dan conversational reply yang siap eksekusi.
-- Jika mode adalah `discovery`:
-  - Perintahkan AI untuk secara agresif mendeteksi celah dan menyertakan 1–3 pertanyaan klarifikasi berkualitas tinggi.
+- Add `mode string` parameter to `BuildDiscoveryPrompt`.
+- In `execution` mode:
+  - Direct AI to **omit clarification questions** (`clarifications: []`).
+  - Focus 100% on structured requirements extraction.
+- In `discovery` mode:
+  - Direct AI to identify ambiguities and include 1–3 high-value clarification questions.
 
 ---
 
@@ -146,39 +145,27 @@ flowchart TD
    ```bash
    cd frontend && npm run build
    ```
-   *Ekspektasi: 0 TypeScript errors.*
+   *Expectation: 0 TypeScript errors.*
 2. **Backend Tests**:
    ```bash
-   export PATH=$PATH:/opt/homebrew/bin:~/go/bin; go test -v ./internal/...
+   go test -v ./internal/...
    ```
-   *Ekspektasi: Seluruh 13 unit test suites lulus (100% PASS).*
-3. **Wails Native Compilation**:
+   *Expectation: All 13 test suites pass (100% PASS).*
+3. **Desktop Native Compilation**:
    ```bash
-   export PATH=$PATH:/opt/homebrew/bin:~/go/bin; wails3 task darwin:build:native
+   wails3 task build
    ```
 
 ### Manual Verification
 1. **Slash Commands Autocomplete**:
-   - Buka chat workspace, ketik `/` di prompt bar.
-   - Pastikan menu popover muncul dengan daftar perintah (`/discovery`, `/exec`, `/prd`, `/plan`, dll.).
-   - Tekan panah bawah dan `Enter` pada `/exec` &rarr; Mode berganti ke Execution Mode.
-   - Ketik `/prd` &rarr; Memulai eksekusi pembuatan PRD secara langsung.
+   - Type `/` in prompt bar; verify popover appears.
+   - Navigate to `/exec` and press `Enter`; verify mode switches to Execution.
+   - Type `/prd` and press `Enter`; verify PRD generation executes immediately.
 2. **Interactive Clarification Q&A Loop**:
-   - Berikan prompt singkat di Discovery Mode: *"Buat sistem voucher diskon."*
-   - AI merespons dan menampilkan kartu pertanyaan klarifikasi interaktif di dalam chat bubble (misal *"Berapa diskon maksimum?"*).
-   - Ketik jawaban langsung pada input kartu di chat bubble dan klik `Kirim Jawaban`.
-   - Kartu berubah menjadi hijau bertanda `Confirmed Answer` dan data tersimpan di SQLite.
+   - Send brief in Discovery Mode: *"Build a voucher discount system."*
+   - Verify assistant bubble renders interactive clarification card.
+   - Type answer inside card and submit; verify card turns green with `Confirmed Answer`.
 3. **Execution Mode Generation**:
-   - Alihkan mode ke `Execution Mode` via tombol toggle atau `/exec`.
-   - Ketik: *"Tuliskan requirement voucher ini."*
-   - AI langsung menghasilkan requirement lengkap tanpa mengajukan pertanyaan klarifikasi lagi.
-
----
-
-## User Review Required
-> [!IMPORTANT]
-> **Keputusan Desain**:
-> 1. Apakah daftar 10 slash commands di atas (`/discovery`, `/exec`, `/plan`, `/clarify`, `/prd`, `/srs`, `/arch`, `/design`, `/validate`, `/clear`) sudah sesuai dengan ekspektasi Anda?
-> 2. Apakah Anda setuju kartu klarifikasi interaktif muncul langsung di dalam chat bubble asisten dan otomatis berubah hijau saat dijawab?
-
-Mohon konfirmasi atau berikan masukan Anda untuk memulai implementasi.
+   - Switch to `Execution Mode` via toggle or `/exec`.
+   - Prompt: *"Write the specifications for this voucher."*
+   - Verify AI generates direct specifications without questions.

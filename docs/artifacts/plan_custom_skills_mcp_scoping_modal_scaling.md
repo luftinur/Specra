@@ -1,51 +1,45 @@
 # Plan: Custom Skills Management, MCP Scoping & Modal Expansion
 
-Dokumen rencana implementasi untuk:
-1. **Custom Skills Management:** Menambahkan antarmuka & backend service untuk membuat custom skill baru (+ Add Custom Skill) dengan nama, deskripsi, dan prompt khusus, serta kemampuan menugaskan skill ke persona tertentu.
-2. **MCP Scoping (Global vs Persona Assignment):** Menyediakan kontrol agar setiap MCP Server dapat disetel sebagai **Global (Semua Persona)** atau **Spesifik untuk Persona Tertentu** (misal Figma MCP hanya untuk UI/UX, Database MCP untuk Architect/System Analyst).
-3. **Pelebaran Modal & Peningkatan Skala Font:**
-   - **Studio Settings Modal:** Melebarkan dari `max-w-5xl` ke **`w-[94vw] max-w-7xl h-[90vh]`** dengan peningkatan ukuran font teks judul, tab, form control, dan deskripsi.
-   - **Project Manager / Open Project Modal:** Melebarkan dari `max-w-2xl` ke **`w-[90vw] max-w-4xl max-h-[88vh]`** dengan font lebih besar, kartu project lebih lega, dan search bar lebih nyaman.
+Implementation plan for:
+1. **Custom Skills Management:** Interfaces and backend services to create custom skills (+ Add Custom Skill) with name, description, and custom prompts, plus the capability to assign skills to specific specialist personas.
+2. **MCP Scoping (Global vs Persona Assignment):** Controls to configure each MCP Server as either **Global (All Personas)** or **Scoped to Specific Personas** (e.g. Figma MCP strictly for UI/UX, Database MCP for Architect/System Analyst).
+3. **Modal Expansion & Typography Scaling:**
+   - **Studio Settings Modal:** Expanded from `max-w-5xl` to **`w-[94vw] max-w-7xl h-[90vh]`** with upscaled typography across headings, tabs, form controls, and descriptions.
+   - **Project Manager / Open Project Modal:** Expanded from `max-w-2xl` to **`w-[90vw] max-w-4xl max-h-[88vh]`** with larger cards, prominent search inputs, and enhanced contrast.
 
 ---
 
 ## 1. Goal Description
 
-Menjawab pertanyaan & kebutuhan pengguna:
-- *"gw bisa nambahin skill dimana?"* ➔ Selama ini skill hanya berupa badge statis yang bisa di-toggle on/off per persona. Pengguna membutuhkan **Skill Catalog & Custom Skill Creator** di mana pengguna bisa menambah skill baru (misal: FinTech OJK Compliance, Microservice Event-Driven, Atomic Design System) lengkap dengan system prompt khusus skill tersebut, lalu menautkannya ke persona yang diinginkan.
-- *"mcp ini gw bisa assign ke persona tertentu atau set global juga harusnya"* ➔ Mengembangkan arsitektur MCP Server agar memiliki properti `scope: "global" | "persona"`. Jika global, ke-4 agen otomatis memiliki akses. Jika persona, pengguna dapat mencentang persona mana saja yang berhak mengakses server MCP tersebut.
-- *"tambahan modal setting widthnya lebarain lagi fontnya gedein lagi, open project juga modalnya fontnya gedein lagi"* ➔ Meningkatkan ukuran container modal Settings dan Project Manager agar sangat lega pada monitor desktop serta memperbesar ukuran font judul, input, deskripsi, dan tombol.
+Addressing user requests:
+- *"Where can I add skills?"* ➔ Previously skills were static toggles per persona. Users require a **Skill Catalog & Custom Skill Creator** to add new capabilities (e.g. FinTech Compliance, Microservice Event-Driven, Atomic Design System) with custom prompt directives, bound to selected personas.
+- *"Can I assign MCP to specific personas or set it global?"* ➔ Evolving MCP Server architecture with a `scope: "global" | "persona"` attribute. If global, all 4 agents have access; if persona, users select authorized personas via checkboxes.
+- *"Widen the settings modal and enlarge the fonts, also for open project modal"* ➔ Expanding container widths and typography across desktop modals to utilize widescreen monitors ergonomically.
 
 ---
 
 ## 2. User Review Required
 
 > [!IMPORTANT]
-> **Alur Pembuatan Custom Skill:**
-> Di dalam Tab *Specialist Personas & Skills*, akan disediakan dua tombol aksi baru:
-> 1. **"+ Add Existing Skill to Persona"**: Memilih dari katalog skill bawaan & custom yang belum aktif pada persona tersebut.
-> 2. **"+ Create New Custom Skill"**: Membuka dialog formulir untuk mendefinisikan skill baru:
->    - **Skill Name** (misal: *OJK & BI Payment Gateway Compliance*)
->    - **Skill ID** (misal: *ojk-payment-compliance*)
+> **Custom Skill Workflow:**
+> In the *Specialist Personas & Skills* tab, two primary actions are provided:
+> 1. **"+ Add Existing Skill to Persona"**: Select from existing built-in or custom catalogs.
+> 2. **"+ Create New Custom Skill"**: Opens a form to define new skills:
+>    - **Skill Name** (e.g. *OJK & BI Payment Gateway Compliance*)
+>    - **Skill ID** (e.g. *ojk-payment-compliance*)
 >    - **Category** (Product, System, Architecture, UI/UX, General)
->    - **Skill Prompt Directive** (Instruksi spesifik yang diinjeksikan ke LLM saat agen menggunakan skill ini)
-> Skill yang dibuat otomatis tersimpan ke database lokal SQLite dan dapat dipakai lintas proyek.
+>    - **Skill Prompt Directive** (Instructions injected into the LLM when active)
+> Custom skills persist in SQLite `app_settings` across projects.
 
 > [!IMPORTANT]
-> **Pilihan Scope MCP (Global vs Persona):**
-> Pada formulir pendaftaran / edit MCP Server:
-> - **🌐 Global (All Personas):** Tersedia untuk Product Analyst, System Analyst, Software Architect, dan UI/UX Agent.
-> - **🎯 Specific Personas:** Menampilkan 4 checkbox persona spesialis. Agen hanya akan memuat konteks MCP jika server tersebut ditugaskan kepadanya.
+> **MCP Scope Choices (Global vs Persona):**
+> On MCP Server registration/editing:
+> - **🌐 Global (All Personas):** Available for Product Analyst, System Analyst, Software Architect, and UI/UX Agent.
+> - **🎯 Specific Personas:** Checkbox selection for specific specialist personas.
 
 ---
 
-## 3. Open Questions
-
-Tidak ada pertanyaan penghalang (*blocking*). Seluruh data custom skill dan konfigurasi scope MCP akan disimpan persisten di SQLite tabel `app_settings` sehingga tidak akan hilang saat aplikasi di-restart.
-
----
-
-## 4. Proposed Changes
+## 3. Architecture
 
 ```mermaid
 flowchart TD
@@ -80,10 +74,12 @@ flowchart TD
 
 ---
 
+## 4. Proposed Changes
+
 ### Component 1: Backend Domain & Agent Registry (Go)
 
 #### [MODIFY] [`internal/domain/models.go`](file:///E:/dev-agent-assistant/internal/domain/models.go)
-1. Menambahkan struct `SkillConfig`:
+1. Add `SkillConfig` struct:
    ```go
    type SkillConfig struct {
        ID          string `json:"id"`
@@ -94,7 +90,7 @@ flowchart TD
        Custom      bool   `json:"custom"`
    }
    ```
-2. Memperbarui struct `MCPServerConfig` dengan field `Scope` dan `AssignedAgents`:
+2. Update `MCPServerConfig` struct with `Scope` and `AssignedAgents`:
    ```go
    type MCPServerConfig struct {
        ID             string            `json:"id"`
@@ -109,22 +105,22 @@ flowchart TD
    ```
 
 #### [MODIFY] [`internal/ai/agent_registry.go`](file:///E:/dev-agent-assistant/internal/ai/agent_registry.go)
-- Menambahkan map `skills map[string]domain.SkillConfig` dan menginisialisasi katalog skill default.
-- Menyediakan method:
+- Manage `skills map[string]domain.SkillConfig` with built-in defaults.
+- Provide methods:
   - `ListSkills() []domain.SkillConfig`
   - `SaveSkill(skill domain.SkillConfig) error`
   - `DeleteSkill(id string) error`
   - `GetSkillsForAgent(agentID string) []domain.SkillConfig`
-  - `GetMCPServersForAgent(agentID string) []domain.MCPServerConfig` (mengembalikan MCP Global + MCP yang secara spesifik menugaskan `agentID`).
+  - `GetMCPServersForAgent(agentID string) []domain.MCPServerConfig` (returns global MCPs + persona-assigned MCPs).
 
 #### [MODIFY] [`internal/services/provider_service.go`](file:///E:/dev-agent-assistant/internal/services/provider_service.go)
-- Mengekspos method baru ke Wails:
+- Expose methods to Wails:
   - `ListSkills() []domain.SkillConfig`
   - `SaveSkill(skill domain.SkillConfig) error`
   - `DeleteSkill(id string) error`
 
 #### [MODIFY] [`internal/services/conversation_service.go`](file:///E:/dev-agent-assistant/internal/services/conversation_service.go)
-- Saat membangun context prompt untuk chat/generasi, injeksikan direktif prompt dari skill yang aktif serta daftar tools dari MCP yang aktif untuk persona tersebut (baik Global maupun Assigned).
+- Inject active skill prompts and authorized MCP tool descriptions into agent system prompts during execution.
 
 ---
 
@@ -132,44 +128,34 @@ flowchart TD
 
 #### [MODIFY] [`frontend/src/App.tsx`](file:///E:/dev-agent-assistant/frontend/src/App.tsx)
 
-1. **Pelebaran & Font Upscaling Studio Settings Modal:**
-   - Container dialog diubah dari `max-w-5xl h-[88vh]` menjadi:
+1. **Settings Modal Expansion & Typography:**
+   - Update container to:
      ```tsx
      <div className="bg-surface border border-border rounded-[14px] p-7 w-[94vw] max-w-7xl h-[90vh] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-100">
      ```
-   - Header title dinaikkan ke `text-base font-bold`.
-   - Tab navigasi dinaikkan ke `text-sm font-semibold px-4 py-2`.
-   - Seluruh label input diubah ke `text-xs font-bold text-fg` (13px), dan input teks ke `text-sm px-3.5 py-2`.
+   - Headers: `text-base font-bold`.
+   - Tabs: `text-sm font-semibold px-4 py-2`.
+   - Labels: `text-xs font-bold text-fg` (13px), inputs: `text-sm px-3.5 py-2`.
 
-2. **Custom Skills UI di Tab Personas & Skills:**
-   - Menambahkan bagian **"Skill Library & Custom Skills"**:
-     - Tombol **"+ Create New Skill"** yang membuka modal kecil untuk mendefinisikan skill baru.
-     - Dropdown / selector untuk menambahkan skill yang ada ke persona aktif.
-     - Tombol toggle aktif/nonaktif pada setiap kartu skill.
-     - Badge penanda `Custom` untuk skill buatan pengguna dengan tombol hapus.
+2. **Custom Skills UI in Personas & Skills Tab:**
+   - Add **"Skill Library & Custom Skills"**:
+     - **"+ Create New Skill"** modal form.
+     - Skill assignment selector per active persona.
+     - Toggle switches for active/inactive state.
+     - `Custom` badge and deletion option for user-authored skills.
 
-3. **MCP Scoping UI di Tab MCP Connections:**
-   - Pada formulir **Register New MCP Server**:
-     - Pilihan Scope: Radio card **🌐 Global (Semua Persona)** vs **🎯 Spesifik Persona**.
-     - Jika Spesifik Persona dipilih: Tampilkan 4 checkbox persona (*Product Analyst, System Analyst, Software Architect, UI/UX Agent*).
-   - Pada daftar MCP Server yang terhubung:
-     - Tampilkan badge scope: `Global` (berwarna Cobalt) atau daftar avatar/nama persona yang ditugaskan.
-   - Di tab Personas:
-     - Tampilkan daftar **"Connected MCP Tools"** yang dapat diakses oleh persona terpilih saat ini.
+3. **MCP Scoping UI in MCP Connections Tab:**
+   - Scope radio selection: **🌐 Global (All Personas)** vs **🎯 Specific Personas**.
+   - If specific, render checkboxes for 4 specialist personas.
+   - Display scope badges on registered servers.
+   - Show authorized MCP tools under each persona tab.
 
-4. **Pelebaran & Font Upscaling Project Manager / Open Project Modal:**
-   - Container dialog diubah dari `max-w-2xl` menjadi:
+4. **Project Manager / Open Project Modal Expansion:**
+   - Update container to:
      ```tsx
      <div className="bg-surface border border-border rounded-[14px] w-[90vw] max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[88vh] animate-in fade-in zoom-in-95 duration-100">
      ```
-   - Header: `text-base font-bold` dengan icon `FolderKanban size={19}`.
-   - Tabs: `text-sm font-semibold`.
-   - Search bar: `text-sm py-2.5 px-3.5 pl-10`.
-   - Project List Item:
-     - Judul project: `text-sm font-bold text-fg`.
-     - Deskripsi: `text-xs text-muted mt-1 leading-relaxed`.
-     - Badges: `text-xs font-semibold px-2 py-0.5`.
-     - Tombol Open: `text-xs font-semibold px-3.5 py-1.5`.
+   - Larger search bar, card padding, and legible project descriptions.
 
 ---
 
@@ -178,37 +164,21 @@ flowchart TD
 ### Automated Tests
 1. **Backend Go Unit Tests:**
    ```powershell
-   $env:PATH += ";C:\Program Files\Go\bin;$env:USERPROFILE\go\bin"; go test -v ./internal/...
+   go test -v ./internal/...
    ```
-   *Kriteria lulus:* Semua test suites lulus 100%, termasuk pengujian Custom Skill CRUD dan MCP Scoping filtering.
+   *Success criteria:* 100% PASS, including Custom Skill CRUD and MCP scoping filters.
 2. **Wails Bindings Generation:**
    ```powershell
-   $env:PATH += ";C:\Program Files\Go\bin;$env:USERPROFILE\go\bin"; wails3 generate bindings -ts -i
+   wails3 generate bindings -ts -i
    ```
-   *Kriteria lulus:* Method `ListSkills`, `SaveSkill`, `DeleteSkill`, dan model `SkillConfig` tergenerate di frontend bindings.
 3. **Frontend Production Build:**
    ```powershell
-   cd frontend
-   npm run build
+   npm --prefix frontend run build
    ```
-   *Kriteria lulus:* Build Vite + TypeScript tuntas dalam 0 errors.
-4. **Desktop Native App Build:**
-   ```powershell
-   $env:PATH += ";C:\Program Files\Go\bin;$env:USERPROFILE\go\bin"; wails3 task build
-   ```
-   *Kriteria lulus:* Biner `bin/ai-requirements-studio.exe` tercipta sukses.
+   *Success criteria:* Vite compiles cleanly with 0 errors.
 
 ### Manual Verification
-1. Buka Project Manager modal:
-   - Amati lebar modal yang kini mencapai `max-w-4xl` dan ukuran teks kartu project yang nyaman dibaca.
-2. Buka Studio Settings modal:
-   - Amati lebar modal yang sangat lega (`max-w-7xl`) dan tipografi yang proporsional.
-3. Uji Tambah Custom Skill:
-   - Buka tab *Specialist Personas & Skills*, klik *"+ Create New Skill"*.
-   - Buat skill baru: Nama *"FinTech Payment Standard"*, ID *"fintech-payment"*, prompt *"Pastikan semua payment API mematuhi ISO 20022"*.
-   - Simpan dan aktifkan pada persona *Software Architect*. Verifikasi skill tersimpan setelah modal ditutup dan dibuka kembali.
-4. Uji MCP Scoping:
-   - Buka tab *MCP Connections*, daftarkan server MCP baru (misal: *Figma Design Tokens MCP*).
-   - Pilih scope *Spesifik Persona* dan centang hanya *UI/UX Agent*.
-   - Buka tab *Personas*, pilih *UI/UX Agent*: MCP Figma muncul sebagai tool aktif.
-   - Pilih *Product Analyst*: MCP Figma tidak muncul (karena dibatasi hanya untuk UI/UX).
+1. Inspect Open Project modal for expanded dimensions (`max-w-4xl`) and legibility.
+2. Inspect Settings modal for spacious `max-w-7xl` layout.
+3. Test creating a custom skill and assigning it to an agent persona.
+4. Verify scoped MCP servers only appear for assigned personas.

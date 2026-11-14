@@ -1,45 +1,44 @@
-# Implementation Plan — Refinement Visualisasi Wordmark & App Icon `specra`
+# Implementation Plan: Wordmark & App Icon Refinement for `specra`
 
-Dokumen rencana teknis untuk menyempurnakan implementasi **Wordmark** dan **SVG App Icon** `specra` berdasarkan spesifikasi desain geometris *Silicon Valley tech standard* (Neo-Grotesk kontemporer, single-story `a`, circular counters, potongan terminal 90°, dan bingkai squircle berpalet *Deep Slate/Dark Charcoal*).
+Technical planning document refining the **Wordmark** and **SVG App Icon** for `specra` following geometric Silicon Valley design standards (contemporary Neo-Grotesk, single-story `a`, circular counters, 90° terminal shears, and a squircle frame rendered in Deep Slate/Dark Charcoal).
 
 ---
 
 ## 1. Goal Description
 
-Menyesuaikan kode visual aset merek `specra` di seluruh ekosistem aplikasi desktop Wails v3 dan frontend React:
-1. **Refinement Wordmark `specra` (All-Lowercase):**
-   - Mengubah implementasi wordmark dari elemen `<text>` (yang bergantung pada font lokal pengguna) menjadi **Pure Geometric Vector Path (`<path d="...">`)**.
-   - Menjamin akurasi anatomi tipografi di semua perangkat:
-     - `s`: Simetris, bukaan aperture sedang, terminal horizontal 90°.
-     - `p`: Stem vertikal turun stabil ke bawah baseline dengan circular counter murni.
-     - `e` & `c`: Open circular counters, horizontal crossbar sejajar garis tengah.
-     - `r` & `a`: Arch `r` terpotong bersih, `a` **single-story geometris murni** (lingkaran dengan tiang tegak lurus di kanan) selaras dengan `p`, `e`, dan `c`.
-     - Warna: Pure Solid White (`#FFFFFF`) di dark mode / slate-900 di light mode (WCAG AAA).
-2. **Refinement SVG App Icon (512x512 px Squircle):**
-   - Bingkai squircle `rx="106"` dengan gradien *Deep Slate/Dark Charcoal* (`#12151A` ke `#0F1115`).
-   - Monogram huruf `s` dengan kurva berbobot tebal (*Heavy 800*), kedalaman subtil, specular glow atas, dan precision engineering node accent.
-3. **Format Aset Multi-Platform:**
-   - Menyinkronkan `build/appicon.svg`, `build/appicon.icon/Assets/wails_icon_vector.svg`, `frontend/public/favicon.svg`, dan komponen React [`SpecraBrand.tsx`](file:///E:/dev-agent-assistant/frontend/src/components/SpecraBrand.tsx).
-   - Memperbaiki isu unused import `SpecraWordmark` di [`frontend/src/App.tsx`](file:///E:/dev-agent-assistant/frontend/src/App.tsx) sehingga kompilasi TypeScript kembali 100% clean.
+Align visual branding assets across the Wails v3 desktop environment and React frontend:
+1. **Wordmark Refinement `specra` (All-Lowercase):**
+   - Transition from font-dependent `<text>` tags to **Pure Geometric Vector Paths (`<path d="...">`)**.
+   - Guarantee typographic consistency across all operating systems:
+     - `s`: Symmetrical, moderate aperture, horizontal 90° terminal shears.
+     - `p`: Vertical stem descending below baseline with pure circular counter.
+     - `e` & `c`: Open circular counters, horizontal crossbars aligned with center-line.
+     - `r` & `a`: Cleanly sheared arch on `r`, **pure geometric single-story `a`** (circle with vertical right stem) matching `p`, `e`, and `c`.
+     - Contrast: Pure Solid White (`#FFFFFF`) in dark mode / slate-900 in light mode (WCAG AAA).
+2. **SVG App Icon Refinement (512x512 px Squircle):**
+   - Squircle frame `rx="106"` with Deep Slate/Dark Charcoal gradient (`#12151A` to `#0F1115`).
+   - Monogram `s` glyph with bold stroke curves (*Heavy 800*), subtle depth, specular top glow, and an engineering accent node.
+3. **Multi-Platform Asset Alignment:**
+   - Synchronize `build/appicon.svg`, `build/appicon.icon/Assets/wails_icon_vector.svg`, `frontend/public/favicon.svg`, and React component [`SpecraBrand.tsx`](file:///E:/dev-agent-assistant/frontend/src/components/SpecraBrand.tsx).
+   - Clean up unused `SpecraWordmark` imports in `App.tsx` ensuring 100% clean TypeScript builds.
 
 ---
 
-## 2. User Review & Visual Specifications
+## 2. Visual Specifications
 
 > [!NOTE]
-> **Mengapa Pure Vector Path untuk Wordmark?**
-> Sebelumnya, `SpecraWordmark` menggunakan tag `<text fontFamily="Geist, 'Inter Display', ...">`. Pada komputer yang belum menginstal font Geist atau Inter Display, sistem operasi akan melakukan fallback ke Segoe UI atau Arial, di mana huruf `a` menjadi *double-story* standar dan mangkuk lingkaran tidak geometris sempurna.
-> 
-> Dengan mengonversi `specra` ke **vektor path geometris murni**, tampilan kata `specra` dijamin 100% identik di semua OS (macOS, Windows, Linux, dan Web) tanpa delay font loading!
+> **Why Pure Vector Paths for the Wordmark?**
+> Relying on `<text fontFamily="Geist, 'Inter Display', ...">` can fall back to Segoe UI or Arial on host machines lacking those fonts, rendering double-story `a` glyphs.
+> Converting to **pure vector paths** guarantees 100% identical rendering across macOS, Windows, Linux, and Web without font-loading delays.
 
-### Palet Warna & Kontras:
-| Elemen | Nilai Hex | Peran |
+### Palette & Contrast Specs:
+| Element | Hex Value | Role |
 |---|---|---|
-| **Background Dark Slate** | `#12151A` ➔ `#0F1115` ➔ `#0A0B0E` | Latar belakang squircle icon dengan kontras tinggi |
-| **Specular Glow** | `#FFFFFF` (opacity 0.22 ➔ 0.0) | Refleksi cahaya atas tepi squircle |
-| **Monogram 's' Foreground** | `#FFFFFF` ➔ `#E2E8F0` | Glif monogram dengan drop shadow lembut |
-| **Engineering Accent Node** | `#6366F1` ➔ `#38BDF8` | Titik presisi terminal spektrum (Indigo ke Sky) |
-| **Wordmark Glyph** | `#FFFFFF` (Dark) / `#0F172A` (Light) | Solid white / deep slate, rasio kontras 15:1+ |
+| **Background Dark Slate** | `#12151A` ➔ `#0F1115` ➔ `#0A0B0E` | High-contrast squircle icon surface |
+| **Specular Glow** | `#FFFFFF` (opacity 0.22 ➔ 0.0) | Top squircle rim light reflection |
+| **Monogram 's' Foreground** | `#FFFFFF` ➔ `#E2E8F0` | Monogram glyph with soft drop shadow |
+| **Engineering Accent Node** | `#6366F1` ➔ `#38BDF8` | Precision terminal anchor point |
+| **Wordmark Glyph** | `#FFFFFF` (Dark) / `#0F172A` (Light) | Solid white / deep slate, 15:1+ contrast ratio |
 
 ---
 
@@ -47,39 +46,29 @@ Menyesuaikan kode visual aset merek `specra` di seluruh ekosistem aplikasi deskt
 
 ### Component 1: Frontend Branding Component
 #### [MODIFY] [`frontend/src/components/SpecraBrand.tsx`](file:///E:/dev-agent-assistant/frontend/src/components/SpecraBrand.tsx)
-- Perbarui `SpecraIcon` dengan koordinat lengkungan monogram `s` yang lebih presisi, potongan 90° horizontal, dan penyesuaian gradien deep slate `#12151A` ke `#0F1115`.
-- Rekonstruksi `SpecraWordmark` menggunakan **Pure SVG Vector Paths**:
-  - Tiap huruf (`s`, `p`, `e`, `c`, `r`, `a`) dirender menggunakan path geometris neo-grotesk presisi dengan single-story `a` dan circular counters.
-  - Mendukung prop `height`, `className`, dan `color` (default `currentColor` atau `#FFFFFF`).
-- Update `SpecraLogo` agar menggabungkan icon squircle + vector wordmark secara proporsional.
+- Refine `SpecraIcon` coordinates, 90° terminal shears, and deep slate gradient `#12151A` to `#0F1115`.
+- Reconstruct `SpecraWordmark` using **Pure SVG Vector Paths**:
+  - Each letter (`s`, `p`, `e`, `c`, `r`, `a`) rendered using precision geometric vector coordinates with single-story `a` and circular counters.
+- Update `SpecraLogo` combining squircle icon + vector wordmark proportionally.
 
 ---
 
 ### Component 2: Application Vector Icons & Favicon
 #### [MODIFY] [`build/appicon.svg`](file:///E:/dev-agent-assistant/build/appicon.svg)
-- Perbarui file SVG 512x512 master dengan squircle deep slate `#12151A` - `#0F1115`, specular glow, dan monogram `s` geometris 90°.
+- Update 512x512 master SVG with deep slate squircle, specular rim glow, and geometric `s` monogram.
 
 #### [MODIFY] [`build/appicon.icon/Assets/wails_icon_vector.svg`](file:///E:/dev-agent-assistant/build/appicon.icon/Assets/wails_icon_vector.svg)
-- Perbarui vector asset untuk generator Wails.
+- Update vector asset for Wails desktop packaging.
 
 #### [MODIFY] [`frontend/public/favicon.svg`](file:///E:/dev-agent-assistant/frontend/public/favicon.svg)
-- Perbarui favicon web dengan icon squircle resolusi tajam.
+- Update web favicon with sharp squircle asset.
 
 ---
 
-### Component 3: Integration & TypeScript Fix in `App.tsx`
+### Component 3: Integration & TypeScript Fix
 #### [MODIFY] [`frontend/src/App.tsx`](file:///E:/dev-agent-assistant/frontend/src/App.tsx)
-- Sesuaikan impor di baris 58 agar `SpecraLogo`, `SpecraIcon`, dan `SpecraWordmark` terpakai secara valid (atau rapikan impor yang tidak terpakai), menyelesaikan error `TS6133`.
-- Pastikan tampilan logo di Titlebar, Canvas Welcome Screen, dan Settings Modal memancarkan branding baru secara konsisten.
-
----
-
-### Component 4: Dokumentasi & Pedoman Desain
-#### [MODIFY] [`design_system.md`](file:///E:/dev-agent-assistant/design_system.md)
-- Perbarui Bab 9 untuk mencantumkan spesifikasi visual wordmark (Neo-Grotesk, single-story `a`, circular counters) dan SVG App Icon.
-
-#### [NEW] [`docs/artifacts/plan_specra_brand_and_icon_refinement.md`](file:///E:/dev-agent-assistant/docs/artifacts/plan_specra_brand_and_icon_refinement.md)
-- Sinkronisasi artefak perencanaan ini ke folder `docs/artifacts/` sesuai aturan `AGENTS.md`.
+- Align brand imports cleanly, resolving `TS6133`.
+- Ensure brand presentation in Titlebar, Welcome Canvas, and Settings Modal remains consistent.
 
 ---
 
@@ -87,18 +76,11 @@ Menyesuaikan kode visual aset merek `specra` di seluruh ekosistem aplikasi deskt
 
 ### Automated Tests
 ```powershell
-# 1. Verifikasi kompilasi TypeScript & Vite bundling
 cd frontend; npm run build
-
-# 2. Verifikasi seluruh unit test Go
-$env:PATH += ";C:\Program Files\Go\bin;$env:USERPROFILE\go\bin"
 go test -v ./internal/...
-
-# 3. Kompilasi biner desktop Wails v3
 wails3 task build
 ```
 
 ### Manual Verification
-- Periksa logo di Titlebar pojok kiri atas jendela aplikasi: pastikan ikon squircle dan tulisan `specra` tampil tajam dengan huruf `a` single-story geometris.
-- Periksa tampilan pada tema terang (*Warm Stone*) dan tema gelap (*Obsidian Slate*).
-- Periksa ikon squircle pada Welcome Canvas (tengah layar) saat tidak ada tab project yang aktif.
+- Inspect brand rendering across Titlebar, Canvas, and Settings dialogs.
+- Confirm geometric single-story `a` and circular counters render consistently on all displays.

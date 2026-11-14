@@ -1,18 +1,18 @@
 # Implementation Plan: Sidebar Width Expansion (256px) & Typography Refinement
 
-Memperlebar sidebar kiri (`.side3`) dari **198px menjadi 256px** (`w-[256px]`) dengan tata letak 1 baris lega (*Pilihan A*), serta sedikit mengecilkan dan memperhalus ukuran font agar tampil proporsional, elegan, dan terhindar dari desakan badge status.
+Widening the left sidebar (`.side3`) from **198px to 256px** (`w-[256px]`) with a spacious single-line layout, refining typography scales for balanced, elegant desktop aesthetics without crowding status badges.
 
 ---
 
 ## 1. Goal Description
 
-1. **Permasalahan Sebelumnya**:
-   - Sidebar kiri sebelumnya memiliki lebar sempit `198px` (~15% lebar layar desktop).
-   - Di lebar tersebut, item navigasi Workspace (`Design System`, `SRS Document`, `Architecture`) berhimpitan dengan status badge di sebelah kanan (`APPROVED`, `OUTDATED`, `GATED`).
-2. **Solusi yang Dipilih Pengguna (Pilihan A & 256px)**:
-   - Sidebar diperlebar menjadi **`256px`** (`w-[256px]`), standar emas aplikasi desktop modern.
-   - Teks tetap dipertahankan dalam **1 baris lega** (`Chat Discovery`, `PRD Document`, `SRS Document`, `Architecture`, `Design System`).
-   - Ukuran font navigasi sedikit dikecilkan ke `12px / 12.5px font-medium` dengan badge status `10px font-mono` untuk estetika visual yang lebih tajam dan bersih.
+1. **Prior Limitation**:
+   - The left sidebar was constrained to `198px` (~15% desktop width).
+   - Navigation titles (`Design System`, `SRS Document`, `Architecture`) crowded adjacent status badges (`APPROVED`, `OUTDATED`, `GATED`).
+2. **Approved Solution (Option A & 256px Rail)**:
+   - Expand sidebar to **`256px`** (`w-[256px]`), the modern desktop standard.
+   - Retain text in a **single clean line** (`Chat Discovery`, `PRD Document`, `SRS Document`, `Architecture`, `Design System`).
+   - Refine navigation typography to `12px / 12.5px font-medium` with `10px font-mono` badges for crisp readability.
 
 ---
 
@@ -20,8 +20,7 @@ Memperlebar sidebar kiri (`.side3`) dari **198px menjadi 256px** (`w-[256px]`) d
 
 ### Styling Tokens (`frontend/src/design/tokens.css`)
 #### [MODIFY] `frontend/src/design/tokens.css`
-- Mengubah properti `.side3` `width: 198px;` menjadi `width: 256px;`.
-
+Update `.side3` width from `198px` to `256px`:
 ```css
 /* sidebar */
 .side3 {
@@ -36,16 +35,15 @@ Memperlebar sidebar kiri (`.side3`) dari **198px menjadi 256px** (`w-[256px]`) d
 ---
 
 ### Frontend Main App (`frontend/src/App.tsx`)
-#### [MODIFY] `frontend/src/App.tsx` (Lines 1295–1405)
-- Mengubah kelas pembungkus `<aside>` dari `w-[198px]` menjadi `w-[256px]`.
-- Menyempurnakan typography teks tombol navigasi (`text-[12px] font-medium tracking-tight`), icon 14px, dan status badge `text-[10px] font-mono px-2 py-0.5`.
-- Memberikan ruang horizontal lega (+58px) sehingga judul dan status badge memiliki jarak pemisah yang bersih.
+#### [MODIFY] `frontend/src/App.tsx`
+- Update wrapper `<aside>` from `w-[198px]` to `w-[256px]`.
+- Refine item typography (`text-[12px] font-medium tracking-tight`), 14px icons, and status badges `text-[10px] font-mono px-2 py-0.5`.
+- Provide +58px of horizontal clearance between labels and status pills.
 
 ```tsx
 {/* Left Sidebar (.side3: 256px standard desktop rail) */}
 <aside className="side3 w-[256px] flex flex-col justify-between shrink-0 py-2.5 px-2.5 select-none">
   <div className="space-y-3">
-    {/* Group: Workspace Mode */}
     <div>
       <div className="gl text-[10.5px] font-semibold uppercase tracking-wider text-muted-2 px-2 py-1">
         Workspace
@@ -159,6 +157,8 @@ Memperlebar sidebar kiri (`.side3`) dari **198px menjadi 256px** (`w-[256px]`) d
         </button>
       </div>
     </div>
+  </div>
+</aside>
 ```
 
 ---
@@ -166,18 +166,15 @@ Memperlebar sidebar kiri (`.side3`) dari **198px menjadi 256px** (`w-[256px]`) d
 ## 3. Verification Plan
 
 ### Automated Tests
-1. Verifikasi kompilasi frontend:
+1. Frontend compilation:
    ```bash
-   cd frontend && npm run build
+   npm --prefix frontend run build
    ```
-2. Verifikasi unit tests backend Go:
+2. Go tests:
    ```bash
    go test ./internal/...
    ```
 
 ### Manual Verification
-1. Jalankan `wails3 dev` atau buka aplikasi desktop.
-2. Periksa tampilan sidebar kiri:
-   - Lebar sidebar bertambah menjadi 256px dengan proporsi yang proporsional.
-   - Teks `Design System`, `SRS Document`, `PRD Document`, `Architecture` tampil rapi dalam 1 baris tanpa terpotong atau berhimpitan dengan badge status.
-   - Badge status di sebelah kanan memiliki spasi lega dan terbaca jelas.
+1. Inspect left sidebar: Verify expanded 256px dimensions.
+2. Confirm single-line titles (`Design System`, `SRS Document`, `Architecture`) render with clean spacing before status badges.

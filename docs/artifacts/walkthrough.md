@@ -1,77 +1,77 @@
-# Walkthrough: Rekonstruksi UX Asumsi Interaktif, Project Co-Pilot, & Sinkronisasi Alur Multi-Agent
+# Walkthrough: Interactive Assumptions UX, Project Co-Pilot, & Multi-Agent Flow Synchronization
 
-## 1. Ringkasan Eksekutif
-Berdasarkan evaluasi kritis pengguna mengenai:
-1. *"di sidebar sebelah kanan kan ada assumptions nah itu gw jawabnya gimana ? perlu jawaban kan..":* Ketiadaan sarana bagi pengguna untuk menjawab atau mengoreksi asumsi AI selain menolaknya secara pasif.
-2. *"sidebar kanan ini bikin bingung user yang inspector viewers secara pipeline, workflow, dan chat discovery ini nyambung semua kan sebenernya ? secara UX bagaimana rekomendasi lu":* Fragmentasi sidebar kanan ("Inspector") yang menyembunyikan 5 sub-view di balik menu 3-titik kecil.
-3. *"chat discoverynya juga, harusnya nyambung juga kan ya ? karena gini misal gw ke menu prd dan gw klik button generate..apakah chat discovery paham statusnya sampai mana ? kemudian ini jadi ga kepake atau sebenertnya terpakai secara fungsi nantinya untuk chat discovery yang dropdown pilih persona discovery sama dropdown discovery mode dan exec mode":* Ketiadaan sinkronisasi antara aksi canvas dokumen dan linimasa chat, serta kebingungan tujuan fungsional dropdown persona dan mode interaksi.
+## 1. Executive Summary
+Based on critical user evaluations regarding:
+1. *"In the right sidebar there's assumptions, how do I answer them? It needs answers right...":* The absence of an interactive interface for users to confirm or correct AI assumptions other than passively rejecting them.
+2. *"This right sidebar confuses users—are inspector viewers, pipeline, workflow, and chat discovery all connected? What is your UX recommendation?":* Fragmentation in the right sidebar ("Inspector") which previously concealed 5 sub-views behind a tiny 3-dot dropdown menu.
+3. *"For chat discovery too, shouldn't it be connected? For instance if I go to PRD and click generate, does chat discovery understand the current status? Is the persona discovery dropdown and interaction mode dropdown actually useful?":* Lack of bi-directional synchronization between canvas actions and chat timeline, as well as ambiguity surrounding persona and interaction mode controls.
 
-Seluruh permasalahan di atas telah diselesaikan dan diimplementasikan secara end-to-end pada lapisan backend (Go, SQLite, Service layer) dan frontend (React 19, TypeScript strict mode, Tailwind CSS).
+All identified issues have been resolved and implemented end-to-end across the backend (Go, SQLite, domain service layer) and frontend (React 19, TypeScript strict mode, Tailwind CSS).
 
 ---
 
-## 2. Rincian Fitur & Penguatan yang Diterapkan
+## 2. Implemented Features & Architecture Enhancements
 
-### A. Interaktivitas Asumsi Proyek (Confirm, Correct, Reject)
-1. **Penyimpanan Koreksi di SQLite (`internal/storage/conversation_repo.go`)**:
-   - Menambahkan query `UpdateAssumption(ctx, id, description, status)` untuk memperbarui teks fakta hasil koreksi pengguna sekaligus menandai statusnya menjadi `confirmed`.
+### A. Interactive Project Assumptions (Confirm, Correct, Reject)
+1. **SQLite Correction Persistence (`internal/storage/conversation_repo.go`)**:
+   - Added query `UpdateAssumption(ctx, id, description, status)` to persist user-corrected facts and mark status as `confirmed`.
 2. **Backend Service (`internal/services/requirement_service.go`)**:
-   - Menambahkan `CorrectAssumption(id string, correctedText string) error`.
-3. **Kartu Asumsi Interaktif di UI (`frontend/src/App.tsx`)**:
-   - Setiap kartu asumsi kini memiliki 3 tombol aksi jelas:
-     - **`✓ Benar`**: Mengonfirmasi asumsi AI apa adanya menjadi fakta proyek sah (`confirmed`).
-     - **`✎ Koreksi`**: Membuka kotak teks inline (*inline textarea*) langsung di kartu: *"Tuliskan fakta atau preferensi yang benar (misal: 'Bukan Stripe, kita pakai Midtrans QRIS')..."* lengkap dengan tombol **Simpan Koreksi** dan **Batal**.
-     - **`✕ Tolak`**: Menolak asumsi yang tidak relevan (`rejected`).
-   - Asumsi yang telah terkonfirmasi/dikoreksi menampilkan badge hijau `✓ Terkonfirmasi` dengan opsi untuk mengedit kembali jika ada perubahan kebutuhan di kemudian hari.
+   - Added `CorrectAssumption(id string, correctedText string) error`.
+3. **Interactive Assumption Cards in UI (`frontend/src/App.tsx`)**:
+   - Each assumption card now provides 3 clear action buttons:
+     - **`✓ Correct`**: Confirms the AI assumption as-is into an authoritative project fact (`confirmed`).
+     - **`✎ Edit`**: Opens an inline textarea directly inside the card: *"Enter the correct fact or preference (e.g. 'Not Stripe, we use Midtrans QRIS')..."* with **Save Correction** and **Cancel** buttons.
+     - **`✕ Reject`**: Rejects irrelevant assumptions (`rejected`).
+   - Confirmed/corrected assumptions display a green `✓ Confirmed` badge with an option to edit again if project requirements evolve later.
 
-### B. Transformasi Sidebar Kanan: "Project Co-Pilot" dengan 3 Tab Terbuka
-1. **Re-branding Menjadi "Project Co-Pilot"**:
-   - Mengganti istilah teknis *Inspector* menjadi asisten proaktif yang mendampingi alur kerja pengguna.
-   - Menghilangkan menu 3-titik dropdown (`MoreVertical`) yang sebelumnya menyembunyikan navigasi.
-2. **3 Segmented Tabs Permanen**:
-   - **Tab 1: `Kebutuhan`**: Menampilkan backlog kebutuhan (FR-xxx/NFR-xxx), filter prioritas MoSCoW, tombol Approve/Reject, dan pemicu ekstraksi AI.
-   - **Tab 2: `Tanya & Asumsi` (Action Center)**:
-     - Menggabungkan **Pertanyaan Klarifikasi AI** dan **Asumsi Sistem** dalam satu wadah aksi terpusat.
-     - Dilengkapi **Badge Counter** kuning berkedip (*pulsing dot*) jika ada pertanyaan terbuka atau asumsi yang belum dikonfirmasi/dijawab.
+### B. Right Sidebar Transformation: "Project Co-Pilot" with 3 Open Tabs
+1. **Re-branding as "Project Co-Pilot"**:
+   - Replaced technical terminology *Inspector* with a proactive assistant that accompanies the user's workflow.
+   - Removed the 3-dot dropdown menu (`MoreVertical`) that previously hid navigation.
+2. **3 Permanent Segmented Tabs**:
+   - **Tab 1: `Requirements`**: Displays requirements backlog (FR-xxx/NFR-xxx), MoSCoW priority filters, Approve/Reject buttons, and AI extraction triggers.
+   - **Tab 2: `Questions & Assumptions` (Action Center)**:
+     - Unifies **AI Clarification Questions** and **System Assumptions** in a single centralized action center.
+     - Features a pulsing yellow **Badge Counter** indicator whenever unanswered clarification questions or unconfirmed assumptions remain.
    - **Tab 3: `Pipeline & Audit`**:
-     - Visual Stepper status 5 tahap dokumen (Discovery ➔ PRD ➔ SRS ➔ Architecture ➔ Design System) yang dapat diklik langsung untuk membuka dokumen terkait.
-     - Ringkasan temuan validasi/konflik dengan tombol "Audit Ulang".
-     - Matriks ketertelusuran (*Traceability Matrix*) PRD ➔ SRS.
+     - Visual 5-stage document stepper (Discovery ➔ PRD ➔ SRS ➔ Architecture ➔ Design System) with direct click-to-open document navigation.
+     - Validation findings and conflict summary with "Re-audit" button.
+     - PRD ➔ SRS Traceability Matrix.
 3. **Smart Auto-Focusing**:
-   - Saat pipeline otomatis berhenti sejenak karena ada pertanyaan klarifikasi yang wajib dijawab, sistem otomatis mengarahkan fokus sidebar kanan ke tab **Tanya & Asumsi**.
+   - When the pipeline pauses due to mandatory clarification questions, the system automatically redirects sidebar focus to the **Questions & Assumptions** tab.
 
 ### C. Bi-Directional Canvas-to-Chat Synchronization
-1. **Pencatatan Event Sistem Milestone (`internal/services/conversation_service.go`)**:
-   - Menambahkan metode `PostSystemEvent(conversationID, projectID, title, message string) (*domain.Message, error)` yang mencatat milestone dokumen resmi ke dalam database percakapan.
-2. **Auto-Post Notifikasi Milestone ke Linimasa Chat**:
-   - Saat pengguna mengklik tombol di canvas:
-     - **Generate PRD**: Mem-posting milestone *"PRD Draft v1 Berhasil Dibuat (20 Sections)"* dengan rekapitulasi jumlah kebutuhan dan asumsi.
-     - **Approve PRD**: Mem-posting pemberitahuan *"PRD Resmi Disetujui (Approved)"* bahwa gerbang downstream SRS kini terbuka.
-     - **Generate / Approve SRS**: Mem-posting pembaharuan spesifikasi SRS IEEE 830 (22 sections).
-     - **Generate / Approve Architecture**: Mem-posting pembaharuan dokumen Arsitektur (16 sections, C4 diagram, API contracts).
-     - **Generate / Approve Design System**: Mem-posting penyelesaian Design System (16 sections, MQ-Studio tokens & screen flows).
-   - Saat pengguna kembali ke tab Chat, linimasa percakapan langsung sinkron dan mengetahui dengan persis di mana posisi dokumen proyek berada.
+1. **System Milestone Event Logging (`internal/services/conversation_service.go`)**:
+   - Added method `PostSystemEvent(conversationID, projectID, title, message string) (*domain.Message, error)` recording formal document milestones in the conversation database.
+2. **Auto-Post Milestone Notifications to Chat Timeline**:
+   - Triggered when users execute canvas actions:
+     - **Generate PRD**: Posts milestone *"PRD Draft v1 Generated (20 Sections)"* with requirement and assumption summary.
+     - **Approve PRD**: Posts announcement *"PRD Officially Approved"* unlocking downstream SRS generation.
+     - **Generate / Approve SRS**: Posts updates for SRS IEEE 830 specifications (22 sections).
+     - **Generate / Approve Architecture**: Posts updates for Architecture documentation (16 sections, C4 diagrams, API contracts).
+     - **Generate / Approve Design System**: Posts completion notice for Design System (16 sections, MQ-Studio tokens & screen flows).
+   - When switching back to Chat, the conversation timeline remains completely in sync with document progress.
 
-### D. Penyelarasan Specialist Persona & Segmented Mode Toggle
+### D. Specialist Persona & Interaction Mode Alignment
 1. **Context-Aware Persona Auto-Switching**:
-   - Berpindah ke menu **PRD** ➔ Persona chat otomatis berpindah ke **Product Analyst**.
-   - Berpindah ke menu **SRS** ➔ Persona chat otomatis berpindah ke **System Analyst**.
-   - Berpindah ke menu **Architecture** ➔ Persona chat otomatis berpindah ke **Software Architect**.
-   - Berpindah ke menu **Design System** ➔ Persona chat otomatis berpindah ke **UI/UX Agent**.
-2. **Segmented Toggle Pill Mode Interaksi**:
-   - Menggantikan dropdown tersembunyi dengan **Toggle Pill 1-Klik** di atas bar input chat:
-     - **`🔍 Eksplorasi (Tanya Jawab)`**: AI proaktif mencari celah, mengajukan pertanyaan klarifikasi, dan mendeteksi asumsi dari ide kasar pengguna.
-     - **`⚡ Eksekusi (Spesifikasi)`**: AI langsung menyusun draft spesifikasi teknis dan artefak dokumen tanpa bertanya.
+   - Navigating to **PRD** ➔ Chat persona automatically switches to **Product Analyst**.
+   - Navigating to **SRS** ➔ Chat persona automatically switches to **System Analyst**.
+   - Navigating to **Architecture** ➔ Chat persona automatically switches to **Software Architect**.
+   - Navigating to **Design System** ➔ Chat persona automatically switches to **UI/UX Agent**.
+2. **Segmented Interaction Mode Toggle Pill**:
+   - Replaced hidden dropdowns with a **1-Click Toggle Pill** above the chat input bar:
+     - **`🔍 Exploration (Q&A)`**: AI proactively searches for ambiguities, poses clarification questions, and extracts assumptions from raw briefs.
+     - **`⚡ Execution (Spec)`**: AI directly authors structured specification drafts and document artifacts without conversational friction.
 
 ---
 
-## 3. Hasil Verifikasi & Uji Mutu
+## 3. Verification Results & Quality Assurance
 
 1. **Go Unit & Integration Test Suites**:
    ```powershell
    go test -v ./internal/...
    ```
-   **Hasil:**
+   **Results:**
    - `ai-requirements-studio/internal`: **PASS** (Scenario A-D e2e)
    - `ai-requirements-studio/internal/ai`: **PASS** (Orchestrator, Discovery, TOON, Validation Engine)
    - `ai-requirements-studio/internal/security`: **PASS** (Sensitive Data Redaction)
@@ -82,6 +82,6 @@ Seluruh permasalahan di atas telah diselesaikan dan diimplementasikan secara end
    ```powershell
    npm --prefix frontend run build
    ```
-   **Hasil:**
+   **Results:**
    - `tsc` (TypeScript Strict Mode): **0 errors**.
-   - Vite client bundle: Berhasil dibangun dalam **3.35s**.
+   - Vite client bundle: Built successfully in **3.35s**.

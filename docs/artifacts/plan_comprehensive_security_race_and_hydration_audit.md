@@ -1,64 +1,64 @@
-# Rencana Audit Komprehensif: Security, Race Conditions, Hydration/FOUC, & E2E Stability
+# Comprehensive Audit Plan: Security, Race Conditions, Hydration/FOUC, & E2E Stability
 
-## 1. Ringkasan Eksekutif & Tujuan Audit
-Berdasarkan permintaan pengguna:
+## 1. Executive Summary & Audit Objectives
+Based on the user request:
 > *"/plan audit security di sourcecodenya, audit race condition, audit hydration jika ada cek keseluruhan code e2e"*
 
-Kami telah melakukan audit mendalam terhadap seluruh basis kode (Go 1.27 backend, ModernC SQLite WAL, OS Keyring, Wails v3 bindings, dan React 19 TypeScript frontend). Audit ini mencakup 4 pilar utama:
-1. **Security Audit**: Path traversal pada workspace, sanitasi argumen CLI/subprocess, credential storage & redactor, dan SQL injection.
-2. **Race Condition Audit**: Mutex synchronization pada Go shared memory, atomisitas SQLite transaction, dan async state race pada React saat perpindahan project atau eksekusi pipeline.
-3. **Hydration & Render Lifecycle Audit**: Karakteristik React 19 Client SPA, eliminasi Flash of Unstyled Content (FOUC) pada theme & font scaling, dan pencegahan layout shift.
-4. **End-to-End Resilience**: Error boundaries, pembatalan request usang (*stale responses*), dan sinkronisasi status UI.
+We conducted a deep audit across the entire codebase (Go 1.27 backend, ModernC SQLite WAL, OS Keyring, Wails v3 bindings, and React 19 TypeScript frontend). This audit focuses on 4 foundational pillars:
+1. **Security Audit**: Workspace path traversal, CLI/subprocess argument sanitization, credential storage & redactor, and SQL injection prevention.
+2. **Race Condition Audit**: Mutex synchronization on Go shared memory, SQLite transaction atomicity, and React async state race conditions during rapid project switching or pipeline execution.
+3. **Hydration & Render Lifecycle Audit**: React 19 Client SPA characteristics, elimination of Flash of Unstyled Content (FOUC) on themes and font scaling, and prevention of layout shifts.
+4. **End-to-End Resilience**: Error boundaries, stale response cancellation, and UI status synchronization.
 
 ---
 
-## 2. Temuan Audit (Audit Findings)
+## 2. Audit Findings
 
 ```mermaid
 flowchart TD
-    subgraph S [Pilar 1: Security]
-        S1[S1: ProjectID Path Traversal di WorkspaceManager]
-        S2[S2: Sanitasi Model Flag pada Subproses CLI]
-        S3[S3: Sanitasi Workspace Directory Explorer]
+    subgraph S [Pillar 1: Security]
+        S1[S1: ProjectID Path Traversal in WorkspaceManager]
+        S2[S2: Model Flag Sanitization in Subprocess CLI]
+        S3[S3: Workspace Directory Explorer Sanitization]
     end
 
-    subgraph R [Pilar 2: Concurrency & Race Conditions]
-        R1[R1: Data Race pada AI Adapters SetConfig vs Generate]
-        R2[R2: Data Race Iterasi Unlocked Map di AgentRegistry]
-        R3[R3: Non-Atomic Document Versioning di SQLite]
-        R4[R4: React Async Race Condition saat Switch Project]
-        R5[R5: Concurrency Guard antara Auto-Pipeline & Chat]
+    subgraph R [Pillar 2: Concurrency & Race Conditions]
+        R1[R1: Data Race in AI Adapters SetConfig vs Generate]
+        R2[R2: Data Race in Unlocked Map Iteration in AgentRegistry]
+        R3[R3: Non-Atomic Document Versioning in SQLite]
+        R4[R4: React Async Race Condition on Project Switch]
+        R5[R5: Concurrency Guard Between Auto-Pipeline & Chat]
     end
 
-    subgraph H [Pilar 3: Hydration & Render Lifecycle]
-        H1[H1: FOUC Theme Flash sebelum React Mount]
-        H2[H2: Font Scale Layout Shift saat Startup]
-        H3[H3: Ketiadaan React Error Boundary di Root]
+    subgraph H [Pillar 3: Hydration & Render Lifecycle]
+        H1[H1: FOUC Theme Flash Prior to React Mount]
+        H2[H2: Font Scale Layout Shift at Startup]
+        H3[H3: Absence of React Root Error Boundary]
     end
 ```
 
-### Detail Temuan Spesifik:
+### Specific Findings Detail:
 
-| ID | Kategori | Tingkat Risiko | Lokasi File | Deskripsi Masalah |
+| ID | Category | Risk Level | File Location | Issue Description |
 | :--- | :--- | :--- | :--- | :--- |
-| **S1** | Security | **High** | `internal/storage/workspace.go` | `ProjectDir(projectID)` menggabungkan string tanpa `filepath.Base` / verifikasi batas direktori root. Nilai `projectID` manipulatif dapat menembus direktori (*path traversal*). |
-| **S2** | Security | **Medium** | `internal/ai/adapters/...` | `targetModel` diteruskan ke flag CLI tanpa validasi karakter spasi/newline. |
-| **R1** | Concurrency | **High** | `internal/ai/adapters/{antigravity,opencode,gemini}` | Field `model`, `baseURL`, `apiKey` dimutasi via `SetConfig()` tanpa proteksi `sync.RWMutex` saat goroutine lain membaca di `Generate()` / `ListModels()`. |
-| **R2** | Concurrency | **Critical** | `internal/ai/agent_registry.go` | Pada `SaveSkill` (L293) dan `DeleteSkill` (L313), map `r.skills` diiterasi *setelah* `r.mu.Unlock()`. Iterasi bersamaan dengan penulisan akan memicu Go runtime fatal panic (`concurrent map iteration and map write`). |
-| **R3** | Concurrency | **Medium** | `internal/storage/document_repo.go` | `AddVersion` menghitung `SELECT MAX(version_number) + 1` lalu melakukan `INSERT` tanpa SQL transaction (`BeginTx`). Operasi simultan dapat menghasilkan duplicate version number. |
-| **R4** | Concurrency | **Medium** | `frontend/src/App.tsx` | Perpindahan tab project yang cepat di `useEffect([activeProject])` tidak membatalkan request asinkron sebelumnya (*out-of-order stale response*). Dokumen project lama bisa menimpa tampilan project baru. |
-| **R5** | Concurrency | **Low** | `frontend/src/App.tsx` | Form chat input tidak men-disable tombol submit saat `autoPipelineRunning` aktif, berpotensi memicu tabrakan prompt AI. |
-| **H1** | Hydration/UX | **Medium** | `frontend/index.html` & `App.tsx` | Tema gelap (`dark`) diterapkan di dalam `useEffect` setelah DOM selesai dimuat. Layar berkedip terang (FOUC) selama beberapa milidetik sebelum mode gelap aktif. |
-| **H2** | Hydration/UX | **Low** | `frontend/index.html` | Font scale HiDPI diaplikasikan via JS runtime setelah mount, memicu pergeseran dimensi elemen UI (*layout shift*). |
-| **H3** | Stability | **Medium** | `frontend/src/main.tsx` | Ketiadaan `<ErrorBoundary>` di root menyebabkan unhandled JS exception langsung membuat layar Wails menjadi putih polos (*white screen of death*). |
+| **S1** | Security | **High** | `internal/storage/workspace.go` | `ProjectDir(projectID)` joined raw strings without `filepath.Base` / root directory boundary verification. Manipulated `projectID` values could cause path traversal. |
+| **S2** | Security | **Medium** | `internal/ai/adapters/...` | `targetModel` passed to CLI flags without whitespace/newline sanitization. |
+| **R1** | Concurrency | **High** | `internal/ai/adapters/{antigravity,opencode,gemini}` | Fields `model`, `baseURL`, `apiKey` mutated via `SetConfig()` without `sync.RWMutex` while other goroutines read them in `Generate()` / `ListModels()`. |
+| **R2** | Concurrency | **Critical** | `internal/ai/agent_registry.go` | In `SaveSkill` (L293) and `DeleteSkill` (L313), map `r.skills` was iterated *after* `r.mu.Unlock()`. Concurrent read/write could trigger fatal Go panic (`concurrent map iteration and map write`). |
+| **R3** | Concurrency | **Medium** | `internal/storage/document_repo.go` | `AddVersion` calculated `SELECT MAX(version_number) + 1` and performed `INSERT` without an explicit SQL transaction (`BeginTx`), risking duplicate version numbers under concurrency. |
+| **R4** | Concurrency | **Medium** | `frontend/src/App.tsx` | Rapid project switching in `useEffect([activeProject])` did not cancel previous asynchronous requests, risking stale out-of-order responses overwriting new project state. |
+| **R5** | Concurrency | **Low** | `frontend/src/App.tsx` | Chat input submit button was not disabled during `autoPipelineRunning`, risking prompt collisions. |
+| **H1** | Hydration/UX | **Medium** | `frontend/index.html` & `App.tsx` | Dark theme applied inside `useEffect` after DOM load, creating a millisecond white flash (FOUC) before dark mode activated. |
+| **H2** | Hydration/UX | **Low** | `frontend/index.html` | HiDPI font scaling applied via JS runtime after mount, triggering layout shift. |
+| **H3** | Stability | **Medium** | `frontend/src/main.tsx` | Absence of root `<ErrorBoundary>` caused unhandled JS exceptions to render a white screen of death. |
 
 ---
 
-## 3. Rencana Perbaikan Bertahap (Action Plan)
+## 3. Phased Remediation Plan
 
-### Bagian 1: Penguatan Keamanan (Security Hardening)
-1. **Perbaiki `internal/storage/workspace.go`**:
-   - Terapkan sanitasi ketat pada `ProjectDir(projectID)`:
+### Part 1: Security Hardening
+1. **Remediate `internal/storage/workspace.go`**:
+   - Enforce strict sanitization in `ProjectDir(projectID)`:
      ```go
      func (wm *WorkspaceManager) ProjectDir(projectID string) string {
          cleanID := filepath.Base(filepath.Clean(projectID))
@@ -68,18 +68,18 @@ flowchart TD
          return filepath.Join(wm.rootDir, "projects", cleanID)
      }
      ```
-   - Validasi bahwa seluruh operasi file (`SaveAttachment`, `WriteDocument`, `ReadDocument`) memverifikasi relasi path terhadap direktori project tujuan menggunakan `filepath.Rel`.
-2. **Sanitasi Parameter Flag CLI**:
-   - Di `antigravity`, `opencode`, dan `gemini` adapter, bersihkan string `targetModel` dari karakter berbahaya (spasi ganda, newline, flag prefix `--`) sebelum diteruskan ke eksekusi subproses.
+   - Validate all file operations (`SaveAttachment`, `WriteDocument`, `ReadDocument`) verify path confinement against the target directory using `filepath.Rel`.
+2. **CLI Parameter Sanitization**:
+   - Strip whitespace, newlines, and flag prefix patterns (`--`) from `targetModel` before forwarding to subprocesses.
 
-### Bagian 2: Eliminasi Race Conditions (Concurrency Hardening)
+### Part 2: Concurrency Hardening (Race Condition Elimination)
 1. **Thread-Safe AI Adapters**:
-   - Tambahkan `sync.RWMutex` ke `antigravity.Adapter`, `opencode.Adapter`, dan `gemini.Adapter`.
-   - Lindungi metode `SetConfig()`, `GetModel()`, `ListModels()`, dan `Generate()` dengan `mu.Lock()` / `mu.RLock()`.
-2. **Perbaikan Mutex pada `AgentRegistry` (`internal/ai/agent_registry.go`)**:
-   - Pada `SaveSkill` dan `DeleteSkill`, lakukan pengumpulan `customList` di dalam blok `r.mu.Lock()` (atau `r.mu.RLock()`) sebelum di-unmarshal dan disimpan ke repositori.
-3. **Transaksi Atomik SQLite (`internal/storage/document_repo.go`)**:
-   - Bungkus `AddVersion` dalam database transaction:
+   - Add `sync.RWMutex` to `antigravity.Adapter`, `opencode.Adapter`, and `gemini.Adapter`.
+   - Protect `SetConfig()`, `GetModel()`, `ListModels()`, and `Generate()` with `mu.Lock()` / `mu.RLock()`.
+2. **Mutex Protection in `AgentRegistry` (`internal/ai/agent_registry.go`)**:
+   - In `SaveSkill` and `DeleteSkill`, aggregate `customList` inside `r.mu.Lock()` (or `r.mu.RLock()`) prior to unmarshaling and persisting.
+3. **Atomic SQLite Transactions (`internal/storage/document_repo.go`)**:
+   - Wrap `AddVersion` in database transactions:
      ```go
      tx, err := r.db.BeginTx(ctx, nil)
      if err != nil { return nil, err }
@@ -89,15 +89,15 @@ flowchart TD
      // UPDATE document ...
      if err := tx.Commit(); err != nil { return nil, err }
      ```
-4. **Pembatalan Stale Response di Frontend (`frontend/src/App.tsx`)**:
-   - Tambahkan token generasi request (`activeProjectReqToken.current++`) di dalam `useEffect([activeProject])`.
-   - Di setiap callback `loadSessionAndData`, `loadDocumentDetails`, dan `loadValidationAndTraceability`, abaikan hasil jika token request sudah tidak sesuai dengan project yang sedang aktif.
-5. **Concurrency Guard pada Pipeline**:
-   - Tambahkan pengecekan `if (isSending || autoPipelineRunning) return;` di `handleSendMessage`.
+4. **Stale Response Cancellation in Frontend (`frontend/src/App.tsx`)**:
+   - Add monotonic request tokens (`activeProjectReqToken.current++`) inside `useEffect([activeProject])`.
+   - Ignore stale callbacks when active project IDs differ from current selection.
+5. **Pipeline Concurrency Guard**:
+   - Guard `handleSendMessage` with `if (isSending || autoPipelineRunning) return;`.
 
-### Bagian 3: Eliminasi Hydration Mismatch & FOUC (Hydration Hardening)
-1. **Inline Pre-render Script di `frontend/index.html`**:
-   - Sisipkan script sinkron ringan di `<head>` sebelum tag `<body>`:
+### Part 3: Hydration Mismatch & FOUC Elimination
+1. **Inline Pre-render Script in `frontend/index.html`**:
+   - Insert lightweight pre-hydration script in `<head>` before `<body>`:
      ```html
      <script>
        (function() {
@@ -114,29 +114,21 @@ flowchart TD
        })();
      </script>
      ```
-   - Ini memastikan WebView2 / WebKit langsung me-render background Obsidian Slate gelap dan scaling yang tepat sebelum React memuat frame pertama, menghilangkan FOUC 100%.
+   - Ensures WebView2 / WebKit immediately paints dark backgrounds and correct scales prior to React mount, eliminating FOUC.
 2. **Root Error Boundary (`frontend/src/components/ErrorBoundary.tsx` & `main.tsx`)**:
-   - Buat komponen `ErrorBoundary` dengan tampilan ramah pengguna MQ-Studio / Warm Stone, dilengkapi tombol "Reload Studio" dan salin crash stack trace jika terjadi kesalahan runtime.
+   - Build accessible `ErrorBoundary` styled with Warm Stone tokens, providing a "Reload Studio" action and stack trace copy.
 
 ---
 
-## 4. Rencana Verifikasi & Uji Mutu
+## 4. Verification & Testing Plan
 
-1. **Uji Keamanan & Path Traversal**:
-   - Buat unit test dengan input projectID berisi `../../exploit` dan attachment traversal untuk membuktikan penolakan akses ke luar direktori workspace.
-2. **Uji Konkurensi**:
-   - Eksekusi test suite dengan simulasi goroutine paralel memanggil `SaveSkill` dan `DeleteSkill` secara simultan untuk memverifikasi hilangnya panic data race.
-   - Uji transaksi dokumen `AddVersion` paralel.
-3. **Uji Visual Hydration & FOUC**:
-   - Refresh aplikasi dalam keadaan Dark Mode dan amati kelancaran rendering awal tanpa ada kedipan latar putih/abu-abu terang.
-4. **Build & Automated Test Commands**:
+1. **Security & Path Traversal Tests**:
+   - Unit tests supplying `../../exploit` project IDs to verify directory confinement enforcement.
+2. **Concurrency Verification**:
+   - Stress tests simulating concurrent goroutines calling `SaveSkill` and `DeleteSkill` simultaneously.
+   - Concurrent `AddVersion` transaction tests.
+3. **Visual Hydration & FOUC Inspection**:
+   - Refresh app in Dark Mode; verify smooth instant rendering without light flash.
+4. **Build & Test Commands**:
    - `go test -v ./internal/...`
    - `npm --prefix frontend run build`
-
----
-
-## 5. Pertanyaan & Konfirmasi
-
-Apakah Anda menyetujui rencana perbaikan audit ini untuk segera kami eksekusi secara berurutan:
-1. **Setujui & Eksekusi Penuh**: Terapkan seluruh perbaikan Security (S1-S3), Concurrency/Race Condition (R1-R5), dan Hydration/FOUC (H1-H3).
-2. **Ada prioritas tertentu**: Jika ingin mendahulukan bagian tertentu sebelum yang lain.

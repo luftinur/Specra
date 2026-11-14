@@ -1,73 +1,65 @@
 # Implementation Plan: Visual Identity, SVG App Icon & Wordmark for "specra"
 
 ## 1. Goal Description
-Mentransformasikan identitas visual aplikasi dari nama sementara (*AI Requirements Studio*) menjadi **`specra`**, dengan standar visual modern Silicon Valley tech tooling (seperti Vercel, Linear, Supabase, Raycast):
-- **Wordmark `specra`**: Tipografi Neo-Grotesk Geometris kontemporer (all-lowercase, bold/heavy 700-800, circular counters pada `p`, `e`, `c`, `a` single-story, potongan terminal horizontal 90° pada `s` dan `r`).
-- **SVG App Icon (512×512 px)**: Monogram huruf `s` yang presisi di dalam bingkai squircle standar macOS/Windows dengan sentuhan *subtle depth* (dark charcoal gradient `#161920` ke `#0B0D11`, inner stroke highlight, dan drop shadow halus).
-- **Integrasi Penuh**:
-  - Komponen React terisolasi (`<SpecraIcon />`, `<SpecraWordmark />`, `<SpecraLogo />`).
-  - Pembaruan Titlebar header, Welcome canvas screen, Settings modal, `index.html` (favicon & title), dan window title desktop `main.go`.
-  - Regenerasi aset desktop macOS (`icons.icns`), Windows (`icon.ico`), dan master image (`appicon.png`).
+Transforming the visual identity of the application from a placeholder name (*AI Requirements Studio*) into **`specra`**, adhering to modern Silicon Valley engineering standards (e.g. Vercel, Linear, Supabase, Raycast):
+- **Wordmark `specra`**: Contemporary geometric Neo-Grotesk typography (all-lowercase, bold/heavy 700-800, circular counters on `p`, `e`, `c`, single-story `a`, and 90° horizontal terminal shears on `s` and `r`).
+- **SVG App Icon (512×512 px)**: Precision `s` monogram within a macOS/Windows standard squircle frame with subtle depth (dark charcoal gradient `#161920` to `#0B0D11`, inner stroke highlight, and soft drop shadow).
+- **Comprehensive Integration**:
+  - Modular React components (`<SpecraIcon />`, `<SpecraWordmark />`, `<SpecraLogo />`).
+  - Titlebar header updates, Welcome canvas screen, Settings modal, `index.html` (favicon & title), and desktop window title in `main.go`.
+  - Native asset regeneration: macOS (`icons.icns`), Windows (`icon.ico`), and master image (`appicon.png`).
 
 ---
 
-## 2. User Review Required
-> [!IMPORTANT]
-> - Nama aplikasi resmi diperbarui dari *AI Requirements Studio* menjadi **`specra`** (all-lowercase untuk wordmark).
-> - Seluruh ikon dan wordmark dibuat dalam bentuk **Pure Vector SVG** mandiri (tanpa dependensi font eksternal) sehingga tampil tajam di semua resolusi Retina / High-DPI.
-> - Regenerasi aset native desktop (`build/darwin/icons.icns` dan `build/windows/icon.ico`) menggunakan toolchain Wails 3 CLI (`wails3 generate icons`).
+## 2. Visual Specification & Design Architecture
 
----
-
-## 3. Visual Specification & Design Architecture
-
-### A. Anatomi Huruf Wordmark `specra` (All-Lowercase)
+### A. Wordmark Anatomy `specra` (All-Lowercase)
 ```text
   s      p      e      c      r      a
 [───]  [───]  [───]  [───]  [───]  [───]
-  │      │      │      │      │      └── Single-story geometris (lingkaran + stem vertikal kanan)
-  │      │      │      │      └──────── Lengkungan arch terminal dipotong horizontal bersih
-  │      │      │      └─────────────── Open circular counter konsisten dengan p & e
-  │      │      └────────────────────── Horizontal crossbar sejajar tepat garis tengah
-  │      └───────────────────────────── Stem vertikal stabil ke bawah baseline + mangkuk bulat
-  └──────────────────────────────────── Kurva simetris, bukaan aperture sedang, terminal 90°
+  │      │      │      │      │      └── Geometric single-story (circle + right vertical stem)
+  │      │      │      │      └──────── Arch curve terminal sheared clean at 90°
+  │      │      │      └─────────────── Open circular counter matching p & e
+  │      │      └────────────────────── Horizontal crossbar aligned with center-line
+  │      └───────────────────────────── Stable vertical stem below baseline + round bowl
+  └──────────────────────────────────── Symmetrical curves, medium aperture, 90° terminals
 ```
 
-### B. Spesifikasi SVG App Icon (512×512 px)
-1. **Dimensi**: `viewBox="0 0 512 512"`
+### B. SVG App Icon Specification (512×512 px)
+1. **Dimensions**: `viewBox="0 0 512 512"`
 2. **Background Squircle**:
-   - Path squircle standar Apple/macOS `(corner radius ~115px)`.
-   - Linear Gradient: `#171922` (top) ke `#0A0C10` (bottom).
-   - Inner Border: `1.5px stroke` dengan gradien transparan `#FFFFFF` (opacity 0.16 di atas ke 0.03 di bawah) untuk refleksi kaca halus.
+   - Apple/macOS squircle geometry `(corner radius ~115px)`.
+   - Linear Gradient: `#171922` (top) to `#0A0C10` (bottom).
+   - Inner Border: `1.5px stroke` with transparent white gradient `#FFFFFF` (opacity 0.16 top to 0.03 bottom) for rim lighting.
 3. **Monogram `s`**:
-   - Geometri kurva presisi tinggi dengan stroke tebal stabil (~56px).
-   - Potongan terminal horizontal 90° yang tegas di kedua ujung.
-   - Warna: Pure Solid White (`#FFFFFF`) dengan aksen subtle depth gradient ke `#E2E8F0`.
+   - Heavy stroke geometry (~56px).
+   - Clean 90° horizontal terminal cuts on both ends.
+   - Color: Pure Solid White (`#FFFFFF`) with subtle depth shading to `#E2E8F0`.
 4. **Subtle Engineering Accent**:
-   - Aksen halus dot / beam reflektif di sudut squircle atau pusat kurva yang menegaskan identitas *spec engineering studio*.
+   - Precision anchor point accent affirming technical studio positioning.
 
 ---
 
-## 4. Proposed Changes
+## 3. Proposed Changes
 
 ### Component 1: Frontend Brand Assets
 
 #### [NEW] `frontend/src/components/SpecraBrand.tsx`
-Komponen SVG React siap pakai:
-- `<SpecraIcon size={number} className={string} />`: Merender squircle 512x512 monogram `s` dengan skalabilitas proporsional.
-- `<SpecraWordmark height={number} className={string} />`: Merender wordmark murni `specra` berbasis vector paths presisi (tidak bergantung font lokal).
-- `<SpecraLogo size={number} showWordmark={boolean} />`: Kombinasi ikon + teks `specra` dengan proporsi seimbang untuk navbar/titlebar.
+Reusable SVG React components:
+- `<SpecraIcon size={number} className={string} />`: Renders 512x512 squircle `s` monogram with proportional scaling.
+- `<SpecraWordmark height={number} className={string} />`: Renders pure vector path `specra` wordmark.
+- `<SpecraLogo size={number} showWordmark={boolean} />`: Combination icon + wordmark for titlebars and navbars.
 
 #### [NEW] `frontend/public/favicon.svg` & `frontend/src/assets/specra-icon.svg`
-Aset SVG mandiri untuk browser favicon dan referensi desktop.
+Standalone SVG assets for browser favicons and desktop window icons.
 
 ---
 
 ### Component 2: UI Integration in `frontend/src/App.tsx`
 
 #### [MODIFY] `frontend/src/App.tsx`
-1. **Titlebar Header (Line ~1445)**:
-   - Ganti kotak placeholder "AR" + "Requirements Studio" dengan:
+1. **Titlebar Header**:
+   - Replace placeholder boxes with:
      ```tsx
      <button
        type="button"
@@ -78,16 +70,16 @@ Aset SVG mandiri untuk browser favicon dan referensi desktop.
        <SpecraLogo size={22} showWordmark={true} />
      </button>
      ```
-2. **Empty State Canvas Welcome Screen (Line ~1900)**:
-   - Ganti icon folder default dengan `<SpecraIcon size={56} />`.
-   - Perbarui judul: `Selamat Datang di specra`.
-   - Subjudul: `Personal requirements engineering workspace untuk mentransformasikan ide dan brief proyek menjadi spesifikasi sistem terstruktur.`
-3. **Settings Modal Header (Line ~3430)**:
-   - Perbarui judul modal menjadi `specra Settings` dengan icon monogram.
+2. **Empty State Canvas Welcome Screen**:
+   - Replace generic folder icon with `<SpecraIcon size={56} />`.
+   - Title: `Welcome to Specra`.
+   - Subtitle: `Personal requirements engineering workspace transforming ideas and briefs into structured system specifications.`
+3. **Settings Modal Header**:
+   - Update modal title to `Specra Settings`.
 
 #### [MODIFY] `frontend/index.html`
-- Perbarui `<title>specra</title>`.
-- Perbarui `<link rel="icon" type="image/svg+xml" href="/favicon.svg" />`.
+- Update `<title>specra</title>`.
+- Update `<link rel="icon" type="image/svg+xml" href="/favicon.svg" />`.
 
 ---
 
@@ -103,36 +95,26 @@ Aset SVG mandiri untuk browser favicon dan referensi desktop.
 - Update `productName: "specra"`.
 - Update `description: "Personal AI Requirements Engineering Workspace"`.
 
-#### [NEW / GENERATE] Desktop Icon Binaries
+#### [GENERATE] Desktop Icon Binaries
 1. Generate `build/appicon.png` (1024×1024 high-res master icon).
 2. Generate `build/appicon.icon/Assets/wails_icon_vector.svg`.
-3. Jalankan `wails3 generate icons` untuk menghasilkan:
+3. Generate native binaries via `wails3 generate icons`:
    - `build/darwin/icons.icns`
    - `build/windows/icon.ico`
 
 ---
 
-## 5. Verification Plan
+## 4. Verification Plan
 
 ### Automated Tests
-1. **Frontend Compilation**:
-   ```bash
-   cd frontend && npm run build
-   ```
-   *Ekspektasi*: 0 TypeScript errors, bundle berhasil dibangun.
-2. **Backend Unit & End-to-End Tests**:
-   ```bash
-   export PATH=$PATH:/opt/homebrew/bin:~/go/bin; go test -v ./internal/...
-   ```
-   *Ekspektasi*: 13 test suites PASS 100%.
-3. **Native Desktop Build**:
-   ```bash
-   export PATH=$PATH:/opt/homebrew/bin:~/go/bin; wails3 task darwin:build:native
-   ```
-   *Ekspektasi*: binary `bin/ai-requirements-studio` berhasil dibangun dengan nama dan icon baru.
+```bash
+npm --prefix frontend run build
+go test -v ./internal/...
+wails3 task build
+```
 
 ### Manual Verification
-1. **Titlebar Header**: Logo `specra` (monogram squircle + wordmark lowercase) tampil tajam dan elegan di kiri atas.
-2. **Empty State Canvas**: Monogram `specra` tampil berukuran 56px dengan teks selamat datang yang selaras.
-3. **Favicon & Window Title**: Window macOS menampilkan judul `specra` dan favicon browser aktif.
-4. **Desktop Dock Icon**: Icon aplikasi di dock/taskbar menampilkan monogram squircle `specra`.
+1. **Titlebar Header**: Verify `specra` logo renders sharply in the top-left corner.
+2. **Empty State Canvas**: Verify 56px `specra` monogram and welcome copy.
+3. **Favicon & Window Title**: Window chrome displays `specra` title and icon.
+4. **Desktop Dock / Taskbar Icon**: Application icon renders squircle monogram.

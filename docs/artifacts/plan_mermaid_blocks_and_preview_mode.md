@@ -1,146 +1,102 @@
 # Implementation Plan: Mermaid Blocks, Auto-Detect Coding Agents & Adaptive Dropdowns
 
-Dokumen ini merangkum rencana implementasi terpadu untuk tiga penyempurnaan utama:
-1. **Interactive Mermaid Diagram Blocks & Rich Markdown Preview** di Document Workspace (PRD, SRS, Architecture, Design System) dan Chat Discovery.
-2. **Auto-Detection Coding Agents by Default** di Settings Modal serta kemudahan memilih dan mengaktifkan Agent CLI secara instan.
-3. **Adaptive Upward Dropdowns** untuk Persona Selector (`Product Analyst`) dan Interaction Mode (`Discovery Mode`) di bottom Unified Prompt Console agar tidak tertutup batas bawah layar.
+Comprehensive implementation plan covering:
+1. **Interactive Mermaid Diagram Blocks & Rich Markdown Preview** across Document Workspaces (PRD, SRS, Architecture, Design System) and Chat Discovery.
+2. **Default Auto-Detection of Coding Agents** in Settings Modal with instantaneous 1-click Primary Agent activation.
+3. **Adaptive Upward Dropdowns** for the Persona Selector (`Product Analyst`) and Interaction Mode (`Discovery Mode`) in the bottom Unified Prompt Console to prevent bottom-edge clipping.
 
 ---
 
 ## 1. Goal Description
 
 ### A. Mermaid Diagram Blocks & Document Preview Mode
-- Saat ini, dokumen yang di-generate AI hanya ditampilkan dalam bentuk raw text di dalam `<div className="whitespace-pre-wrap">`.
-- Pengguna membutuhkan:
-  - **Visual Preview Mode**: Diagram Mermaid (seperti C4 architecture, user journey, sequence diagram, flowchart) dirender sebagai visual SVG yang rapi.
-  - **Code View Toggle**: Pilihan beralih antara tampilan diagram visual (`[👁️ Visual Diagram]`) dan sintaks kode mentah (`[< > Mermaid Code]`).
-  - **One-Click Copy**: Tombol `[📋 Copy Mermaid]` di setiap diagram untuk menyalin kode diagram dengan cepat.
-  - **Zoom & Pan Controls**: Kontrol zoom in/out dan reset agar diagram arsitektur yang lebar nyaman dibaca.
-  - **Document-Level View Mode**: Switcher `[👁️ Formatted Preview]` vs `[📝 Source Markdown]` dan tombol `[📋 Copy Full Doc]`.
+- Previously, AI-generated documents rendered as plain raw text inside `<div className="whitespace-pre-wrap">`.
+- Target Capabilities:
+  - **Visual Preview Mode**: Render Mermaid diagrams (C4 architecture, sequence diagrams, flowcharts) as sharp interactive SVGs.
+  - **Code View Toggle**: Toggle between visual diagrams (`[👁️ Visual Diagram]`) and raw syntax (`[< > Mermaid Code]`).
+  - **One-Click Copy**: `[📋 Copy Mermaid]` action copying diagram source.
+  - **Zoom & Pan Controls**: Controls for zooming and resetting complex architectural diagrams.
+  - **Document-Level View Mode**: Switcher `[👁️ Formatted Preview]` vs `[📝 Source Markdown]` and a `[📋 Copy Full Doc]` action.
 
-### B. Auto-Detect Coding Agents by Default & Direct CLI Selection
-- Saat membuka Settings (tab AI Providers / Models), daftar coding agent (`agy`, `opencode`, Claude, Ollama) saat ini kosong sampai pengguna menekan tombol "Detect Installed Coding Agents".
-- Pengguna menginginkan:
-  - Deteksi berjalan otomatis saat aplikasi dimuat atau saat membuka settings, sehingga daftar agent lokal langsung muncul tanpa perlu klik manual.
-  - Pengguna dapat langsung memilih agen CLI mana yang aktif (`Set as Primary`) dengan persistensi instan.
+### B. Auto-Detect Coding Agents by Default
+- Automatically invoke agent discovery upon initial app load so installed coding agents (`agy`, `opencode`, Claude, Ollama) appear immediately in Settings without manual clicks.
+- Support 1-click `Set as Primary` with instantaneous persistence.
 
 ### C. Adaptive Upward Dropdown Positioning
-- Dropdown Persona Selector (`[👤 Product Analyst ▾]`) dan Interaction Mode (`[🔍 Discovery Mode ▾]`) saat ini menggunakan styling `top-full mt-1`.
-- Karena posisinya di bottom console (mepet tepi bawah layar), menu tersebut terbuka ke bawah sehingga terpotong oleh batas layar (*clipped/hidden*).
-- Solusi: Ubah posisi render menjadi terbuka ke atas (`bottom-full mb-2` / `bottom-[calc(100%+6px)]`) sehingga menu mengambang lega di atas console bar.
+- Relocate popover rendering from `top-full mt-1` to `bottom-full mb-2` so popovers float comfortably above the bottom prompt console without clipping.
 
 ---
 
-## 2. User Review Required
-> [!IMPORTANT]
-> - Pustaka `mermaid`, `react-markdown`, dan `remark-gfm` telah terpasang dan diverifikasi kompatibel penuh (build Vite 530ms, 0 error).
-> - Deteksi agen otomatis (`ProviderService.DetectInstalledCodingAgents()`) dijalankan secara asinkron di latar belakang saat aplikasi dibuka, sehingga tidak memblokir render UI awal.
-> - Klik `Set as Primary` pada kartu agen yang terdeteksi akan langsung memanggil `ProviderService.ConfigureProviders` dan memperbarui status secara otomatis.
-
----
-
-## 3. Proposed Changes
+## 2. Proposed Changes
 
 ### A. New Frontend Modular Components
 
 #### [NEW] `frontend/src/components/MermaidBlock.tsx`
-Komponen isolasi untuk me-render satu blok diagram Mermaid:
-- **Deteksi Tipe Diagram**: Otomatis mendeteksi tipe diagram (`Flowchart`, `C4 Architecture`, `Sequence Diagram`, `State Diagram`, `ER Diagram`, dll.).
+Isolated component rendering Mermaid blocks:
+- **Diagram Type Detection**: Automatically parses diagram type (`Flowchart`, `C4 Architecture`, `Sequence Diagram`, `State Diagram`, `ER Diagram`, etc.).
 - **Segmented Control**: `[👁️ Visual Diagram]` / `[< > Mermaid Code]`.
-- **Copy Button**: `[📋 Copy Mermaid]` dengan status umpan balik `Copied!`.
-- **Zoom & Fit**: Kontrol `Zoom In (+)`, `Zoom Out (-)`, `Reset`.
-- **Theme Awareness**: Menyesuaikan tema Mermaid dengan token MQ-Studio (*Warm Stone Light* vs *Obsidian Slate Dark*).
-- **Graceful Fallback**: Menangkap galat sintaks Mermaid dan otomatis menampilkan raw code box dengan peringatan yang jelas tanpa merusak UI.
+- **Copy Action**: `[📋 Copy Mermaid]` with `Copied!` feedback.
+- **Zoom & Pan**: `Zoom In (+)`, `Zoom Out (-)`, `Reset`.
+- **Theme Awareness**: Adapts themes dynamically (*Warm Stone Light* vs *Obsidian Slate Dark*).
+- **Graceful Fallback**: Catches syntax errors and displays raw syntax warning boxes without breaking UI rendering.
 
 #### [NEW] `frontend/src/components/MarkdownViewer.tsx`
-Komponen parser markdown lengkap:
-- Menggunakan `react-markdown` dan `remark-gfm`.
-- Menghubungkan blok kode `mermaid` ke `<MermaidBlock />`.
-- Blok kode umum dilengkapi bahasa dan tombol copy.
-- Styling elemen Markdown: headings (H1-H4), tables, lists, task checkboxes, blockquotes, links mengikuti token `tokens.css`.
+Full-featured Markdown renderer:
+- Powered by `react-markdown` and `remark-gfm`.
+- Connects `mermaid` code fences to `<MermaidBlock />`.
+- General code blocks with language indicators and copy actions.
+- Styled headings (H1-H4), tables, lists, task checkboxes, blockquotes, and links adhering to tokens.
 
 ---
 
 ### B. Modifications to `frontend/src/App.tsx`
 
-#### 1. Adaptive Upward Dropdown Positioning (Lines ~2167 & ~2225)
-Ubah posisi dropdown menu Persona dan Mode agar terbuka ke atas:
+#### 1. Adaptive Upward Dropdown Positioning
+Adjust dropdown rendering positions:
 ```tsx
-// Persona Dropdown: dari top-full mt-1 menjadi bottom-full mb-2
+// Persona Dropdown: bottom-full mb-2
 <div className="absolute bottom-full left-0 mb-2 w-64 bg-surface border border-border rounded-xl shadow-xl z-50 py-1 divide-y divide-border/50 animate-in fade-in slide-in-from-bottom-2">
   ...
 </div>
 
-// Mode Dropdown: dari top-full mt-1 menjadi bottom-full mb-2
+// Mode Dropdown: bottom-full mb-2
 <div className="absolute bottom-full left-0 mb-2 w-64 bg-surface border border-border rounded-xl shadow-xl z-50 py-1 divide-y divide-border/50 animate-in fade-in slide-in-from-bottom-2">
   ...
 </div>
 ```
 
-#### 2. Auto-Detect Coding Agents by Default & Instant Primary Selection
-- Panggil `handleDetectAgents()` secara otomatis di dalam `loadProviderStatus()` pada inisialisasi awal.
-- Saat Settings Modal dibuka, pastikan `handleDetectAgents()` dipanggil jika daftar masih kosong.
-- Tambahkan handler `handleSelectPrimaryAgent(agentId: string)`:
-  ```tsx
-  const handleSelectPrimaryAgent = async (agentId: string) => {
-    setPrimaryProvider(agentId);
-    try {
-      await ProviderService.ConfigureProviders(agentId, fallbackProvider, fallbackEnabled);
-      setProviderSaveSuccess(`AI Provider utama diaktifkan: ${agentId}`);
-      await loadProviderStatus();
-      setTimeout(() => setProviderSaveSuccess(''), 3000);
-    } catch (err) {
-      alert(`Gagal mengubah provider: ${String(err)}`);
-    }
-  };
-  ```
-- Hubungkan tombol `Set as Primary` di setiap kartu agen ke `handleSelectPrimaryAgent(agent.id)`.
+#### 2. Auto-Detect Coding Agents by Default
+- Trigger `handleDetectAgents()` during initial boot in `loadProviderStatus()`.
+- Add `handleSelectPrimaryAgent(agentId: string)` bound to `Set as Primary` buttons on agent cards.
 
 #### 3. Document Workspace Markdown & Mermaid Integration
-- Tambahkan state `docDisplayMode: 'preview' | 'source'` (default `'preview'`).
-- Di *Document Controls Banner*:
-  - Tambahkan toggle `[👁️ Preview]` / `[📝 Source]`.
-  - Tambahkan tombol `[📋 Copy Full Doc]`.
-- Di area konten dokumen (lines ~2600):
-  - Ganti `whitespace-pre-wrap` dengan `<MarkdownViewer content={activeDocDetails.current_version.content} isDark={isCurrentDark} />`.
-  - Lebarkan kontainer ke `max-w-5xl mx-auto w-full px-4`.
-- Di pesan chat asisten AI:
-  - Gunakan `<MarkdownViewer content={m.content} isDark={isCurrentDark} />` agar diagram yang dihasilkan dalam chat juga tampil interaktif.
+- Add `docDisplayMode: 'preview' | 'source'` (default `'preview'`).
+- In Document Controls: Add `[👁️ Preview]` / `[📝 Source]` toggle and `[📋 Copy Full Doc]` action.
+- In Document Content: Replace `whitespace-pre-wrap` with `<MarkdownViewer content={activeDocDetails.current_version.content} isDark={isCurrentDark} />`.
+- In Chat Messages: Render assistant messages via `<MarkdownViewer />` for in-chat diagram rendering.
 
 ---
 
-## 4. Verification Plan
+## 3. Verification Plan
 
 ### Automated Tests
 1. **Frontend Compilation**:
    ```bash
    cd frontend && npm run build
    ```
-   *Ekspektasi*: 0 TypeScript errors, Vite bundle berhasil dikompilasi.
+   *Expectation*: 0 TypeScript errors.
 2. **Backend Regression Tests**:
    ```bash
-   export PATH=$PATH:/opt/homebrew/bin:~/go/bin; go test -v ./internal/...
+   go test -v ./internal/...
    ```
-   *Ekspektasi*: 13 test suites PASS 100%.
-3. **Native macOS Desktop Binary**:
-   ```bash
-   export PATH=$PATH:/opt/homebrew/bin:~/go/bin; wails3 task darwin:build:native
-   ```
-   *Ekspektasi*: binary `bin/ai-requirements-studio` berhasil dibangun.
+   *Expectation*: All 13 test suites pass 100%.
 
 ### Manual Verification
-1. **Dropdown Adaptive Positioning**:
-   - Buka Chat Discovery pada project aktif.
-   - Klik `[👤 Product Analyst ▾]` ➔ Menu dropdown terbuka ke atas dengan rapi dan tidak terpotong tepi bawah layar.
-   - Klik `[🔍 Discovery Mode ▾]` ➔ Menu dropdown terbuka ke atas dengan rapi.
+1. **Adaptive Dropdown Positioning**:
+   - Open Chat Discovery; click `[👤 Product Analyst ▾]` and `[🔍 Discovery Mode ▾]`; verify popovers render upwards above the console.
 2. **Auto-Detect Coding Agents**:
-   - Buka Settings Modal (`⌘,` atau icon Settings) ➔ Tab `AI Providers / Models`.
-   - Pastikan kartu coding agent (`Antigravity CLI`, `OpenCode`, dll.) langsung muncul secara otomatis tanpa harus menekan tombol "Detect".
-   - Klik tombol `Set as Primary` pada salah satu agent ➔ Langsung tersimpan dan berubah menjadi `Primary Active`.
+   - Open Settings > AI Providers; verify host agents display automatically with active primary indicators.
 3. **Mermaid Blocks & Document Preview**:
-   - Buka dokumen PRD / SRS / Architecture yang memiliki blok diagram Mermaid.
-   - Pastikan diagram visual SVG tampil jelas.
-   - Klik `[< > Mermaid Code]` ➔ Beralih ke kode sumber Mermaid.
-   - Klik `[📋 Copy Mermaid]` ➔ Muncul indikator `Copied!` dan teks tersalin.
-   - Uji tombol `Zoom In (+)` dan `Zoom Out (-)`.
-   - Ganti tema Light/Dark ➔ Diagram Mermaid menyesuaikan tema.
+   - Open PRD, SRS, or Architecture documents containing Mermaid code blocks.
+   - Verify SVG diagrams render sharply with zoom and code toggle functionality.
+   - Switch themes; verify Mermaid diagram styling updates smoothly.

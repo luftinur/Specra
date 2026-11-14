@@ -1,37 +1,37 @@
 # Implementation Plan: Settings Modal Two-Pane Master-Detail Refactor (h-640px)
 
-Merekonstruksi Settings Modal dari layout single-pane horizontal raksasa menjadi **Two-Pane Master-Detail** berstandar aplikasi desktop native modern (`w-[940px] h-[640px]`), dilengkapi **password reveal toggle (Eye/EyeOff)**, pengelompokan **Grouped Cards**, serta audit arsitektur keamanan penyimpanan data (OS Keyring vs SQLite).
+Refactoring the Settings Modal from a large horizontal sheet into a **Two-Pane Master-Detail** layout adhering to modern desktop application standards (`w-[940px] h-[640px]`), equipped with **password visibility toggle (Eye/EyeOff)**, **Grouped Cards**, and a security architecture audit of local credential storage (OS Keyring vs SQLite).
 
 ---
 
 ## 1. Goal Description & Security Architecture Analysis
 
-### A. Analisis Keamanan Penyimpanan Kredensial & Data Lokal
-Berdasarkan audit teknis terhadap basis kode:
-1. **Penyimpanan Kunci API (API Key)**:
-   - **TIDAK PERNAH disimpan di SQLite (`app.db`)** dan **TIDAK PERNAH disimpan di browser `localStorage`**.
-   - Kunci API dikelola secara terisolasi oleh [`internal/security/keyring.go`](file:///Users/luftinurfahmi/VibeCoding/dev-agent-assistant/internal/security/keyring.go) menggunakan library native OS Keyring (`github.com/zalando/go-keyring`):
-     - **Di macOS**: Menggunakan **Apple Keychain** (enkripsi hardware Enclave Apple & akun login user).
-     - **Di Windows**: Menggunakan **Windows Credential Manager (WinCred)** dengan enkripsi DPAPI.
-     - **Di Linux**: Menggunakan **Secret Service (GNOME Keyring / KWallet)**.
-   - Sensor Log ([`internal/security/redactor.go`](file:///Users/luftinurfahmi/VibeCoding/dev-agent-assistant/internal/security/redactor.go)): Secara otomatis menyensor kunci API (pola `sk-...`, `AIzaSy...`) dari log diagnostik agar tidak bocor.
-2. **Penyimpanan Dokumen & Database SQLite**:
-   - Tersimpan secara lokal di folder pengguna `~/AI-Requirements-Studio/`:
-     - Database: `app.db` (SQLite WAL mode, CGO-free, hanya berisi tabel project, requirements, metadata chat, dan pengaturan tema).
-     - Dokumen: `projects/{id}/PRD.md`, `SRS.md`, `architecture.md`, `design.md`.
-   - **Tingkat Keamanan**: Sangat aman untuk desktop application lokal (*Local-First & Zero-Cloud Leak*), tidak ada data yang dikirim ke server pihak ketiga selain prompt AI yang secara eksplisit dikirim pengguna ke provider terpilih.
+### A. Local Credential Storage Security Audit
+Based on architectural audits:
+1. **API Key Storage**:
+   - **NEVER stored in SQLite (`app.db`)** and **NEVER stored in browser `localStorage`**.
+   - Managed in isolation via [`internal/security/keyring.go`](file:///E:/dev-agent-assistant/internal/security/keyring.go) using native OS Keyrings (`github.com/zalando/go-keyring`):
+     - **On macOS**: Apple Keychain (Enclave hardware encryption & user login credentials).
+     - **On Windows**: Windows Credential Manager (WinCred) with DPAPI encryption.
+     - **On Linux**: Secret Service (GNOME Keyring / KWallet).
+   - Log Redaction: Automatically strips API keys (`sk-...`, `AIzaSy...`) from diagnostic logs via [`internal/security/redactor.go`](file:///E:/dev-agent-assistant/internal/security/redactor.go).
+2. **Document & Database Storage**:
+   - Stored locally under user directory `~/AI-Requirements-Studio/`:
+     - Database: `app.db` (SQLite WAL mode, CGO-free, project metadata, requirements, theme settings).
+     - Documents: `projects/{id}/PRD.md`, `SRS.md`, `architecture.md`, `design.md`.
+   - **Security Level**: Zero-Cloud Leakage local-first desktop application; no data leaves the machine except user-directed prompts sent to selected AI providers.
 
 ---
 
-## 2. User Review Required & Decisions Made
+## 2. User Review & Decisions
 
 > [!IMPORTANT]
-> **Keputusan User (Disetujui):**
-> 1. **Dimensi Modal**: Menggunakan ukuran **`w-[940px] h-[640px]`** (maksimal 85vh) dengan `overflow-hidden`.
-> 2. **Password Reveal Toggle**: Menambahkan icon mata (`Eye` / `EyeOff` dari Lucide) di dalam field input API Key agar pengguna dapat mengintip dan memastikan keakuratan kunci API sebelum menekan tombol simpan.
-> 3. **Format Two-Pane Master-Detail**:
->    - **Left Pane (`w-60` / 240px)**: Vertical list 6 tab pengaturan dengan badge terpisah untuk count (misal: `MCP Connections`).
->    - **Right Pane (`flex-1`)**: Scroll area mandiri dengan *Grouped Cards* dan header section yang jelas.
+> **Approved Design Choices:**
+> 1. **Modal Dimensions**: Standardized desktop dimensions **`w-[940px] h-[640px]`** (max 85vh) with `overflow-hidden`.
+> 2. **Password Reveal Toggle**: Lucide `Eye` / `EyeOff` icons inside API Key inputs allowing verification prior to saving.
+> 3. **Two-Pane Master-Detail Layout**:
+>    - **Left Pane (`w-60` / 240px)**: Vertical list of 6 settings tabs with count badges (e.g. `MCP Connections`).
+>    - **Right Pane (`flex-1`)**: Independent scrollable pane with Grouped Cards and clear section headings.
 
 ---
 
@@ -39,9 +39,9 @@ Berdasarkan audit teknis terhadap basis kode:
 
 ### Frontend UI Component (`frontend/src/App.tsx`)
 
-#### [MODIFY] `frontend/src/App.tsx` (Lines 195–210 & Lines 2390–3912)
+#### [MODIFY] `frontend/src/App.tsx`
 
-1. **State Tambahan untuk Password Masking**:
+1. **State for Password Masking**:
    ```tsx
    const [showApiKey, setShowApiKey] = useState(false);
    ```
@@ -59,13 +59,13 @@ Berdasarkan audit teknis terhadap basis kode:
      <div className="flex items-center gap-2.5">
        <Settings size={18} className="text-primary" />
        <h3 className="font-semibold text-base text-fg">
-         AI Requirements Studio Settings
+         Specra Settings
        </h3>
      </div>
      <button 
        onClick={() => setShowSettingsModal(false)} 
        className="w-8 h-8 flex items-center justify-center text-muted hover:text-fg hover:bg-fill rounded-md transition-colors"
-       title="Tutup (Esc)"
+       title="Close (Esc)"
      >
        <X size={16} />
      </button>
@@ -73,7 +73,7 @@ Berdasarkan audit teknis terhadap basis kode:
    ```
 
 4. **Two-Pane Split Layout**:
-   - **Panel Kiri (Sidebar Navigasi `w-60` / 240px)**:
+   - **Left Pane (Navigation Sidebar `w-60` / 240px)**:
      ```tsx
      <div className="flex-1 flex min-h-0 overflow-hidden">
        <aside className="w-60 shrink-0 bg-panel/75 border-r border-border p-3 flex flex-col justify-between overflow-y-auto">
@@ -118,11 +118,11 @@ Berdasarkan audit teknis terhadap basis kode:
            })}
          </nav>
          <div className="pt-3 border-t border-border/60 text-[11px] text-muted-2 px-2">
-           Studio Engine v1.2 • Local-First
+           Specra Studio Engine • Local-First
          </div>
        </aside>
 
-       {/* Panel Kanan (Scrollable Detail Sheet) */}
+       {/* Right Pane (Scrollable Detail Sheet) */}
        <main className="flex-1 min-w-0 overflow-y-auto p-6 space-y-6 bg-surface">
          {/* Detail Tabs */}
        </main>
@@ -134,24 +134,22 @@ Berdasarkan audit teknis terhadap basis kode:
    <div className="h-14 px-6 border-t border-border flex items-center justify-between shrink-0 bg-surface">
      <div className="flex items-center gap-1.5 text-xs text-muted">
        <Lock size={12} className="text-ok" />
-       <span>Kredensial dienkripsi di OS Keyring • Data tersimpan lokal di SQLite</span>
+       <span>Credentials encrypted in OS Keyring • Data stored locally in SQLite</span>
      </div>
      <button 
        type="button" 
        onClick={() => setShowSettingsModal(false)} 
        className="px-4 py-1.5 text-xs font-medium rounded-md bg-fill text-fg hover:bg-fill-mute transition-colors border border-border shadow-2xs"
      >
-       Tutup
+       Close
      </button>
    </div>
    ```
 
-6. **Refactor Grouped Cards di Tab Diagnostics & Security**:
-   - **Card 1: Health & Latency**:
-     - Split header row antara judul status & tombol aksi `Jalankan Diagnostik`.
-     - Key-value metric: Durasi ms, Antigravity CLI version, OpenCode CLI status, OS Keyring status, Storage status.
+6. **Grouped Cards in Diagnostics & Security Tab**:
+   - **Card 1: Health & Latency**: Status metrics and "Run Diagnostics" button.
    - **Card 2: Secure OS Credential Store (API Key)**:
-     - Input field satu baris fleksibel:
+     - Flexible input with eye icon toggle:
        ```tsx
        <div className="flex gap-2 items-center">
          <div className="relative flex-1">
@@ -159,14 +157,14 @@ Berdasarkan audit teknis terhadap basis kode:
              type={showApiKey ? 'text' : 'password'}
              value={apiKeyInput}
              onChange={(e) => setApiKeyInput(e.target.value)}
-             placeholder="Simpan Google Gemini / OpenCode API Key..."
+             placeholder="Enter API key..."
              className="w-full border border-border rounded-md pl-3 pr-10 py-2 text-xs bg-surface font-mono text-fg placeholder:text-muted outline-none focus:border-primary"
            />
            <button
              type="button"
              onClick={() => setShowApiKey(!showApiKey)}
              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-fg p-1"
-             title={showApiKey ? 'Sembunyikan' : 'Perlihatkan'}
+             title={showApiKey ? 'Hide' : 'Show'}
            >
              {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
            </button>
@@ -175,34 +173,25 @@ Berdasarkan audit teknis terhadap basis kode:
            type="submit"
            className="px-3.5 py-2 text-xs font-medium rounded-md bg-primary hover:bg-primary-hover text-white shrink-0 shadow-2xs transition-colors"
          >
-           Simpan ke Keyring
+           Save to Keyring
          </button>
        </div>
        ```
-     - Keterangan keamanan dengan icon gembok: *"Kunci API disimpan terenkripsi di OS Keyring (Apple Keychain / Windows Credential Manager). Tidak pernah disimpan di database biasa."*
    - **Card 3: Storage & Environment Info**:
-     - Key-Value Data List dengan inline code blocks font-mono:
-       - SQLite Database: `ModernC Pure-Go SQLite (WAL mode, CGO-free)`
-       - Workspace Documents: `AI-Requirements-Studio/projects/{id}`
+     - Key-Value specs for SQLite WAL mode and local workspace directories.
 
 ---
 
 ## 4. Verification Plan
 
 ### Automated Tests
-1. Verifikasi kompilasi frontend:
-   ```bash
-   cd frontend && npm run build
-   ```
-2. Verifikasi unit tests backend Go:
-   ```bash
-   go test ./internal/...
-   ```
+```bash
+npm --prefix frontend run build
+go test -v ./internal/...
+```
 
 ### Manual Verification
-1. Jalankan `wails3 dev` di macOS.
-2. Buka Settings Modal:
-   - Pastikan tinggi modal pas pada `h-[640px]`.
-   - Pastikan navigasi 6 tab vertikal di kiri berpindah dengan mulus dan memiliki badge count pada MCP.
-   - Di tab Diagnostics, coba ketikkan teks pada input API Key dan klik tombol icon mata untuk memverifikasi fungsi toggle *Eye/EyeOff*.
-   - Pastikan footer memiliki tombol Tutup yang menutup modal dengan cepat.
+1. Open Settings Modal; verify `w-[940px] h-[640px]` geometry.
+2. Confirm smooth navigation between 6 left tabs.
+3. Test API Key visibility toggle (`Eye`/`EyeOff`).
+4. Click Close button in footer to dismiss.

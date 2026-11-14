@@ -2,29 +2,29 @@
 
 ## 1. Goal Description
 
-Rencana ini menangani tiga kebutuhan utama yang disampaikan pengguna:
+This plan resolves three primary user requirements:
 1. **Adaptive 4-Edge Viewport Containment & HiDPI Scaling Fix**:
-   - Menghilangkan penyebab pergeseran jendela (*off-screen shift*) saat zoom aktif dengan mengeliminasi unit `w-screen` (`100vw`) dan `h-screen` (`100vh`).
-   - Mengunci kontainer shell (`#root`, `body`, `.m3`) dengan `position: fixed; inset: 0; width: 100%; height: 100%;` agar ke-4 tepi (*top, bottom, left, right*) selalu menempel presisi di batas jendela native tanpa terpotong atau overflow.
-   - Mengunci koordinat scroll dokumen ke `(0, 0)` secara konsisten.
-2. **Chat Text Selection (Dapat Menyeleksi Teks Chat)**:
-   - Menghapus kelas `select-none` global pada elemen root `.m3`.
-   - Mengisolasi `select-none` hanya pada area kontrol chrome (TitleBar, Sidebar items, Tabs).
-   - Menambahkan kelas `select-text` (`user-select: text`) secara eksplisit pada bubble chat (pesan pengguna, jawaban asisten AI, dan Markdown viewer), sehingga teks obrolan dapat diblok/diseleksi dengan kursor layaknya aplikasi chat modern (ChatGPT, Claude, Slack).
-3. **OpenCode CLI Response Normalization (Respon Berbentuk Chat Bersih, Bukan JSON Mentah)**:
-   - OpenCode CLI (`opencode run --format json`) menghasilkan format *newline-delimited JSON (NDJSON)* atau objek bertingkat (`{"type":"text","part":{"text":"..."}}`).
-   - Parser adapter saat ini gagal mem-parse format multi-event NDJSON sehingga fallback mengembalikan seluruh raw JSON string ke dalam chat bubble.
-   - Memperbaiki parser OpenCode adapter untuk mengekstrak teks asli dari NDJSON/part event, serta memperkuat `ParseDiscoveryOutput` agar mengekstrak percakapan `reply` yang ramah pengguna ke dalam chat bubble dan memisahkan entitas requirements/clarifications ke database & inspector.
+   - Eliminate off-screen shifting during zoom by removing viewport units `w-screen` (`100vw`) and `h-screen` (`100vh`).
+   - Lock the application shell (`#root`, `body`, `.m3`) with `position: fixed; inset: 0; width: 100%; height: 100%;` ensuring all 4 edges (*top, bottom, left, right*) precisely adhere to the native desktop window boundaries.
+   - Lock document scroll coordinates to `(0, 0)` consistently.
+2. **Chat Text Selection**:
+   - Remove global `select-none` from the `.m3` root element.
+   - Restrict `select-none` strictly to window chrome controls (TitleBar, Sidebar items, Tabs).
+   - Explicitly apply `select-text` (`user-select: text`) to chat bubbles (user messages, AI assistant responses, and Markdown viewers), enabling effortless mouse selection and copying.
+3. **OpenCode CLI Response Normalization**:
+   - OpenCode CLI (`opencode run --format json`) outputs newline-delimited JSON (NDJSON) or nested event objects (`{"type":"text","part":{"text":"..."}}`).
+   - The parser previously fell back to dumping raw JSON into the chat bubble on multi-event streams.
+   - Refactor the OpenCode adapter parser to extract clean conversation text and reinforce `ParseDiscoveryOutput` to separate conversational replies from requirements/clarifications entities.
 
 ---
 
 ## 2. User Review Required
 
 > [!IMPORTANT]
-> **Kepastian Tata Letak & Interaksi**:
-> - **Seleksi Teks**: Teks di seluruh bubble chat dan dokumen spesifikasi kini dapat diseleksi, di-copy, atau di-highlight dengan kursor mouse secara bebas.
-> - **Keutuhan 4 Tepi Layar**: Titlebar di atas, sidebar di kiri, inspector di kanan, dan prompt bar di bawah tidak akan pernah terdorong keluar layar saat mengubah zoom (Auto HiDPI, 90%–125%, `Ctrl +`, `Ctrl -`).
-> - **Respon OpenCode**: Respon dari coding agent `opencode` akan tampil sebagai pesan chat natural berformat Markdown, bukan blok kode JSON mentah.
+> **Layout & Interaction Guarantees**:
+> - **Text Selection**: All text inside chat bubbles and document specifications is freely selectable and copyable via mouse cursor.
+> - **4-Edge Viewport Integrity**: Titlebar, sidebar, right inspector, and chat prompt bar will never shift off-screen across any zoom level (Auto HiDPI, 90%–125%, `Ctrl +`, `Ctrl -`).
+> - **OpenCode Responses**: Responses from `opencode` render as natural Markdown chat messages, never as raw JSON blocks.
 
 ---
 
@@ -33,8 +33,8 @@ Rencana ini menangani tiga kebutuhan utama yang disampaikan pengguna:
 ### A. Frontend Stylesheet & Root Shell ([`frontend/src/index.css`](file:///E:/dev-agent-assistant/frontend/src/index.css) & [`frontend/src/App.tsx`](file:///E:/dev-agent-assistant/frontend/src/App.tsx))
 
 #### [MODIFY] `frontend/src/index.css`
-- Ganti `height: 100vh; width: 100%;` menjadi `position: fixed; inset: 0; width: 100%; height: 100%; max-width: 100%; max-height: 100%; overflow: hidden;`.
-- Tambahkan aturan seleksi teks pada chat:
+- Replace `height: 100vh; width: 100%;` with `position: fixed; inset: 0; width: 100%; height: 100%; max-width: 100%; max-height: 100%; overflow: hidden;`.
+- Add explicit text selection utility:
 ```css
 .select-text, .select-text * {
   user-select: text !important;
@@ -43,13 +43,13 @@ Rencana ini menangani tiga kebutuhan utama yang disampaikan pengguna:
 ```
 
 #### [MODIFY] `frontend/src/App.tsx`
-- **Baris 1513**:
-  Ganti:
+- **Line 1513**:
+  Replace:
   `<div className="m3 flex flex-col h-screen w-screen overflow-hidden text-fg select-none">`
-  Menjadi:
-  `<div className="m3 flex flex-col w-full h-full overflow-hidden text-fg">` (menghapus `select-none` dari root, `w-screen`, dan `h-screen`).
-- **Baris 2095–2117 (Chat Bubbles)**:
-  Tambahkan kelas `select-text` pada bubble user dan bubble assistant:
+  With:
+  `<div className="m3 flex flex-col w-full h-full overflow-hidden text-fg">` (removing `select-none`, `w-screen`, and `h-screen`).
+- **Lines 2095–2117 (Chat Bubbles)**:
+  Add `select-text` class to user and assistant bubbles:
   ```tsx
   <div className="max-w-[75%] rounded-[8px] px-3.5 py-2.5 bg-fill text-fg border border-border/60 leading-relaxed whitespace-pre-wrap shadow-2xs text-[13px] select-text">
     {m.content}
@@ -59,8 +59,8 @@ Rencana ini menangani tiga kebutuhan utama yang disampaikan pengguna:
     <MarkdownViewer content={m.content} isDark={isCurrentDark} />
   </div>
   ```
-- **Kunci Scroll Koordinat ke (0, 0)**:
-  Tambahkan fungsi reset scroll pada `applyFontScale`, event listener `resize`, dan event listener global `scroll`:
+- **Lock Scroll Coordinates to (0, 0)**:
+  Add scroll reset logic across `applyFontScale`, window `resize`, and global `scroll` handlers:
   ```ts
   window.scrollTo(0, 0);
   document.documentElement.scrollLeft = 0;
@@ -74,7 +74,7 @@ Rencana ini menangani tiga kebutuhan utama yang disampaikan pengguna:
 ### B. HiDPI Scaling Two-Axis Fit ([`frontend/src/lib/uiScale.ts`](file:///E:/dev-agent-assistant/frontend/src/lib/uiScale.ts))
 
 #### [MODIFY] `frontend/src/lib/uiScale.ts`
-- Gunakan kalkulasi rasio dua sumbu (*Two-Axis Fit*):
+- Implement Two-Axis Fit calculation:
   ```ts
   const DESIGN_WIDTH = 1200;
   const DESIGN_HEIGHT = 800;
@@ -93,9 +93,8 @@ Rencana ini menangani tiga kebutuhan utama yang disampaikan pengguna:
 ### C. OpenCode CLI Output Extraction ([`internal/ai/adapters/opencode/adapter.go`](file:///E:/dev-agent-assistant/internal/ai/adapters/opencode/adapter.go))
 
 #### [MODIFY] `internal/ai/adapters/opencode/adapter.go`
-- Perbaiki `generateCLI` untuk mendukung ekstraksi multi-line NDJSON dan nested parts dari OpenCode v2:
+- Enhance `generateCLI` to parse multi-line NDJSON and nested parts:
   ```go
-  // Parse single JSON or NDJSON event stream from opencode run
   lines := strings.Split(content, "\n")
   var accumulated strings.Builder
   for _, line := range lines {
@@ -128,16 +127,14 @@ Rencana ini menangani tiga kebutuhan utama yang disampaikan pengguna:
       content = accumulated.String()
   }
   ```
-- Jika OpenCode mengembalikan output berformat JSON terstruktur yang membungkus teks percakapan, adapter memastikan teks diekstrak bersih sebelum dikirimkan ke `conversation_service`.
 
 ---
 
 ### D. Chat Discovery Parsing Robustness ([`internal/ai/discovery.go`](file:///E:/dev-agent-assistant/internal/ai/discovery.go))
 
 #### [MODIFY] `internal/ai/discovery.go`
-- Perluas `ParseDiscoveryOutput` agar jika output AI berupa objek JSON umum dengan atribut `content`, `text`, `message`, atau `reply`, nilainya otomatis dijadikan sebagai percakapan chat `Reply`:
+- Extend `ParseDiscoveryOutput` to handle standard LLM response shapes:
   ```go
-  // Fallback extraction for general LLM JSON responses:
   var genericMap map[string]any
   if err := json.Unmarshal([]byte(jsonCandidate), &genericMap); err == nil {
       if reply, ok := genericMap["reply"].(string); ok && reply != "" {
@@ -149,7 +146,6 @@ Rencana ini menangani tiga kebutuhan utama yang disampaikan pengguna:
       }
   }
   ```
-- Menjamin chat bubble pengguna hanya menampilkan teks percakapan natural dan tidak pernah menampilkan kurung kurawal `{ ... }` mentah.
 
 ---
 
@@ -161,17 +157,14 @@ Rencana ini menangani tiga kebutuhan utama yang disampaikan pengguna:
    go test -v ./internal/ai/...
    go test -v ./internal/services/...
    ```
-   *Ekspektasi: Unit test untuk NDJSON OpenCode, TOON tokenization, dan Discovery parser lolos 100%.*
+   *Expectation: 100% PASS for NDJSON parsing, TOON tokenization, and Discovery parsers.*
 2. **Frontend Build Verification**:
    ```bash
    cd frontend && npm run build
    ```
-   *Ekspektasi: 0 error TypeScript.*
+   *Expectation: 0 TypeScript errors.*
 
 ### Manual Verification
-1. **Verifikasi Seleksi Teks**:
-   - Blok teks chat bubble asisten AI dan user dengan kursor mouse -> Pastikan teks dapat disorot dan disalin dengan `Ctrl + C`.
-2. **Verifikasi 4 Tepi Adaptif**:
-   - Ganti skala ke `Auto (Adaptive HiDPI)`, `115%`, `125%` di Settings -> Pastikan Logo di pojok kiri atas, Window Controls di kanan atas, Sidebar di kiri, dan Chat bar di bawah tetap tampak utuh tanpa pergeseran.
-3. **Verifikasi OpenCode CLI**:
-   - Kirim pesan di Chat Discovery saat provider OpenCode aktif -> Pastikan respon yang muncul di bubble berupa pesan chat teks Markdown yang rapi, bukan JSON mentah.
+1. **Text Selection**: Select and copy text from chat bubbles and assistant responses.
+2. **Adaptive 4 Edges**: Adjust zoom scale to `Auto (Adaptive HiDPI)`, `115%`, `125%`; confirm window controls, sidebar, and input bar remain locked inside window boundaries.
+3. **OpenCode CLI**: Send message with OpenCode provider active; verify natural Markdown reply renders without raw JSON wrappers.

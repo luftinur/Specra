@@ -1,47 +1,41 @@
-# Implementation Plan — Push AI Requirements Studio ke GitHub (Private, Branch `main`)
+# Implementation Plan: Push Specra to GitHub (Private, Branch `main`)
 
-Dokumen rencana teknis untuk inisialisasi Git, pembersihan & konfigurasi `.gitignore`, pembuatan initial commit, dan proses push kode sumber ke repositori GitHub Private pada branch `main`.
+Technical planning document for Git repository initialization, `.gitignore` hygiene configuration, initial commit creation, and pushing source code to GitHub on branch `main`.
 
 ---
 
 ## 1. Goal Description
 
-Menyimpan seluruh basis kode proyek **AI Requirements Studio** (backend Go + Wails v3, frontend React/TypeScript MQ-Studio, dokumentasi PRD/SRS/Design System, dan folder `docs/artifacts`) ke repositori GitHub pribadi milik pengguna dengan konfigurasi:
+Persist the entire codebase of **Specra (AI Requirements Studio)** (Go backend + Wails v3, React/TypeScript frontend, specification documentation, and `docs/artifacts`) to the user's private GitHub repository with the following configuration:
 - **Visibility:** Private
 - **Default Branch:** `main`
-- **Clean Hygiene:** Memastikan file biner (`bin/*.exe`), `node_modules`, SQLite database, dan file sementara tidak ikut ter-push.
+- **Clean Hygiene:** Ensure binary outputs (`bin/*.exe`), `node_modules`, SQLite runtime databases, and temporary files are excluded.
 
 ---
 
-## 2. User Review & Decision Required
+## 2. User Review & Decision Workflow
 
 > [!IMPORTANT]
-> **Pilihan Pembuatan Repositori GitHub:**
-> 
-> Karena GitHub CLI (`gh`) belum terinstal/terautentikasi di lingkungan terminal saat ini, ada 2 opsi praktis untuk menghubungkan ke GitHub:
-> 
-> - **Opsi 1 (Direkomendasikan - Paling Cepat):**
->   1. Buka [github.com/new](https://github.com/new) di browser Anda.
->   2. Isi nama repository (misal: `ai-requirements-studio`).
->   3. Pilih **Private**.
->   4. *Jangan* centang *"Add a README file"*, *"Add .gitignore"*, atau *"Choose a license"* (biarkan kosong).
->   5. Berikan URL repositori Anda kepada saya (contoh: `https://github.com/<username>/ai-requirements-studio.git`).
->   6. Saya akan langsung menghubungkan remote dan melakukan push ke branch `main`.
-> 
-> - **Opsi 2 (Menggunakan GitHub CLI):**
->   Kita instal `gh` via `winget install --id GitHub.cli`, lalu Anda jalankan `gh auth login` satu kali di terminal untuk autorisasi web browser, setelah itu kita buat private repo via perintah CLI.
+> **GitHub Repository Setup:**
+> - **Option 1 (Recommended):**
+>   1. Navigate to [github.com/new](https://github.com/new) in browser.
+>   2. Set repository name (e.g. `Specra` or `dev-agent-assistant`).
+>   3. Select **Private**.
+>   4. Leave *"Add a README file"*, *"Add .gitignore"*, and *"Choose a license"* unchecked.
+>   5. Provide remote URL: `https://github.com/<username>/Specra.git`.
+> - **Option 2 (Using GitHub CLI):**
+>   Install `gh` via `winget install --id GitHub.cli`, authenticate via `gh auth login`, and create private repo via CLI.
 
 > [!NOTE]
-> **Direktori `_ref_ui/` (20 MB):**
-> Folder `_ref_ui` berisi source code referensi dari MQ-Studio 0.4.2 yang digunakan saat mengadopsi design tokens.
-> - *Rekomendasi:* Masukkan ke `.gitignore` agar repositori GitHub tetap ramping dan fokus hanya pada kode aplikasi studio kita. Jika Anda ingin menyertakannya, informasikan agar tidak kita ignore.
+> **Reference Directory `_ref_ui/`:**
+> Ignored in `.gitignore` to keep repository lightweight and strictly focused on core application code.
 
 ---
 
 ## 3. Proposed Changes & Steps
 
-### 1. Penyempurnaan `.gitignore`
-Memperbarui file [`.gitignore`](file:///E:/dev-agent-assistant/.gitignore) agar mencakup:
+### 1. `.gitignore` Hardening
+Ensure [`.gitignore`](file:///E:/dev-agent-assistant/.gitignore) contains:
 ```gitignore
 # Build & Binary
 .task
@@ -69,37 +63,36 @@ projects/
 Thumbs.db
 *.tmp
 
-# Reference UI Assets (Optional)
+# Reference UI Assets
 _ref_ui/
 ```
 
 ---
 
-### 2. Inisialisasi Git & Commit Lokal
-Menjalankan perintah Git bertahap di `E:\dev-agent-assistant`:
+### 2. Git Initialization & Local Commit
+Execute sequential Git commands in workspace:
 ```powershell
-# 1. Inisialisasi repository dengan branch main
+# 1. Initialize repository with main branch
 git init -b main
 
-# 2. Stage seluruh kode sumber & dokumentasi
+# 2. Stage all source code & documentation
 git add .
 
-# 3. Buat commit pertama
+# 3. Create initial commit
 git commit -m "feat: initial commit AI Requirements Studio desktop app (Wails v3 + React + Specialist Agents)"
 ```
 
 ---
 
-### 3. Remote Configuration & Push ke GitHub
-Setelah remote URL diperoleh dari Anda:
+### 3. Remote Configuration & Push
 ```powershell
-# 1. Tambahkan remote GitHub
+# 1. Add GitHub remote
 git remote add origin <URL_GITHUB_REPO>
 
-# 2. Pastikan branch bernama main
+# 2. Ensure branch is main
 git branch -M main
 
-# 3. Push kode ke private repository (Git Credential Manager akan pop-up/login otomatis)
+# 3. Push to remote
 git push -u origin main
 ```
 
@@ -109,18 +102,11 @@ git push -u origin main
 
 ### Automated Verification
 ```powershell
-# 1. Pastikan status git bersih setelah commit
 git status
-
-# 2. Pastikan remote mengarah ke GitHub
 git remote -v
-
-# 3. Verifikasi commit log
 git log -1 --stat
-
-# 4. Verifikasi branch tracking
 git branch -vv
 ```
 
 ### Manual Verification
-- Buka tautan repository di web browser GitHub untuk memastikan semua source code, dokumen PRD/SRS/Design System, dan `docs/artifacts/` telah terunggah dengan rapi di branch `main`.
+- Open repository URL on GitHub to verify source files, specification documents, and `docs/artifacts/` are pushed to `main`.

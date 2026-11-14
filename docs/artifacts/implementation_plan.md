@@ -1,6 +1,6 @@
 # AI Requirements Studio — Phased Implementation Plan
 
-Dokumen perencanaan teknis bertahap (*phased implementation plan*) untuk membangun **AI Requirements Studio** berdasarkan dokumen spesifikasi:
+Technical phased implementation plan for engineering **AI Requirements Studio** based on the foundational specification documents:
 - [PRD.md](file:///E:/dev-agent-assistant/prd.md) (v1.2 Final)
 - [SRS.md](file:///E:/dev-agent-assistant/srs.md) (v1.0 Final)
 - [design_system.md](file:///E:/dev-agent-assistant/design_system.md) (v1.0)
@@ -16,7 +16,7 @@ Dokumen perencanaan teknis bertahap (*phased implementation plan*) untuk membang
 
 ## 1. Goal Description
 
-Membangun aplikasi desktop *local-first*, *chat-first* berbasis **Go 1.27.x + Wails v3 + React + Tailwind CSS** dengan penyimpanan lokal **SQLite & Markdown**. Aplikasi mengintegrasikan AI provider pluggable (khususnya **Antigravity CLI** dan API adapters) untuk mengubah *project brief* menjadi dokumen **PRD** dan **SRS** yang terstruktur, tervalidasi, terverifikasi (*human-in-the-loop*), serta memiliki *full requirement traceability*.
+Build a *local-first*, *chat-first* desktop application based on **Go 1.27.x + Wails v3 + React + Tailwind CSS** with local persistence backed by **SQLite & Markdown**. The application integrates pluggable AI providers (specifically **Antigravity CLI** and API adapters) to transform user *project briefs* into structured, validated, human-in-the-loop verified **PRD** and **SRS** specification documents with *full requirement traceability*.
 
 ```mermaid
 flowchart LR
@@ -33,23 +33,23 @@ flowchart LR
 ## 2. User Review & Toolchain Decisions
 
 > [!IMPORTANT]
-> **Go Runtime (Latest 1.27.x dari go.dev/dl):**
-> Sesuai arahan pengguna, kita mengunci versi Go ke versi terbaru dari [https://go.dev/dl/](https://go.dev/dl/) (`go1.27.x`). Karena `go` belum terpasang di PATH Windows saat ini, installer MSI `go1.27.x.windows-amd64.msi` akan diunduh dan dipasang pada awal Phase 0.
+> **Go Runtime (Latest 1.27.x from go.dev/dl):**
+> Go is locked to the latest release from [https://go.dev/dl/](https://go.dev/dl/) (`go1.27.x`). The official MSI installer `go1.27.x.windows-amd64.msi` is installed and verified in PATH.
 
 > [!IMPORTANT]
-> **Wails Framework (Versi 3 / `wails3`):**
-> Sesuai arahan pengguna, framework desktop menggunakan **Wails v3** (`github.com/wailsapp/wails/v3`).
-> - Wails v3 mensyaratkan Go versi modern (Go 1.26+) dan menyediakan CLI baru `wails3`.
-> - Keunggulan Wails v3: Arsitektur event & IPC yang lebih efisien, native windowing yang lebih modular, sistem build berbasis task runner terintegrasi, dan dukungan pure-Go rendering yang lebih seamless di Windows (WebView2).
-> - Instalasi CLI: `go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0` (atau `@latest`).
+> **Wails Framework (Version 3 / `wails3`):**
+> Desktop framework uses **Wails v3** (`github.com/wailsapp/wails/v3`).
+> - Wails v3 requires modern Go (Go 1.26+) and provides the unified `wails3` CLI.
+> - Advantages: Efficient event & IPC architecture, modular native windowing, integrated task runner build system, and seamless pure-Go rendering on Windows (WebView2).
+> - CLI installation: `go install github.com/wailsapp/wails/v3/cmd/wails3@latest`.
 
 > [!NOTE]
 > **SQLite Driver (Pure Go):**
-> Menggunakan driver pure-Go `modernc.org/sqlite` agar kompilasi Wails v3 di Windows bebas dari dependensi GCC/MinGW (CGO-free build).
+> Utilizes pure-Go `modernc.org/sqlite` so Wails v3 compilation on Windows is completely free of GCC/MinGW dependencies (CGO-free build).
 
 > [!TIP]
 > **Antigravity CLI Integration (`agy` v1.5.5):**
-> CLI `agy` sudah terverifikasi di mesin (`v1.5.5`) dan siap digunakan langsung melalui adapter non-interaktif `agy -p "<prompt>" --output-format json --json-schema "<schema>"`.
+> Verified `agy` CLI on host (`v1.5.5`) integrated via non-interactive adapter: `agy -p "<prompt>" --output-format json --json-schema "<schema>"`.
 
 ---
 
@@ -106,40 +106,40 @@ flowchart TD
 ## 4. Phased Implementation Plan
 
 ### Phase 0: Technical Spike & Toolchain Setup (Go 1.27 + Wails v3)
-**Fokus:** Menyiapkan lingkungan pengembangan Go 1.27.x dan Wails v3, memvalidasi dependensi Windows (WebView2), serta melakukan uji komunikasi dasar subprocess `agy`.
+**Focus:** Prepare Go 1.27.x and Wails v3 environment, validate Windows dependencies (WebView2), and perform initial subprocess communication spikes with `agy`.
 
 #### Tasks:
 1. **Go 1.27.x Installation & Verification:**
-   - Unduh installer resmi Go `1.27.x` dari [https://go.dev/dl/](https://go.dev/dl/) (atau via winget).
-   - Pastikan `%USERPROFILE%\go\bin` dan direktori binary Go terdaftar di system `PATH`.
-   - Verifikasi dengan `go version`.
+   - Download official Go installer from [https://go.dev/dl/](https://go.dev/dl/).
+   - Ensure `%USERPROFILE%\go\bin` and Go binary directory are present in `PATH`.
+   - Verify with `go version`.
 2. **Wails v3 CLI Installation:**
-   - Jalankan instalasi CLI: `go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0` (atau `@latest`).
-   - Jalankan `wails3 setup` untuk verifikasi dependensi platform Windows (WebView2 runtime).
-   - Verifikasi kesiapan dengan `wails3 doctor`.
+   - Install CLI: `go install github.com/wailsapp/wails/v3/cmd/wails3@latest`.
+   - Run `wails3 setup` to verify platform runtime dependencies (WebView2).
+   - Verify environment readiness via `wails3 doctor`.
 3. **Scaffold Wails v3 Application:**
-   - Inisialisasi template Wails v3 React + TypeScript (`wails3 init -n ai-requirements-studio -t react-ts`).
-   - Konfigurasi Tailwind CSS v3/v4 dan Lucide Icons sesuai token pada [design_system.md](file:///E:/dev-agent-assistant/design_system.md).
-   - Jalankan dev server Wails v3 untuk memastikan window desktop tampil sempurna.
+   - Initialize Wails v3 React + TypeScript template (`wails3 init -n ai-requirements-studio -t react-ts`).
+   - Configure Tailwind CSS and Lucide Icons following design tokens.
+   - Run Wails v3 dev server to confirm desktop window rendering.
 4. **Technical Spikes:**
-   - **Antigravity CLI Subprocess:** Eksekusi `agy -p "ping" --output-format json` melalui package Go `os/exec` untuk memvalidasi tangkapan stdout/stderr dan penanganan exit code.
-   - **SQLite Spike:** Buat database test menggunakan `modernc.org/sqlite` untuk memastikan kompilasi CGO-free berjalan lancar di Windows.
-   - **Credential Spike:** Uji coba penyimpanan dummy key di Windows Credential Manager menggunakan `zalando/go-keyring`.
+   - **Antigravity CLI Subprocess:** Execute `agy -p "ping" --output-format json` via Go `os/exec` to test stdout/stderr capture and exit code handling.
+   - **SQLite Spike:** Create test database using `modernc.org/sqlite` ensuring smooth CGO-free compilation on Windows.
+   - **Credential Spike:** Test dummy key persistence in Windows Credential Manager via `zalando/go-keyring`.
 
-**Deliverables Phase 0:**
-- Environment Go 1.27.x dan `wails3` aktif dan lolos diagnosa `wails3 doctor`.
-- Template project Wails v3 terkonfigurasi dengan React, Tailwind, dan modul Go.
+**Phase 0 Deliverables:**
+- Go 1.27.x and `wails3` toolchain active and passing `wails3 doctor`.
+- Wails v3 project template configured with React, Tailwind, and Go backend modules.
 
 ---
 
 ### Phase 1: Core Application, Storage Foundation & Desktop Shell
-**Fokus:** Membangun *storage layer*, skema SQLite baseline, isolasi workspace lokal, registrasi provider adapter, dan UI layout desktop native.
+**Focus:** Build storage layer, baseline SQLite schema, local workspace isolation, provider adapter registry, and native desktop UI layout.
 
 #### Tasks:
 1. **Local Storage & Database Setup (SRS Section 9 & 10):**
-   - Buat skema SQLite baseline (`projects`, `conversations`, `messages`, `requirements`, `requirement_sources`, `clarifications`, `assumptions`, `decisions`, `documents`, `document_versions`, `traceability_links`, `validation_runs`, `validation_findings`, `ai_providers`, `provider_executions`).
-   - Implementasikan *migration runner* Go agar skema otomatis terinisialisasi saat aplikasi pertama kali dijalankan.
-   - Struktur direktori lokal:
+   - Create SQLite baseline schema (`projects`, `conversations`, `messages`, `requirements`, `requirement_sources`, `clarifications`, `assumptions`, `decisions`, `documents`, `document_versions`, `traceability_links`, `validation_runs`, `validation_findings`, `ai_providers`, `provider_executions`).
+   - Implement Go migration runner initializing schema on initial application boot.
+   - Local directory layout:
      ```text
      AI-Requirements-Studio/
      ├── app.db
@@ -151,146 +151,145 @@ flowchart TD
          └── exports/
      ```
 2. **Go Domain Services:**
-   - `ProjectManager`: Create, Read, Update, Archive, Delete (dengan konfirmasi).
-   - `ConversationManager`: Buat sesi percakapan per project, simpan riwayat user & AI.
-   - `ProviderManager`: Registrasi adapter, deteksi `agy.exe`, simpan konfigurasi model & non-secret settings.
+   - `ProjectManager`: Create, Read, Update, Archive, Delete (with confirmation).
+   - `ConversationManager`: Create per-project conversation sessions, persist user & AI interaction logs.
+   - `ProviderManager`: Register adapters, detect `agy.exe`, store model configurations & non-secret settings.
 3. **AI Adapter Foundation:**
-   - Definisikan interface `AIProvider`, tipe `GenerateRequest`, dan `GenerateResponse` (SRS Section 5.2).
-   - Buat `AntigravityCLIAdapter`:
-     - Deteksi executable `agy.exe` dari PATH.
-     - Periksa versi `agy --version`.
-     - Jalankan subprocess dengan argumen terkontrol, timeout, dan buffer output.
-   - Buat `GeminiAPIAdapter` sebagai contoh implementasi API provider.
-   - Implementasikan *response normalization* (menangani success, malformed JSON, timeout, exit code errors).
+   - Define `AIProvider` interface, `GenerateRequest`, and `GenerateResponse` types (SRS Section 5.2).
+   - Build `AntigravityCLIAdapter`:
+     - Detect `agy.exe` executable from `PATH`.
+     - Check version `agy --version`.
+     - Execute subprocess with controlled arguments, timeout, and buffered output.
+   - Build `GeminiAPIAdapter` as API provider implementation.
+   - Implement response normalization (handling success, malformed JSON, timeout, exit code errors).
 4. **Desktop UI Shell (Wails v3 + React + Tailwind):**
-   - Terapkan **Three-Pane Layout** ([design_system.md Section 4](file:///E:/dev-agent-assistant/design_system.md#L65)):
+   - Implement Three-Pane Layout:
      - **Left Pane (`w-64`):** Project Sidebar & Settings button.
      - **Center Pane (`flex-1`):** Main Chat Workspace & Message Input.
      - **Right Pane (`w-96` collapsible):** Context/Inspector & Document Panel.
-   - Terapkan color palette tokens (`bg-app`, `bg-panel`, `border-subtle`, `primary`, `success`, `warning`, `danger`).
-   - Komponen tombol, input auto-resize, badge status provider (hijau/merah/abu-abu).
-   - Bind Go service methods ke frontend melalui sistem service Wails v3.
+   - Apply color tokens (`bg-app`, `bg-panel`, `border-subtle`, `primary`, `success`, `warning`, `danger`).
+   - Bind Go service methods to frontend via Wails v3 service bindings.
 
-**Deliverables Phase 1:**
-- Aplikasi desktop Wails v3 berjalan dengan UI native yang responsif.
-- Pengguna dapat membuat dan berganti project secara lokal.
-- Deteksi status Antigravity CLI muncul di UI.
+**Phase 1 Deliverables:**
+- Wails v3 desktop application running with responsive UI.
+- Local project creation and switching.
+- Antigravity CLI detection visible in UI.
 
 ---
 
 ### Phase 2: Chat-First Discovery Engine & Requirement Management
-**Fokus:** Mengolah ide/project brief melalui dialog interaktif, mengekstrak requirement terstruktur, dan human-in-the-loop review.
+**Focus:** Process project briefs through interactive dialogue, extract structured requirements, and conduct human-in-the-loop review.
 
 #### Tasks:
 1. **AI Prompts & Logical Roles (PRD Section 6):**
-   - Buat prompt templates terpisah untuk:
-     - `Product Analyst`: identifikasi visi, target user, problem statement, core scope.
-     - `Business Analyst`: identifikasi business rules, gap, ambiguitas, konflik, constraints.
-     - `System Analyst`: identifikasi non-functional reqs, integrasi, data requirements.
+   - Author prompt templates for:
+     - `Product Analyst`: Vision, target audience, problem statements, core scope.
+     - `Business Analyst`: Business rules, gaps, ambiguities, conflicts, constraints.
+     - `System Analyst`: Non-functional requirements, integrations, data requirements.
 2. **Discovery Pipeline (SRS Section 7.1):**
-   - Pemrosesan project brief dari chat input.
-   - Ekstraksi gap & ambiguitas: generate klarifikasi pertanyaan (simpan di tabel `clarifications`).
-   - Penyimpanan jawaban klarifikasi pengguna dan penggabungan ke dalam konteks proyek.
+   - Ingest project brief from chat input.
+   - Gap & ambiguity extraction: generate clarification questions (`clarifications` table).
+   - Persist user answers and feed into project context.
 3. **Requirement Extraction & Management (SYS-REQ-001..010):**
-   - Generator ID unik: `REQ-001`, `REQ-002`, `NFR-001`, dsb.
-   - Kategorisasi requirement (Functional, Non-Functional, Business Rule, UI/UX).
-   - Prioritasi default menggunakan **MoSCoW** (Must, Should, Could, Won't) disertai alasan AI.
-   - Tracking Asumsi (`assumptions`) dan Keputusan (`decisions`).
-4. **Chat UI & Action Cards ([design_system.md Section 5.3](file:///E:/dev-agent-assistant/design_system.md#L97)):**
-   - Tampilan bubble user vs AI (AI style: border kiri tebal `border-l-2 border-indigo-500`).
-   - Tampilan kartu requirement interaktif (*Action Cards*) di dalam stream chat:
-     - Badge prioritas MoSCoW.
-     - Tombol **[Approve]** dan **[Reject]**.
-     - Form inline untuk revisi cepat.
-   - Inspector Panel menampilkan tab *Clarification Questions*, *Assumptions*, dan *Confirmed Requirements*.
+   - Unique ID generator: `REQ-001`, `REQ-002`, `NFR-001`, etc.
+   - Categorize requirements (Functional, Non-Functional, Business Rule, UI/UX).
+   - Default prioritization using **MoSCoW** (Must, Should, Could, Won't) with AI rationale.
+   - Assumption and Decision tracking.
+4. **Chat UI & Action Cards:**
+   - Bubble styling for User vs AI (AI style: prominent left border `border-l-2 border-indigo-500`).
+   - Interactive requirement cards in the chat stream:
+     - MoSCoW priority badge.
+     - **[Approve]** and **[Reject]** buttons.
+     - Inline revision inputs.
+   - Inspector Panel tabs for *Clarification Questions*, *Assumptions*, and *Confirmed Requirements*.
 
-**Deliverables Phase 2:**
-- Alur discovery lengkap: input brief -> klarifikasi interaktif -> daftar requirement terstruktur.
-- Requirement tersimpan di SQLite dengan status approval pengguna.
+**Phase 2 Deliverables:**
+- Complete discovery pipeline: brief input -> interactive clarifications -> structured requirements.
+- Requirements persisted in SQLite with human approval statuses.
 
 ---
 
 ### Phase 3: PRD & SRS Generation Engine & Document Workspace
-**Fokus:** Menyusun dokumen PRD lengkap (20 section) dan SRS (22 section), sistem versioning, preview Markdown, dan export file.
+**Focus:** Generate complete PRD (20 sections) and SRS (22 sections), document versioning, Markdown preview, and file export.
 
 #### Tasks:
 1. **Template & Document Generator (SRS Section 8):**
-   - Implementasikan template PRD 20 section (Executive Summary s/d Open Questions).
-   - Implementasikan template SRS 22 section (Introduction s/d Constraints & Assumptions).
-   - Pipeline PRD: generate draft dari requirement yang telah disetujui pengguna.
-   - Pipeline SRS: **Gated by PRD Approval** (SRS hanya dapat dibuat jika PRD berstatus `Approved`).
+   - Implement 20-section PRD template (Executive Summary through Open Questions).
+   - Implement 22-section SRS template (Introduction through Constraints & Assumptions).
+   - PRD Pipeline: generate draft from user-approved requirements.
+   - SRS Pipeline: **Gated by PRD Approval** (SRS can only be generated once PRD status is `Approved`).
 2. **Section-Level Regeneration:**
-   - Memungkinkan user memilih section spesifik (misal: "Section 9: Features" atau "Section 6: Functional Requirements") untuk digenerate ulang tanpa merusak section lain.
+   - Enable users to regenerate specific sections (e.g. "Section 9: Features") without altering remaining sections.
 3. **Document Versioning & Storage:**
-   - Tabel `documents` & `document_versions`: pencatatan `version_number`, `content_hash`, `source_version_id`, `status` (`Draft`, `In Review`, `Approved`, `Superseded`, `Outdated`).
-   - Sinkronisasi aman ke file lokal: `projects/{id}/PRD.md` dan `projects/{id}/SRS.md` dengan *atomic file write*.
-4. **Document Workspace UI ([design_system.md Section 5.4](file:///E:/dev-agent-assistant/design_system.md#L104)):**
-   - Markdown viewer terintegrasi (CommonMark compliant) dengan styling yang rapi (`max-w-prose`).
-   - Mode edit langsung (Markdown editor dengan syntax highlighting).
-   - Tab navigasi versi dokumen dan tombol **[Approve Document]**.
-   - Fitur **Export Markdown** ke lokasi folder pilihan pengguna menggunakan native dialog Wails v3 (`dialog.SaveFileDialog`).
+   - Tables `documents` & `document_versions`: tracking `version_number`, `content_hash`, `source_version_id`, and `status` (`Draft`, `In Review`, `Approved`, `Superseded`, `Outdated`).
+   - Atomic disk writes to `projects/{id}/PRD.md` and `projects/{id}/SRS.md`.
+4. **Document Workspace UI:**
+   - Integrated CommonMark-compliant Markdown viewer.
+   - Direct edit mode with syntax highlighting.
+   - Version history tabs and **[Approve Document]** action.
+   - **Export Markdown** to custom user directory using native Wails v3 dialogs (`dialog.SaveFileDialog`).
 
-**Deliverables Phase 3:**
-- Dokumen PRD dan SRS dapat di-generate, di-review, diedit, dan disetujui.
-- File `PRD.md` dan `SRS.md` tersimpan dan dapat diekspor secara lokal.
+**Phase 3 Deliverables:**
+- PRD and SRS documents can be generated, reviewed, edited, and approved.
+- `PRD.md` and `SRS.md` persisted and exportable locally.
 
 ---
 
 ### Phase 4: Validation Engine, Traceability & Change Impact
-**Fokus:** Memeriksa kelengkapan, mendeteksi konflik, membangun traceability matrix, dan melacak dampak perubahan PRD terhadap SRS.
+**Focus:** Completeness validation, conflict detection, traceability matrix construction, and PRD-to-SRS change impact tracking.
 
 #### Tasks:
 1. **Validation Engine (SYS-VAL-001..008):**
-   - Validasi kelengkapan struktural (memastikan 20 section PRD dan 22 section SRS terisi atau ditandai N/A).
+   - Structural completeness validation (ensure all 20 PRD and 22 SRS sections are populated or marked N/A).
    - Rule-based checks:
-     - Deteksi requirement tanpa acceptance criteria.
-     - Deteksi asumsi yang belum dikonfirmasi (*unsupported assumptions*).
+     - Detect requirements lacking acceptance criteria.
+     - Detect unsupported assumptions.
    - AI-assisted checks:
-     - Deteksi ambiguitas istilah.
-     - Deteksi requirement yang bertentangan (*conflicting requirements*).
-   - Pencatatan hasil temuan pada tabel `validation_findings` dengan tingkat keparahan (`Warning`, `Conflict`, `Info`).
+     - Ambiguity detection.
+     - Conflicting requirements detection.
+   - Findings logged in `validation_findings` with severity (`Warning`, `Conflict`, `Info`).
 2. **Traceability Engine (SYS-TRACE-001..005):**
-   - Pemetaan hubungan PRD Requirement ID <-> SRS Requirement ID pada tabel `traceability_links`.
-   - Deteksi *Orphan PRD Requirements* (kebutuhan produk yang belum di-cover di SRS).
-   - Deteksi *Unlinked SRS Requirements* (spesifikasi teknis tanpa justifikasi kebutuhan produk).
-   - Tampilan visual **Traceability Matrix** di UI Inspector.
+   - Map PRD Requirement ID <-> SRS Requirement ID in `traceability_links`.
+   - Detect *Orphan PRD Requirements* (product requirements not covered in SRS).
+   - Detect *Unlinked SRS Requirements* (technical specs without product requirement justification).
+   - Interactive **Traceability Matrix** visualization in the Inspector panel.
 3. **Change Impact Detection (SYS-SRS-008 & SYS-TRACE-005):**
-   - Jika suatu PRD requirement diubah setelah SRS di-*approve*, sistem otomatis mendeteksi SRS requirements yang terhubung.
-   - Status dokumen SRS otomatis ditandai sebagai `Outdated`.
-   - Memberikan notifikasi dan rekomendasi bagian SRS yang perlu diperbarui.
+   - When an approved PRD is modified, automatically flag connected SRS requirements.
+   - Downstream SRS status automatically transitions to `Outdated`.
+   - Surface actionable update recommendations for affected SRS sections.
 
-**Deliverables Phase 4:**
-- Panel validasi interaktif dengan color-coded findings (amber/rose).
-- Visualisasi Traceability Matrix.
-- Notifikasi otomatis saat terjadi inkonsistensi PRD dan SRS.
+**Phase 4 Deliverables:**
+- Interactive validation panel with color-coded findings (amber/rose).
+- Traceability Matrix visualization.
+- Automated inconsistency notifications between PRD and SRS.
 
 ---
 
 ### Phase 5: Security Hardening, Diagnostics, Testing & Packaging
-**Fokus:** Pengamanan credential, isolasi CLI, uji menyeluruh (unit, integration, E2E), dan build binary installer desktop via Wails v3.
+**Focus:** Credential security, CLI sandboxing, comprehensive testing (unit, integration, E2E), and desktop binary packaging via Wails v3.
 
 #### Tasks:
 1. **Security & Sandboxing (SRS Section 12):**
-   - Integrasi `go-keyring` untuk menyimpan API key di Windows Credential Manager / macOS Keychain.
-   - CLI execution hardening: isolasi working directory ke folder project, larang eksekusi arbitrary script yang disarankan AI.
-   - Redaksi otomatis terhadap data sensitif/kredensial pada logging aplikasi.
+   - Integrate `go-keyring` for secure OS credential storage (Windows Credential Manager / macOS Keychain).
+   - Subprocess execution hardening: isolate working directory to project workspace; prohibit arbitrary shell execution.
+   - Automated redaction of sensitive tokens and API keys in application logs.
 2. **Provider Diagnostics & Resilience:**
-   - Health check button di UI Settings untuk memeriksa ketersediaan dan autentikasi Antigravity CLI serta API provider.
-   - Timeout and cancellation handling: pembatalan permintaan AI via `context.Context` tanpa mengorbankan integritas database.
+   - Health check diagnostic tool in Settings to verify connectivity and authentication of Antigravity CLI and API providers.
+   - Timeout and cancellation handling: graceful `context.Context` cancellation preserving database integrity.
 3. **Automated Testing Suite (SRS Section 15):**
    - **Unit Tests:** Requirement ID generator, MoSCoW prioritization, document versioning, validation rules, response normalization.
-   - **Integration Tests:** SQLite transactions, project isolation, CLI adapter subprocess execution, export file atomic writes.
+   - **Integration Tests:** SQLite transactions, project isolation, CLI adapter subprocess execution, atomic file writes.
    - **End-to-End Scenarios:**
      - *Scenario A:* Project -> Chat Brief -> Discovery -> PRD Generate -> PRD Approve -> Export.
      - *Scenario B:* Approved PRD -> SRS Generate -> Traceability Check -> SRS Approve -> Export.
-     - *Scenario C:* Provider Switching (tanpa kehilangan state).
+     - *Scenario C:* Provider Switching (zero data loss).
      - *Scenario D:* PRD Change Impact -> SRS Outdated Trigger.
 4. **Desktop Packaging & Distribution (Wails v3):**
-   - Konfigurasi `wails3.json` atau task build runner untuk kompilasi production binary Windows `.exe` dan installer NSIS.
-   - Verifikasi performa startup, memori, dan responsivitas UI desktop.
+   - Configure build runner for production Windows `.exe` and NSIS installer generation.
+   - Verify cold startup latency, memory footprint, and UI responsiveness.
 
-**Deliverables Phase 5:**
-- Binary desktop application Wails v3 yang siap digunakan, aman, dan teruji penuh sesuai acceptance criteria MVP.
+**Phase 5 Deliverables:**
+- Production-ready Wails v3 desktop binary, verified against MVP acceptance criteria.
 
 ---
 
@@ -310,19 +309,19 @@ wails3 task build
 
 ### Manual Verification Scenarios (End-to-End Acceptance)
 1. **Project Setup & Brief Discovery:**
-   - Buat project baru bernama "Sample E-Commerce".
-   - Masukkan brief produk via chat.
-   - Pastikan AI memberikan pertanyaan klarifikasi dan kartu requirement terstruktur muncul.
+   - Create a project named "Sample E-Commerce".
+   - Submit product brief via chat.
+   - Verify AI poses clarification questions and interactive requirement cards appear.
 2. **Approval & PRD Generation:**
-   - Klik **Approve** pada kartu requirement.
-   - Generate draft PRD, periksa 20 section, lakukan review lalu klik **Approve PRD**.
+   - Click **Approve** on requirement cards.
+   - Generate PRD draft, review 20 sections, and click **Approve PRD**.
 3. **SRS Generation & Traceability:**
-   - Generate SRS dari PRD yang disetujui.
-   - Buka panel Traceability Matrix dan pastikan semua SRS requirement terpetakan ke PRD ID.
+   - Generate SRS from approved PRD.
+   - Open Traceability Matrix panel and verify all SRS requirements link to PRD IDs.
 4. **Validation & Change Impact:**
-   - Ubah salah satu requirement pada PRD.
-   - Verifikasi apakah SRS otomatis berubah status menjadi `Outdated`.
-   - Jalankan validation check dan periksa daftar temuan.
+   - Edit a requirement in PRD.
+   - Verify SRS status automatically transitions to `Outdated`.
+   - Run validation check and review findings.
 5. **Export & Offline Check:**
-   - Ekspor `PRD.md` dan `SRS.md` ke disk lokal.
-   - Putuskan koneksi internet / disable provider: pastikan project, chat history, dan dokumen Markdown tetap dapat dibaca dan diedit secara offline.
+   - Export `PRD.md` and `SRS.md` to local disk.
+   - Disconnect network / disable provider: verify projects, chat history, and Markdown specs remain accessible offline.

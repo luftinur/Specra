@@ -1,6 +1,6 @@
-# Elaborasi Arsitektur 4 Specialist Agent Personas
+# Architectural Specification: 4 Specialist Agent Personas
 
-Dokumen rencana dan spesifikasi rinci untuk memecah arsitektur agen spesialis menjadi **4 Persona Ahli yang Saling Berkaitan**:
+Detailed plan and specification for decomposing the agent architecture into **4 Interconnected Specialist Personas**:
 
 ```mermaid
 flowchart TD
@@ -47,131 +47,131 @@ flowchart TD
 
 ---
 
-## 1. Rincian 4 Specialist Personas, Skills, dan MCP
+## 1. Specialist Personas, Skills, and MCP Tools
 
-### Persona 1: Product Analyst Agent (Fokus: PRD - Product Requirements Document)
-- **ID Agen:** `product-analyst`
+### Persona 1: Product Analyst Agent (Focus: PRD - Product Requirements Document)
+- **Agent ID:** `product-analyst`
 - **Role Title:** `Product Analyst & Business Strategist`
-- **Tanggung Jawab Utama:**
-  - Menganalisis ide mentah pengguna, visi bisnis, dan problem statement.
-  - Merumuskan User Personas, Target Audience, dan User Journey Maps.
-  - Melakukan kategorisasi kebutuhan dan prioritas MoSCoW (*Must Have, Should Have, Could Have, Won't Have*).
-  - Menyusun dan mengelola dokumen **`PRD.md` (20 sections)**.
-- **Daftar Skills Bawaan:**
-  - `product-discovery` (Ekstraksi kebutuhan implisit dari percakapan)
-  - `user-story-mapping` (Pemetaan cerita pengguna dan kriteria penerimaan)
-  - `moscow-prioritization` (Klasifikasi prioritas fitur objektif)
-  - `business-kpi-definition` (Perumusan metrik keberhasilan produk)
-- **Rekomendasi MCP Tool Integrations:**
-  - *Jira / Linear MCP* (Sinkronisasi epics dan user stories)
-  - *Notion / Confluence MCP* (Sinkronisasi product brief awal)
+- **Core Responsibilities:**
+  - Analyze raw ideas, business vision, and problem statements.
+  - Formulate User Personas, Target Audience, and User Journey Maps.
+  - Perform requirements categorization and MoSCoW prioritization (*Must Have, Should Have, Could Have, Won't Have*).
+  - Draft and maintain the **`PRD.md` (20 sections)**.
+- **Built-in Skills:**
+  - `product-discovery` (Extracting implicit requirements from conversation)
+  - `user-story-mapping` (User story mapping and acceptance criteria)
+  - `moscow-prioritization` (Objective feature prioritization classification)
+  - `business-kpi-definition` (Defining product success metrics)
+- **Recommended MCP Tool Integrations:**
+  - *Jira / Linear MCP* (Epics and user stories synchronization)
+  - *Notion / Confluence MCP* (Product brief synchronization)
 
 ---
 
-### Persona 2: System Analyst Agent (Fokus: SRS - Software Requirements Specification)
-- **ID Agen:** `system-analyst`
+### Persona 2: System Analyst Agent (Focus: SRS - Software Requirements Specification)
+- **Agent ID:** `system-analyst`
 - **Role Title:** `Lead System Analyst & IEEE 830 Specialist`
-- **Tanggung Jawab Utama:**
-  - Menerjemahkan kebutuhan bisnis dari PRD menjadi spesifikasi teknis fungsional dan non-fungsional.
-  - Memetakan pemodelan data konseptual, kamus data (*data dictionary*), dan aturan bisnis (*business rules*).
-  - Memastikan *Traceability Matrix* antara PRD Requirement ID (`REQ-XXX`) dan System Specification.
-  - Menyusun dan mengelola dokumen **`SRS.md` (22 sections)**.
-- **Daftar Skills Bawaan:**
-  - `ieee-830-specification` (Standar dokumentasi rekayasa perangkat lunak internasional)
-  - `functional-flow-modeling` (Pemodelan alur sistem dan status transisi)
-  - `traceability-verification` (Deteksi orphan requirements dan inkonsistensi)
-  - `non-functional-sla-definition` (Kriteria latency, throughput, reliability, dan disaster recovery)
-- **Rekomendasi MCP Tool Integrations:**
-  - *PostgreSQL / SQLite Schema MCP* (Ekstraksi dan validasi skema tabel)
-  - *OpenAPI / Swagger MCP* (Validasi kontrak data)
+- **Core Responsibilities:**
+  - Translate PRD business requirements into functional and non-functional technical specifications.
+  - Model conceptual data models, data dictionaries, and business rules.
+  - Enforce the *Traceability Matrix* between PRD Requirement IDs (`REQ-XXX`) and System Specifications.
+  - Draft and maintain the **`SRS.md` (22 sections)**.
+- **Built-in Skills:**
+  - `ieee-830-specification` (International software engineering documentation standard)
+  - `functional-flow-modeling` (System flow modeling and state transitions)
+  - `traceability-verification` (Orphan requirement and inconsistency detection)
+  - `non-functional-sla-definition` (Latency, throughput, reliability, and disaster recovery criteria)
+- **Recommended MCP Tool Integrations:**
+  - *PostgreSQL / SQLite Schema MCP* (Table schema extraction and validation)
+  - *OpenAPI / Swagger MCP* (Data contract validation)
 
 ---
 
-### Persona 3: Software Architect Agent (Fokus: Architecture & Technical Topology)
-- **ID Agen:** `software-architect`
+### Persona 3: Software Architect Agent (Focus: Architecture & Technical Topology)
+- **Agent ID:** `software-architect`
 - **Role Title:** `Principal Software Architect`
-- **Tanggung Jawab Utama:**
-  - Merumuskan arsitektur sistem level tinggi (C4 Model: Context, Containers, Components, Code).
-  - Menentukan pola arsitektur (Modular Monolith, Event-Driven, Microservices, Local-First WAL).
-  - Mendefinisikan kontrak antarmuka API (REST endpoints, gRPC protos, GraphQL schemas).
-  - Menetapkan strategi keamanan (OAuth2, JWT, RBAC, Data Encryption at Rest & in Transit).
-  - Menyusun dan mengelola dokumen **`architecture.md`** serta diagram topologi sistem Mermaid.
-- **Daftar Skills Bawaan:**
-  - `c4-architecture-modeling` (Diagram C4 Mermaid: System Context & Container diagrams)
-  - `api-contract-engineering` (Spesifikasi skema request/response dan payload validation)
-  - `security-threat-modeling` (STRIDE threat analysis dan enkripsi data)
-  - `scalability-fault-tolerance` (Caching strategy, circuit breakers, rate limiting)
-- **Rekomendasi MCP Tool Integrations:**
-  - *Git / GitHub MCP* (Audit struktur repositori dan arsitektur kode)
-  - *Docker / Kubernetes MCP* (Inspeksi container topologies dan manifests)
+- **Core Responsibilities:**
+  - Formulate high-level system architecture (C4 Model: Context, Containers, Components, Code).
+  - Define architectural patterns (Modular Monolith, Event-Driven, Microservices, Local-First WAL).
+  - Establish API interface contracts (REST endpoints, gRPC protos, GraphQL schemas).
+  - Define security strategies (OAuth2, JWT, RBAC, Data Encryption at Rest & in Transit).
+  - Draft and maintain **`architecture.md`** alongside Mermaid topology diagrams.
+- **Built-in Skills:**
+  - `c4-architecture-modeling` (C4 Mermaid diagrams: System Context & Container diagrams)
+  - `api-contract-engineering` (Request/response schemas and payload validation specifications)
+  - `security-threat-modeling` (STRIDE threat analysis and data encryption)
+  - `scalability-fault-tolerance` (Caching strategies, circuit breakers, rate limiting)
+- **Recommended MCP Tool Integrations:**
+  - *Git / GitHub MCP* (Repository structure and code architecture audits)
+  - *Docker / Kubernetes MCP* (Container topologies and manifests inspection)
 
 ---
 
-### Persona 4: UI/UX Agent (Fokus: Design System & Interface)
-- **ID Agen:** `ui-ux-agent`
+### Persona 4: UI/UX Agent (Focus: Design System & Interface)
+- **Agent ID:** `ui-ux-agent`
 - **Role Title:** `UI/UX Architect & Design System Specialist`
-- **Tanggung Jawab Utama:**
-  - Merumuskan arah visual, estetika, dan tema antarmuka (*Light & Dark mode*).
-  - Menyusun Semantic Design Tokens: palet warna (hex/hsl), skala tipografi, grid layout, dan elevation shadows.
-  - Merancang arsitektur komponen atomik (Buttons, Form Controls, Dialogs, Cards, Badges, Navbars).
-  - Membuat diagram Mermaid untuk alur layar pengguna (*User Screen Navigation Flows*).
-  - Menyusun dan mengelola dokumen **`design.md` (16 sections)** dan mapping utility class Tailwind CSS.
-- **Daftar Skills Bawaan:**
-  - `semantic-design-tokens` (Penyusunan token CSS Variables dan Tailwind configuration)
-  - `atomic-component-hierarchy` (Pola komponen Atoms, Molecules, Organisms)
-  - `mermaid-screen-flows` (Diagram interaksi layar visual Mermaid)
-  - `wcag-accessibility-audit` (Kepatuhan rasio kontras warna dan keyboard navigation WCAG 2.1 AA)
-- **Rekomendasi MCP Tool Integrations:**
-  - *Figma MCP* (Impor tokens warna, font hierarchy, dan wireframe layouts)
-  - *Iconify / Lucide MCP* (Pencarian dan penataan aset visual)
+- **Core Responsibilities:**
+  - Establish visual direction, aesthetics, and interface themes (*Light & Dark mode*).
+  - Formulate Semantic Design Tokens: color palettes (hex/hsl), typography scale, layout grids, and elevation shadows.
+  - Design atomic component architectures (Buttons, Form Controls, Dialogs, Cards, Badges, Navbars).
+  - Generate Mermaid user screen navigation flows.
+  - Draft and maintain **`design.md` (16 sections)** and Tailwind CSS utility class mappings.
+- **Built-in Skills:**
+  - `semantic-design-tokens` (CSS variables and Tailwind configuration token generation)
+  - `atomic-component-hierarchy` (Atoms, Molecules, Organisms component patterns)
+  - `mermaid-screen-flows` (Mermaid visual screen interaction diagrams)
+  - `wcag-accessibility-audit` (Contrast ratio and WCAG 2.1 AA keyboard accessibility compliance)
+- **Recommended MCP Tool Integrations:**
+  - *Figma MCP* (Importing color tokens, font hierarchies, and wireframes)
+  - *Iconify / Lucide MCP* (Visual asset search and alignment)
 
 ---
 
-## 2. Hubungan Keterkaitan Antar-Agen (*Interconnected Intelligence*)
+## 2. Interconnected Intelligence Pipeline
 
-Ketika pengguna berkonsultasi di **Chat Discovery**:
-1. **Product Analyst** mengekstrak kebutuhan awal menjadi requirement (`REQ-001`, `REQ-002`, dst.) dengan prioritas MoSCoW.
-2. Ketika beralih ke **System Analyst**, percakapan langsung menyertakan rangkuman PRD yang telah disetujui, sehingga System Analyst tidak mengulang pertanyaan dasar melainkan fokus pada validasi logika sistem dan penanganan error.
-3. Ketika beralih ke **Software Architect**, sistem menyertakan konteks PRD + SRS, sehingga Software Architect dapat langsung merekomendasikan database engine, struktur microservices/monolith, dan kontrak API yang presisi.
-4. Ketika beralih ke **UI/UX Agent**, agen ini membaca persona pengguna dari PRD dan alur sistem dari SRS untuk menyusun hierarchy komponen, state feedback (*loading/empty/error*), dan palet warna yang tepat.
+During consultation in **Chat Discovery**:
+1. **Product Analyst** extracts requirements (`REQ-001`, `REQ-002`, etc.) with MoSCoW prioritization.
+2. Switching to **System Analyst** automatically includes the approved PRD summary so the agent focuses on system validation and edge case handling rather than repeating basic questions.
+3. Switching to **Software Architect** incorporates PRD + SRS context, allowing immediate recommendations for database engines, monolith vs microservices topologies, and precise API contracts.
+4. Switching to **UI/UX Agent** evaluates personas from the PRD and system workflows from the SRS to structure component hierarchies, feedback states (*loading/empty/error*), and semantic color palettes.
 
 ---
 
-## 3. Rencana Implementasi di Fase 3
+## 3. Implementation Plan in Phase 3
 
-### Langkah 1: Registrasi 4 Agen di Backend (`internal/ai/agent_registry.go`)
-- Memperbarui `initDefaults()` agar mendaftarkan ke-4 agen:
+### Step 1: Register 4 Personas in Backend (`internal/ai/agent_registry.go`)
+- Update `initDefaults()` to register all 4 agents:
   - `product-analyst`
   - `system-analyst`
   - `software-architect`
   - `ui-ux-agent`
-- Menyesuaikan method `ListAgents()`, `SaveAgent()`, dan penyimpanan di database SQLite `app_settings`.
-- Menambahkan dokumen `architecture.md` (`DocTypeArchitecture = "architecture"`) pada domain model jika diperlukan, atau menjadikannya bagian dari SRS/Design.
+- Update `ListAgents()`, `SaveAgent()`, and SQLite `app_settings` storage.
+- Register `DocTypeArchitecture = "architecture"` in the domain model.
 
-### Langkah 2: Selector Persona di Chat Header (`frontend/src/App.tsx`)
-- Di bagian atas Chat Discovery, sediakan **Specialist Selector Tab**:
+### Step 2: Persona Selector in Chat Header (`frontend/src/App.tsx`)
+- Add **Specialist Selector Tab** above Chat Discovery:
   - `[Product Analyst]` `[System Analyst]` `[Software Architect]` `[UI/UX Agent]`
-- Setiap pesan pengguna dikirim dengan menyertakan `agentID` aktif.
-- Balasan asisten menampilkan badge persona, icon khusus, dan nama peran agen yang menjawab.
+- Send active `agentID` with each user message.
+- Assistant responses display persona badge, specialized icon, and role title.
 
-### Langkah 3: Attachment Paperclip di Chat Bar (`frontend/src/App.tsx`)
-- Tombol paperclip (<kbd><Paperclip size={16} /></kbd>) di chat bar:
-  - Menerima file draft `.md`, `.txt`, `.json`.
-  - Preview nama file dan ukuran sebelum dikirim.
-  - Memanggil `ConversationService.SubmitAttachment(..., agentID)`.
+### Step 3: Attachment Paperclip in Chat Bar (`frontend/src/App.tsx`)
+- Paperclip icon button (<kbd><Paperclip size={16} /></kbd>) in the chat bar:
+  - Supports `.md`, `.txt`, `.json` drafts.
+  - Previews file name and size before sending.
+  - Invokes `ConversationService.SubmitAttachment(..., agentID)`.
 
-### Langkah 4: Large Studio Settings Modal (`max-w-5xl h-[88vh]`)
-- Tampilan modal Settings luas dengan 4 Tab:
+### Step 4: Large Studio Settings Modal (`max-w-5xl h-[88vh]`)
+- Comprehensive 4-tab Settings Modal:
   1. **Specialist Agents & Personas:**
-     - Pemilih 4 agen spesialis.
-     - Textarea editor System Prompt kustom (dapat diedit langsung oleh pengguna).
-     - Checkbox toggle skills bawaan per agen.
-     - Asosiasi MCP servers yang aktif untuk agen tersebut.
+     - Select from 4 specialist agents.
+     - Editable custom System Prompt textarea.
+     - Built-in skill toggle checkboxes per persona.
+     - Active MCP server associations.
   2. **MCP Connection Manager:**
-     - Daftar MCP Server yang terhubung (`stdio` / `sse`).
-     - Tambah/Edit endpoint MCP baru (misal: Figma MCP, Database MCP).
+     - Connected MCP server list (`stdio` / `sse`).
+     - Add/Edit new MCP endpoints (e.g. Figma MCP, Database MCP).
   3. **Coding Agents & Providers:**
-     - Deteksi coding agent lokal (`agy`, `opencode`, `claude`, `aider`).
-     - Pilihan primary & fallback provider.
+     - Local coding agent detection (`agy`, `opencode`, `claude`, `aider`).
+     - Primary & fallback provider configuration.
   4. **Token Usage & Logs:**
-     - Statistik live penggunaan token dan duration per eksekusi.
+     - Live token usage metrics and latency per execution.

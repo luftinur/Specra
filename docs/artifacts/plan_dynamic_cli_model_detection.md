@@ -1,41 +1,40 @@
-# Rencana Implementasi: Deteksi Model Dinamis & Pemilihan Model untuk Coding Agent CLI (Antigravity, OpenCode, dll.)
+# Implementation Plan: Dynamic Model Detection & Selection for CLI Coding Agents (Antigravity, OpenCode, etc.)
 
-## 1. Ringkasan Eksekutif & Jawaban Kunci
-**Pertanyaan Pengguna:**
-> *"untuk coding agent cli, antigravity, opencode, dan lainnya apakah saat terdetect kita bisa dapatin model yang didapat dari agent tersebut jadi gw bisa milih ?"*
+## 1. Executive Summary & Key Answers
+**User Query:**
+> *"For coding agent CLIs like antigravity, opencode, and others, when detected, can we discover available models from that agent so I can choose?"*
 
-**Jawaban:**
-**Sangat Bisa!** 
-Kami telah menguji langsung pada CLI di mesin Anda secara real (*Zero-Mock*):
+**Answer:**
+**Yes!**
+Verified directly on host CLIs with zero mocks:
 1. **Google Antigravity CLI (`agy`)**:
-   Menyediakan perintah bawaan `agy models` yang mengembalikan daftar model aktif beserta nama tampilannya:
+   Provides `agy models` returning active model IDs and display names:
    - `gemini-3.8-flash-high` (Gemini 3.8 Flash High)
    - `gemini-3.8-flash-medium` (Gemini 3.8 Flash Medium)
    - `gemini-3.8-flash-low` (Gemini 3.8 Flash Low)
    - `claude-sonnet-4-6` (Claude Sonnet 4.6 Thinking)
    - `claude-opus-4-6-thinking` (Claude Opus 4.6 Thinking)
    - `gpt-oss-120b-medium` (GPT-OSS 120B Medium)
-   CLI `agy` juga mendukung flag `--model <model_id>` secara resmi pada eksekusi non-interaktif!
+   `agy` supports `--model <model_id>` for non-interactive executions.
 
 2. **OpenCode AI Agent (`opencode`)**:
-   Menyediakan perintah bawaan `opencode models` yang mengembalikan model-model yang tersedia:
+   Provides `opencode models` returning available models:
    - `opencode/beam-free`
    - `opencode/big-pickle`
    - `opencode/deepseek-v4.1-flash-free`
    - `opencode/flint-40b-free`
-   - `opencode/glm-5.3-flash-free`
-   - dll.
-   CLI `opencode` mendukung flag `-m <model_id>` pada `opencode run`. Jika berjalan melalui server HTTP/OpenAI-compatible, endpoint `GET /models` juga tersedia.
+   - `opencode/glm-5.3-flash-free`, etc.
+   Supports `-m <model_id>` in `opencode run` and `GET /models` on HTTP server modes.
 
 3. **Google Gemini (Direct REST API)**:
-   Mendukung endpoint resmi `GET https://generativelanguage.googleapis.com/v1beta/models?key={key}` untuk menarik seluruh model yang mendukung `generateContent` (misal: `gemini-2.5-flash`, `gemini-2.5-pro`, `gemini-1.5-pro`), dengan fallback daftar model standar jika offline/belum mengisi API key.
+   Supports `GET https://generativelanguage.googleapis.com/v1beta/models?key={key}` for `generateContent` models (`gemini-2.5-flash`, `gemini-2.5-pro`, `gemini-1.5-pro`), with graceful fallbacks.
 
-4. **Ollama / Local LLM** (jika terinstal):
-   Mendukung perintah `ollama list` untuk mengambil daftar model lokal (Llama 3, DeepSeek-R1, Mistral, dll.).
+4. **Ollama / Local LLM**:
+   Supports `ollama list` discovering local weights (Llama 3, DeepSeek-R1, Mistral, etc.).
 
 ---
 
-## 2. Arsitektur Alur Deteksi & Seleksi Model
+## 2. Dynamic Model Detection & Selection Architecture
 
 ```mermaid
 flowchart TD
@@ -71,10 +70,10 @@ flowchart TD
 
 ---
 
-## 3. Rincian Modifikasi Teknis
+## 3. Technical Changes
 
 ### A. Domain Layer (`internal/domain/models.go`)
-1. Tambahkan struktur `ModelInfo`:
+1. Add `ModelInfo` struct:
    ```go
    type ModelInfo struct {
        ID          string `json:"id"`
@@ -82,7 +81,7 @@ flowchart TD
        Description string `json:"description,omitempty"`
    }
    ```
-2. Perluas `DetectedAgent`:
+2. Extend `DetectedAgent`:
    ```go
    type DetectedAgent struct {
        ID              string      `json:"id"`
@@ -99,68 +98,52 @@ flowchart TD
 
 ### B. AI Engine Layer (`internal/ai/`)
 1. **Interface `ModelDiscoverer` (`internal/ai/provider.go`)**:
-   Tambahkan interface opsional untuk provider yang bisa melist model:
    ```go
    type ModelDiscoverer interface {
        ListModels(ctx context.Context) ([]domain.ModelInfo, error)
    }
    ```
-2. **Adapter Antigravity (`internal/ai/adapters/antigravity/adapter.go`)**:
-   - Implementasikan `ListModels(ctx context.Context) ([]domain.ModelInfo, error)` dengan mengeksekusi `agy models` dan mem-parsing output baris demi baris (ID & Display Name).
-   - Tambahkan field `model string` dan metode `SetConfig(model string)`.
-   - Di `Generate()`, gunakan model yang dikonfigurasi jika `req.Model` kosong.
-3. **Adapter OpenCode (`internal/ai/adapters/opencode/adapter.go`)**:
-   - Implementasikan `ListModels(ctx context.Context) ([]domain.ModelInfo, error)` dengan menjalankan `opencode models` (CLI) atau `GET /models` (jika HTTP baseURL ada).
-   - Di `generateCLI()`, teruskan flag `-m <model>` jika model terpilih valid.
-4. **Adapter Gemini (`internal/ai/adapters/gemini/adapter.go`)**:
-   - Implementasikan `ListModels(ctx context.Context) ([]domain.ModelInfo, error)` memanggil endpoint Google AI Studio jika API key terisi, atau fallback ke model populer (`gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-1.5-pro`).
+2. **Antigravity Adapter (`internal/ai/adapters/antigravity/adapter.go`)**:
+   - Implement `ListModels(ctx)` executing `agy models` and parsing model IDs and display names.
+   - Add `model string` field and `SetConfig(model string)` method.
+   - In `Generate()`, apply configured model if `req.Model` is unspecified.
+3. **OpenCode Adapter (`internal/ai/adapters/opencode/adapter.go`)**:
+   - Implement `ListModels(ctx)` executing `opencode models` or calling `GET /models`.
+   - In `generateCLI()`, pass `-m <model>`.
+4. **Gemini Adapter (`internal/ai/adapters/gemini/adapter.go`)**:
+   - Implement `ListModels(ctx)` calling Google AI Studio REST endpoints with API keys or fallback catalog.
 5. **Agent Detector (`internal/ai/detector.go`)**:
-   - Saat mendeteksi agent yang terinstal, panggil pembacaan model bawaan agar `AvailableModels` langsung terisi lengkap saat user membuka menu Settings.
+   - Populate `AvailableModels` automatically upon host binary detection.
 
 ### C. Service Layer (`internal/services/provider_service.go`)
-1. Tambahkan metode:
-   - `GetProviderModels(providerID string) ([]domain.ModelInfo, error)`: Untuk me-refresh model provider secara on-demand.
-   - `ConfigureAntigravity(model string) error`: Menyimpan model aktif untuk Antigravity CLI ke database SQLite (`agy_model`).
-2. Perbarui `restoreSettings()`:
-   - Membaca `agy_model` dari SQLite dan menerapkannya ke `agyAdapter.SetConfig(agyModel)`.
-3. Perbarui `GetProviderStatus()`:
-   - Sertakan model aktif saat ini untuk setiap provider (`agy_model`, `opencode_model`, `gemini_model`).
+1. Add methods:
+   - `GetProviderModels(providerID string) ([]domain.ModelInfo, error)`
+   - `ConfigureAntigravity(model string) error`
+2. Update `restoreSettings()`:
+   - Restore `agy_model` from SQLite to `agyAdapter.SetConfig(agyModel)`.
+3. Update `GetProviderStatus()`:
+   - Include active models per provider (`agy_model`, `opencode_model`, `gemini_model`).
 
 ### D. Frontend UI Layer (`frontend/src/App.tsx`)
-1. **Pada Kartu Detected Agents (Settings -> Coding Agents & LLM)**:
-   - Jika agent terinstal dan memiliki `available_models`:
-     Tampilkan dropdown `<select>` langsung di kartu agent:
-     `Pilih Model: [ gemini-3.8-flash-high (Gemini 3.8 Flash High) v ]`
-   - Berikan badge jumlah model yang ditemukan (contoh: `6 models detected`).
-2. **Pada Bagian Provider Configuration**:
-   - **Antigravity CLI**:
-     Tambahkan section konfigurasi model Antigravity dengan dropdown model hasil dari `agy models` + tombol "Refresh Models".
-   - **OpenCode**:
-     Ubah input text menjadi kombinasi `<select>` dari `opencode models` dan input manual (jika custom URL).
-   - **Google Gemini**:
-     Ganti input text dengan `<select>` model resmi Gemini + opsi custom.
-3. **Pada Status Bar & Header**:
-   - Tampilkan model yang sedang aktif di samping nama provider (misal: `Antigravity CLI (gemini-3.8-flash-high)`).
+1. **Detected Agents Cards (Settings -> Coding Agents & LLM)**:
+   - When models are discovered, render `<select>` dropdown inside agent cards.
+   - Display model count badge (e.g. `6 models detected`).
+2. **Provider Configuration Section**:
+   - Dynamic `<select>` dropdowns with "Refresh Models" triggers.
+3. **Status Bar & Header**:
+   - Surface active model adjacent to provider name (e.g. `Antigravity CLI (gemini-3.8-flash-high)`).
 
 ---
 
-## 4. Rencana Pengujian & Verifikasi
+## 4. Verification Plan
 
-1. **Uji CLI Parser**:
-   - Verifikasi parsing output `agy models` menghasilkan 6 model akurat tanpa string `Fetching...`.
-   - Verifikasi parsing output `opencode models` menghasilkan 12 model akurat.
-2. **Uji Persistensi**:
-   - Pilih model (misal `claude-sonnet-4-6` untuk agy), simpan, restart aplikasi, dan pastikan model tetap terpilih.
-3. **Uji Eksekusi Subproses**:
-   - Eksekusi generate dokumen atau chat, pastikan argumen `--model claude-sonnet-4-6` masuk ke command CLI.
-4. **Uji Unit & Build**:
-   - Jalankan seluruh suite tes Go: `go test -v ./internal/...`
-   - Jalankan typecheck & build TypeScript frontend: `npm --prefix frontend run build`
-
----
-
-## 5. Pertanyaan Konfirmasi Sebelum Eksekusi
-
-Mohon konfirmasikan apakah Anda ingin kami langsung melanjutkan implementasi rencana ini:
-1. **Lanjut implementasi penuh**: Terapkan deteksi model dinamis untuk Antigravity, OpenCode, dan Gemini lengkap dengan UI dropdown di Settings dan status bar.
-2. **Ada penyesuaian khusus**: Misalnya ingin ada default model tertentu untuk masing-masing agent.
+1. **CLI Output Parsers**:
+   - Verify parsing of `agy models` output into 6 structured models.
+   - Verify parsing of `opencode models` output into 12 models.
+2. **Persistence**:
+   - Select model (e.g. `claude-sonnet-4-6`), save, restart, and confirm selection persists.
+3. **Subprocess Execution**:
+   - Execute prompt; verify `--model claude-sonnet-4-6` is appended to CLI arguments.
+4. **Unit & Build Tests**:
+   - Go tests: `go test -v ./internal/...`
+   - Frontend build: `npm --prefix frontend run build`

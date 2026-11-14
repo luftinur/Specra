@@ -1,30 +1,30 @@
 # Implementation Plan: Unified Agentic Console, Pipeline Stepper & Interactive Q&A Loop
 
-Dokumen rencana kerja ini merumuskan langkah eksekusi komprehensif (Fase 12) untuk menyatukan seluruh alur requirements engineering menjadi pengalaman **Agentic AI Workspace** yang utuh dan ergonomis.
+Comprehensive implementation plan (Phase 12) unifying requirements engineering into a cohesive, ergonomic **Agentic AI Workspace**.
 
 ---
 
 ## 1. Goal Description
-Transformasi antarmuka kerja desktop menjadi sistem yang saling terhubung erat antara navigasi dokumen, kanvas interaksi agen, dan database kebutuhan:
+Transforming the desktop workspace into an interconnected system across document navigation, multi-agent canvas, and requirements persistence:
 1. **Unified Prompt Console**:
-   - Menghapus deretan tab persona yang memadati bagian atas kanvas, membebaskan ruang pandang vertikal.
-   - Memindahkan kontrol **Persona Selector** dan **Interaction Mode Selector** langsung ke dalam **Elevated Prompt Console** di bagian bawah kanvas (bersanding dengan paperclip, prompt input, dan tombol kirim).
+   - Eliminate redundant persona tab bars from the top of the canvas, liberating vertical screen real estate.
+   - Relocate **Persona Selector** and **Interaction Mode Selector** controls directly into the **Elevated Prompt Console** at the bottom (alongside paperclip attachments, prompt input, and send actions).
 2. **Slash Commands Autocomplete System (`/`)**:
-   - Menghadirkan command menu popover saat mengetik `/` di prompt bar (`/plan`, `/discovery`, `/exec`, `/prd`, `/srs`, `/arch`, `/design`, `/validate`, `/clear`).
-3. **Interactive Clarification Cards di Chat Bubble (The Q&A Loop)**:
-   - Merender pertanyaan klarifikasi AI langsung di dalam chat bubble asisten dalam bentuk kartu form interaktif. Pengguna bisa langsung mengetik jawaban di dalam bubble; jawaban otomatis mengubah kartu menjadi hijau (`Confirmed Answer`) dan tersimpan ke SQLite.
+   - Autocomplete command popover triggered by typing `/` in the prompt input (`/plan`, `/discovery`, `/exec`, `/prd`, `/srs`, `/arch`, `/design`, `/validate`, `/clear`).
+3. **Interactive Clarification Cards in Chat Bubble (The Q&A Loop)**:
+   - Render AI clarification questions directly inside assistant bubbles as interactive forms. Users answer inline, turning cards green (`Confirmed Answer`) and persisting data to SQLite.
 4. **Project Pipeline Stepper (Visual Lifecycle Progress)**:
-   - Menampilkan bar status progres horizontal ramping di atas kanvas:
+   - Slim horizontal progress bar across the top of the canvas:
      `[1. Discovery] ➔ [2. PRD] ➔ [3. SRS] ➔ [4. Architecture] ➔ [5. Design System]`
-     yang merefleksikan status riil dokumen (*Draft*, *Approved*, *Locked/Gated*, *Outdated*).
+     reflecting authentic document states (*Draft*, *Approved*, *Locked/Gated*, *Outdated*).
 5. **AI Pipeline Readiness Recommender (Next-Best-Action)**:
-   - Saat discovery telah mengumpulkan requirement yang cukup (>= 3 confirmed items), AI memunculkan kartu rekomendasi di chat: *"Requirements dasar telah matang. Siap beralih ke PRD?"* lengkap dengan tombol aksi 1-klik `[Generate PRD Sekarang]`.
-6. **Web Reference Harnessing untuk UI/UX Agent**:
-   - Mendukung deteksi URL web referensi (misal `https://linear.app`, `https://stripe.com`) di prompt UI/UX Agent untuk memandu ekstraksi token warna, tipografi, dan gaya komponen ke dalam `design.md`.
+   - When discovery accumulates sufficient confirmed requirements (>= 3 items), AI renders a recommendation card in chat: *"Baseline requirements established. Ready to generate PRD?"* with a 1-click `[Generate PRD Now]` action.
+6. **Web Reference Harnessing for UI/UX Agent**:
+   - Detect external reference URLs (e.g. `https://linear.app`, `https://stripe.com`) in UI/UX prompts to extract color tokens, typography scales, and component aesthetics into `design.md`.
 
 ---
 
-## 2. Arsitektur Komponen & UI Layout
+## 2. Component Architecture & UI Layout
 
 ```
 +----------------------------------------------------------------------------------------------------+
@@ -34,23 +34,23 @@ Transformasi antarmuka kerja desktop menjadi sistem yang saling terhubung erat a
 |                   +----------------------------------------------------+---------------------------+
 |  Chat Discovery   |                                                    |                           |
 |  PRD Document     |  [Chat Feed]                                       |  +---------------------+  |
-|  SRS Doc     [🔒] |  Bot: "Saya telah menganalisis brief checkout..."  |  | REQ-001 [Must Have] |  |
+|  SRS Doc     [🔒] |  Bot: "I analyzed your checkout brief..."          |  | REQ-001 [Must Have] |  |
 |  Arch        [🔒] |  +----------------------------------------------+  |  | Multi-channel Pay   |  |
 |  Design Sys  [🔒] |  | ❓ Clarification Needed (Q&A Loop)           |  |  | [Approve] [Reject]  |  |
-|                   |  | Q: Berapa batas waktu timeout auto-cancel?   |  |  +---------------------+  |
-| ----------------- |  | [ Input: 15 menit___________ ] [Kirim Jwb]   |  |                           |
+|                   |  | Q: What is the auto-cancel timeout window?   |  |  +---------------------+  |
+| ----------------- |  | [ Input: 15 minutes__________ ] [Submit]     |  |                           |
 | ACTIVE PROJECT    |  +----------------------------------------------+  |  Validation: 0 Issues     |
 | E-Commerce App    |                                                    |  Traceability: 100%       |
 |                   |  +----------------------------------------------+  |                           |
 |                   |  | 💡 AI Pipeline Recommendation:               |  |                           |
-|                   |  | "5 requirements terkonfirmasi. Siap ke PRD!" |  |                           |
+|                   |  | "5 requirements confirmed. Ready for PRD!"   |  |                           |
 |                   |  | [ 📄 Generate Draft PRD (20 Sections) ]      |  |                           |
 |                   |  +----------------------------------------------+  |                           |
 |                   +----------------------------------------------------+                           |
 |                   | (Unified Prompt Console)                           |                           |
 |                   | [👤 Product Analyst ▾]  [🔍 Discovery ▾]  [💡 /]   |                           |
 |                   | +------------------------------------------------+ |                           |
-|                   | | [📎] Ketik instruksi atau / untuk perintah...  | |                           |
+|                   | | [📎] Type instructions or / for commands...    | |                           |
 |                   | +------------------------------------------------+ |                           |
 +-------------------+----------------------------------------------------+---------------------------+
 ```
@@ -61,56 +61,56 @@ Transformasi antarmuka kerja desktop menjadi sistem yang saling terhubung erat a
 
 ### Component 1: Unified Prompt Console & Slash Commands (`frontend/src/App.tsx`)
 #### [MODIFY] `frontend/src/App.tsx`
-1. **Hapus Bar Tab Persona di Atas Kanvas** (baris 1607–1636).
-2. **Pindahkan Kontrol Persona & Mode ke dalam Prompt Console**:
-   - Di atas input textfield, sediakan toolbar mini:
-     - Pill Persona Selector: `[👤 Product Analyst ▾]` dengan popover untuk beralih antara 4 spesialis.
-     - Pill Mode Selector: `[🔍 Discovery Mode ▾]` / `[⚡ Execution Mode]` untuk beralih interaksi.
-     - Hint pintas: *"Ketik / untuk command cepat"*.
+1. **Remove Persona Tab Bar from Canvas Header**.
+2. **Embed Persona & Mode Controls in Prompt Console**:
+   - Above the text input field, render a compact toolbar:
+     - Persona Selector Pill: `[👤 Product Analyst ▾]` with popover menu for 4 specialists.
+     - Mode Selector Pill: `[🔍 Discovery Mode ▾]` / `[⚡ Execution Mode]`.
+     - Shortcut hint: *"Type / for quick actions"*.
 3. **Slash Commands Autocomplete Popover**:
-   - Deteksi input yang diawali `/`.
-   - Render menu popover mengambang di atas prompt bar dengan 10 perintah cepat:
+   - Detect input starting with `/`.
+   - Render floating popover with 10 actions:
      - `/discovery`, `/exec`, `/plan`, `/clarify`, `/prd`, `/srs`, `/arch`, `/design`, `/validate`, `/clear`.
-   - Dukung navigasi tombol keyboard (`ArrowDown`, `ArrowUp`, `Enter`, `Escape`).
+   - Support keyboard navigation (`ArrowDown`, `ArrowUp`, `Enter`, `Escape`).
 
 ---
 
-### Component 2: Interactive Clarification Cards di Chat Bubble (`frontend/src/App.tsx`)
+### Component 2: Interactive Clarification Cards in Chat Bubble (`frontend/src/App.tsx`)
 #### [MODIFY] `frontend/src/App.tsx`
-1. Pada setiap bubble asisten (saat merender `messages.map`):
-   - Hubungkan dengan daftar `clarifications` proyek yang berstatus `open` atau yang baru saja diajukan.
-   - Render kartu interaktif di dalam bubble:
+1. Inside assistant bubble rendering:
+   - Link open clarification items belonging to the project/message.
+   - Render interactive card:
      - Badge: `Clarification Needed (Q&A Loop)` (amber).
-     - Pertanyaan teks yang diajukan AI.
-     - Input field inline + tombol `Kirim Jawaban`.
-   - Begitu dijawab:
-     - Kartu otomatis berganti tema hijau: `Confirmed Answer`.
-     - Menampilkan teks jawaban pengguna.
-     - Memanggil `RequirementService.AnswerClarification` ke SQLite dan me-refresh context proyek.
+     - Question text.
+     - Inline text input + `Submit Answer` button.
+   - Upon submission:
+     - Card updates to green theme: `Confirmed Answer`.
+     - Displays confirmed answer.
+     - Invokes `RequirementService.AnswerClarification` in SQLite and refreshes project context.
 
 ---
 
 ### Component 3: Project Pipeline Stepper & AI Readiness Recommender (`frontend/src/App.tsx`)
 #### [MODIFY] `frontend/src/App.tsx`
 1. **Pipeline Stepper Bar**:
-   - Tempatkan bar horizontal ramping di bagian atas kanvas:
-     - Step 1: `Discovery` (Status: Selesai jika requirements >= 3).
-     - Step 2: `PRD` (Status: `Draft` / `Approved`).
-     - Step 3: `SRS` (Status: `Locked` jika PRD belum approved, `Approved` jika selesai).
-     - Step 4: `Architecture` (Status: `Locked` jika PRD belum approved).
-     - Step 5: `Design System` (Status: `Locked` jika PRD belum approved).
-   - Mengklik step yang tidak terkunci langsung berpindah ke dokumen tersebut di sidebar.
+   - Slim horizontal bar across the canvas header:
+     - Step 1: `Discovery` (Completed when requirements >= 3).
+     - Step 2: `PRD` (`Draft` / `Approved`).
+     - Step 3: `SRS` (`Locked` if PRD unapproved; `Approved` when verified).
+     - Step 4: `Architecture` (`Locked` if PRD unapproved).
+     - Step 5: `Design System` (`Locked` if PRD unapproved).
+   - Clicking unlocked steps navigates directly to the corresponding document.
 2. **AI Pipeline Readiness Card**:
-   - Di bagian bawah chat feed, jika `requirements.length >= 3` dan belum ada PRD:
-     - Render kartu rekomendasi cerdas AI:
-       *"Requirements dasar telah matang. Kami merekomendasikan untuk beralih ke pembuatan PRD."*
-     - Tombol 1-klik: `[📄 Generate Draft PRD (20 Sections)]` yang memanggil `handleGeneratePRD()`.
+   - In chat feed, if `requirements.length >= 3` and no PRD exists:
+     - Render recommendation card:
+       *"Baseline requirements established. We recommend generating the PRD."*
+     - 1-click button: `[📄 Generate Draft PRD (20 Sections)]` calling `handleGeneratePRD()`.
 
 ---
 
 ### Component 4: Web Reference Prompt Enrichment (`internal/ai/discovery.go`)
 #### [MODIFY] `internal/ai/discovery.go`
-- Di `BuildDiscoveryPrompt`, tambahkan instruksi khusus jika pesan pengguna mengandung URL web (`http://` atau `https://`):
+- In `BuildDiscoveryPrompt`, inject guidance when user messages include URLs (`http://` or `https://`):
   > *"When user provides external web references or URLs, extract visual patterns, color tokens, layout aesthetics, and component hierarchy to be harnessed into the Design System."*
 
 ---
@@ -122,37 +122,28 @@ Transformasi antarmuka kerja desktop menjadi sistem yang saling terhubung erat a
    ```bash
    cd frontend && npm run build
    ```
-   *Ekspektasi: 0 TypeScript errors, Vite build sukses.*
+   *Expectation: 0 TypeScript errors, clean Vite build.*
 2. **Go Backend Unit Tests**:
    ```bash
-   export PATH=$PATH:/opt/homebrew/bin:~/go/bin; go test -v ./internal/...
+   go test -v ./internal/...
    ```
-   *Ekspektasi: Seluruh 13 unit test suites lulus (100% PASS).*
-3. **Native macOS Compilation**:
+   *Expectation: All 13 unit test suites pass (100% PASS).*
+3. **Desktop Native Compilation**:
    ```bash
-   export PATH=$PATH:/opt/homebrew/bin:~/go/bin; wails3 task darwin:build:native
+   wails3 task build
    ```
 
 ### Manual Verification
 1. **Unified Prompt Console**:
-   - Pastikan bagian atas kanvas bersih dari tab berulang.
-   - Klik pill persona di bawah: ganti antara Product Analyst, System Analyst, Architect, dan UI/UX.
-   - Klik pill mode di bawah: ganti antara Discovery dan Execution Mode.
+   - Verify top of canvas is clean.
+   - Toggle persona pills (Product Analyst, System Analyst, Software Architect, UI/UX Agent).
+   - Toggle interaction modes (Discovery vs Execution).
 2. **Slash Commands**:
-   - Ketik `/` di prompt: popover 10 command muncul.
-   - Pilih `/prd` via keyboard Enter: generasi PRD langsung berjalan.
+   - Type `/` to confirm popover appears with 10 commands.
+   - Press Enter on `/prd` to initiate generation.
 3. **Interactive Clarification Loop**:
-   - Masukkan brief di chat.
-   - Kartu pertanyaan muncul di bubble asisten. Ketik jawaban langsung pada kartu dan kirim.
-   - Kartu berubah menjadi hijau bertanda Confirmed.
+   - Submit brief in chat; verify question card renders inside bubble.
+   - Submit inline answer; verify card turns green as Confirmed.
 4. **Pipeline Stepper & AI Recommendation**:
-   - Amati stepper bar di atas kanvas menunjukkan progres alur project.
-   - Saat requirement cukup, kartu rekomendasi generasi PRD muncul di chat.
-
----
-
-## User Review Required
-> [!IMPORTANT]
-> **Keputusan Final**:
-> Apakah Anda menyetujui seluruh rencana eksekusi terpadu di atas?
-> Jika disetujui, silakan konfirmasi atau ketik **Proceed** untuk memulai implementasi.
+   - Observe pipeline stepper reflect project state.
+   - Confirm PRD readiness card appears once requirements threshold is met.
