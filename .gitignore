@@ -28,5 +28,25 @@ projects/
 Thumbs.db
 *.tmp
 
+# Environment & Secret files
+.env
+.env.*
+*.env
+*.key
+*.pem
+*.cert
+*.p12
+*.pfx
+
+# IDE & Editor caches
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Build test coverage
+coverage.out
+coverage.html
+
 # Reference UI Source (Documented in design_system.md)
 _ref_ui/
