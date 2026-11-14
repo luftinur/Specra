@@ -1,6 +1,6 @@
 # AGENTS.md — Mandatory Guidelines for AI Agents & Developers
 
-Dokumen ini adalah **Authoritative Guidelines & Primary Source of Truth** bagi seluruh AI Coding Agent dan pengembang yang bekerja pada repositori **AI Requirements Studio (`dev-agent-assistant`)**. Setiap agen wajib membaca, mematuhi, dan menerapkan seluruh aturan di bawah ini sebelum dan selama melakukan perubahan pada basis kode.
+Dokumen ini adalah **Authoritative Guidelines & Primary Source of Truth** bagi seluruh AI Coding Agent dan pengembang yang bekerja pada repositori **Specra (`Specra` / `dev-agent-assistant`)**. Setiap agen wajib membaca, mematuhi, dan menerapkan seluruh aturan di bawah ini sebelum dan selama melakukan perubahan pada basis kode.
 
 ---
 
@@ -41,7 +41,7 @@ Setiap AI Agent yang menjalankan instruksi, perbaikan bug, atau penambahan fitur
    ke file nomor urut berikutnya di `docs/context_history/`.
 
 ### C. Pemeliharaan Katalog `docs/README.md`
-Setiap ada penambahan file di `docs/artifacts/` atau `docs/context_history/`, agen wajib memperbarui daftar tautan dokumen di [`docs/README.md`](file:///Users/luftinurfahmi/VibeCoding/dev-agent-assistant/docs/README.md).
+Setiap ada penambahan file di `docs/artifacts/` atau `docs/context_history/`, agen wajib memperbarui daftar tautan dokumen di [`docs/README.md`](./docs/README.md).
 
 ---
 
