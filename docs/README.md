@@ -43,6 +43,9 @@ docs/
 │   ├── plan_custom_toast_dialogs_and_native_export_ux.md     # In-App Toast System, Confirmation Modal & Native File Export Modal
 │   ├── walkthrough_custom_toast_dialogs_and_native_export_ux.md # Walkthrough In-App Toast, Confirm Modal & Native Export
 │   ├── plan_desktop_menubar_chat_first_split_and_resizable_panels.md # Desktop Menu Bar, Chat-First Split View, & Resizable Panels
+│   ├── plan_fix_outdated_alert_clear_and_granular_doc_loading.md # Siklus Status Outdated & Granular Loading
+│   ├── walkthrough_outdated_alert_clear_and_granular_loading.md # Walkthrough Status Outdated & Granular Loading
+│   ├── plan_english_ui_localization.md                # Rencana Komprehensif Lokalisasi Bahasa Inggris Seluruh UI
 │   └── walkthrough.md                                 # Rangkuman komprehensif & hasil testing
 └── context_history/
     ├── transcript_01_windows.jsonl                    # Log riwayat sesi awal pengembangan di Windows (1.963 steps)
@@ -80,3 +83,4 @@ docs/
 18. **[`walkthrough_desktop_menubar_chat_first_split_and_resizable_panels.md`](./artifacts/walkthrough_desktop_menubar_chat_first_split_and_resizable_panels.md)**: Walkthrough Implementasi Desktop Application Menu Bar, Chat-First Split View, Context-Aware Persona Auto-Switching, dan Resizable Panels dengan LocalStorage Persistence.
 19. **[`plan_fix_outdated_alert_clear_and_granular_doc_loading.md`](./artifacts/plan_fix_outdated_alert_clear_and_granular_doc_loading.md)**: Rencana Komprehensif: Siklus Status Outdated Auto-Clear Pasca-Regenerasi, Granular Loading States, dan Tombol Regenerate All (Full Pipeline) yang Tersinkronisasi dengan Project Co-Pilot & MenuBar.
 20. **[`walkthrough_outdated_alert_clear_and_granular_loading.md`](./artifacts/walkthrough_outdated_alert_clear_and_granular_loading.md)**: Walkthrough Pengujian: Siklus Status Outdated Auto-Clear Pasca-Regenerasi, Granular Loading States, dan Tombol Prominen Regenerate All (Full Pipeline) di Project Co-Pilot & MenuBar.
+21. **[`plan_english_ui_localization.md`](./artifacts/plan_english_ui_localization.md)**: Rencana Komprehensif Lokalisasi Bahasa Inggris: Penerjemahan Seluruh Teks Antarmuka (UI), Menubar, Canvas, Modals, Toasts, Dropdown, dan Pesan Audit ke Bahasa Inggris Standar Profesional.
