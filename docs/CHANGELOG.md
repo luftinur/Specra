@@ -5,6 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [0.1.2] — 2026-11-15
+
+### Added
+- **Left Sidebar Pipeline Hub**: Integrated the primary **Generate Full Pipeline** action button and active generating feedback card directly into the Left Sidebar under "Specifications & Pipeline", aligning document browsing with autonomous generation.
+- **Project Co-Pilot Accordion Inspector**: Refactored the right sidebar into a single-expanded (mutually exclusive) 4-panel accordion (`Requirements Backlog`, `Questions & Clarifications`, `Assumptions & Constraints`, `Quality & Audit Findings`).
+- **Independent Scroll Containers**: Each expanded accordion panel utilizes a dedicated `flex-1 min-h-0 overflow-y-auto` viewport, enabling smooth internal scrolling while keeping all accordion category headers accessible.
+
+---
+
 ## [0.1.1] — 2026-11-15
 
 ### Added

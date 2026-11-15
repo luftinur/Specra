@@ -184,13 +184,18 @@ The frontend is built with **React 19** and strictly-typed Wails v3 bindings:
   - **Code Mode**: Raw Mermaid syntax with line numbers.
 - **Action Controls**: 1-click **Copy Mermaid Syntax** and full-screen **Modal Expansion**.
 
-### C. Project Co-Pilot (Right Inspector Panel)
-Three dedicated tabs:
-1. **Requirements**: Backlog management with MoSCoW priority badges and AI extraction triggers.
-2. **Questions & Assumptions**: Action center with interactive **✓ Correct**, **✎ Inline Edit**, and **✕ Reject** buttons.
-3. **Pipeline & Audit**: 5-stage document stepper with direct click-to-open navigation and Traceability Matrix.
+### C. Specifications & Pipeline Hub (Left Sidebar)
+- **Unified Navigation & Execution**: Integrates specification document browsing (PRD, SRS, Architecture, Design) directly with primary pipeline controls.
+- **Generate Full Pipeline Card**: One-click autonomous execution across all 5 cascading stages with live stage feedback and cancel controls.
 
-### D. Design System Tokens
+### D. Project Co-Pilot Accordion (Right Inspector Panel)
+Single-expanded (mutually exclusive) accordion architecture with independent scroll containers:
+1. **Requirements Backlog**: Backlog management with MoSCoW priority badges, status badges, and AI extraction trigger.
+2. **Questions & Clarifications**: Dedicated action center for answering AI clarifying questions with inline response forms.
+3. **Assumptions & Constraints**: Automated AI assumptions with interactive **Confirm**, **Correct** (inline editor), and **Reject** actions.
+4. **Quality & Audit Findings**: Document health findings, conflict inspection, 5-stage stepper, and PRD-to-SRS Traceability Matrix.
+
+### E. Design System Tokens
 Styled via MQ-Studio 0.4.2 Token Scale (`src/design/tokens.css`):
 - High-contrast typography: base `14px/1.55`, minimum `12px` (no micro-fonts).
 - Three comprehensive themes: **Warm Stone** (Light), **Obsidian Slate** (Dark), and **System Auto**.

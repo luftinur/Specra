@@ -215,7 +215,7 @@ export default function App() {
   const [copiedFullDoc, setCopiedFullDoc] = useState(false);
 
   // Project Co-Pilot & Chat UI State
-  const [activeTab, setActiveTab] = useState<'requirements' | 'qa_assumptions' | 'pipeline_audit'>('qa_assumptions');
+  const [openAccordion, setOpenAccordion] = useState<'requirements' | 'qa' | 'assumptions' | 'audit' | null>('requirements');
   const [showInspector, setShowInspector] = useState(true);
   const [editingAssumptionId, setEditingAssumptionId] = useState<string | null>(null);
   const [editingAssumptionText, setEditingAssumptionText] = useState<string>('');
@@ -1410,7 +1410,8 @@ export default function App() {
       setCurrentView('design');
       await handleGenerateDesign();
     } else if (cmd.action === 'validate') {
-      setActiveTab('pipeline_audit');
+      setShowInspector(true);
+      setOpenAccordion('audit');
       await handleRunValidation();
     } else if (cmd.action === 'clear') {
       setMessages([]);
@@ -1818,7 +1819,7 @@ export default function App() {
           setAutoPipelineRunning(false);
           setPipelinePausedReason(`Pipeline Paused: Please answer ${openClar.length} clarification questions.`);
           setCurrentView('chat');
-          setActiveTab('qa_assumptions');
+          setOpenAccordion('qa');
           setShowInspector(true);
           return;
         }
@@ -2678,12 +2679,60 @@ export default function App() {
               className="side3 flex flex-col justify-between shrink-0 py-2.5 px-2 select-none border-r border-border/80 bg-panel/40 overflow-y-auto no-scrollbar"
             >
               <div className="space-y-3">
-                {/* Group: Specifications Tree */}
-                <div>
-                  <div className="gl text-[10.5px] font-semibold uppercase tracking-wider text-muted-2 px-2 py-1 flex items-center justify-between">
-                    <span>Specifications</span>
+                {/* Group: Specifications & Pipeline Hub */}
+                <div className="space-y-2">
+                  <div className="gl text-[10.5px] font-semibold uppercase tracking-wider text-muted-2 px-2 py-0.5 flex items-center justify-between">
+                    <span>Specifications & Pipeline</span>
                     <span className="text-[10px] font-mono text-muted">{requirements.length} Reqs</span>
                   </div>
+
+                  {/* Primary Pipeline Execution Card */}
+                  {activeProject && (
+                    <div className="px-1">
+                      {autoPipelineRunning ? (
+                        <div className="p-2 rounded-lg bg-primary-soft border border-primary/30 flex items-center justify-between text-xs text-primary shadow-2xs animate-pulse">
+                          <div className="flex items-center gap-1.5 font-semibold min-w-0">
+                            <Loader2 size={13} className="animate-spin text-primary shrink-0" />
+                            <span className="truncate text-[11px]">{autoPipelineStage || 'Generating Pipeline...'}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => { setAutoPipelineRunning(false); setAutoPipelineStage(null); setGeneratingDoc(null); }}
+                            className="px-1.5 py-0.5 rounded bg-surface hover:bg-fill text-muted hover:text-err text-[10px] font-mono transition-colors shrink-0 cursor-pointer"
+                            title="Cancel pipeline execution"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => runAutoPipeline(false)}
+                          disabled={!activeProject || generatingDoc !== null}
+                          className="w-full py-1.5 px-2.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-[11.5px] font-semibold flex items-center justify-center gap-1.5 transition-all shadow-2xs hover:scale-[1.01] active:scale-[0.99] cursor-pointer disabled:opacity-50"
+                          title="Generate all documents in cascade: Discovery ➔ PRD ➔ SRS ➔ Architecture ➔ Design"
+                        >
+                          <Zap size={13} className="fill-current text-amber-300" />
+                          <span>Generate Full Pipeline</span>
+                        </button>
+                      )}
+
+                      {pipelinePausedReason && (
+                        <div 
+                          onClick={() => {
+                            setShowInspector(true);
+                            setOpenAccordion('qa');
+                          }}
+                          className="mt-1.5 p-1.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-[10.5px] text-amber-700 dark:text-amber-300 flex items-center gap-1.5 cursor-pointer hover:bg-amber-500/20 transition-colors"
+                          title="Buka panel Q&A untuk menjawab pertanyaan klarifikasi"
+                        >
+                          <AlertTriangle size={11} className="text-amber-500 shrink-0" />
+                          <span className="truncate font-medium">Pipeline Paused: Jawab Q&A</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="space-y-0.5">
                     <button
                       type="button"
@@ -3084,66 +3133,29 @@ export default function App() {
             </button>
           </div>
 
-          {/* 3 Segmented Open Tabs (No 3-dot dropdown) */}
-          <div className="p-1.5 border-b border-border bg-panel/40 flex items-center gap-1 shrink-0">
-            <button
-              type="button"
-              onClick={() => setActiveTab('requirements')}
-              className={`flex-1 py-1.5 px-1 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-all ${
-                activeTab === 'requirements'
-                  ? 'bg-primary-soft text-primary shadow-2xs font-bold'
-                  : 'text-muted hover:text-fg hover:bg-fill-mute'
-              }`}
-            >
-              <ListOrdered size={12} />
-              <span>Requirements</span>
-              <span className="text-[10px] font-mono opacity-80">({requirements.length})</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('qa_assumptions')}
-              className={`flex-1 py-1.5 px-1 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-all ${
-                activeTab === 'qa_assumptions'
-                  ? 'bg-primary-soft text-primary shadow-2xs font-bold'
-                  : 'text-muted hover:text-fg hover:bg-fill-mute'
-              }`}
-            >
-              <AlertTriangle size={12} className={unresolvedQACount > 0 ? 'text-amber-500' : ''} />
-              <span>Q&A & Assumptions</span>
-              {unresolvedQACount > 0 ? (
-                <span className="text-[9px] font-mono px-1 rounded-full bg-amber-500 text-white font-bold animate-pulse">
-                  {unresolvedQACount}
-                </span>
-              ) : (
-                <span className="text-[10px] font-mono opacity-80">({clarifications.length + assumptions.length})</span>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('pipeline_audit')}
-              className={`flex-1 py-1.5 px-1 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-all ${
-                activeTab === 'pipeline_audit'
-                  ? 'bg-primary-soft text-primary shadow-2xs font-bold'
-                  : 'text-muted hover:text-fg hover:bg-fill-mute'
-              }`}
-            >
-              <Activity size={12} />
-              <span>Pipeline & Audit</span>
-              {findings.length > 0 && (
-                <span className="text-[9px] font-mono px-1 rounded-full bg-rose-500 text-white font-bold">
-                  {findings.length}
-                </span>
-              )}
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-3">
+          {/* Project Co-Pilot Accordion (Single-Open, Mutually Exclusive with Independent Scrolling) */}
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden divide-y divide-border/60">
             
-            {/* TAB 1: REQUIREMENTS BACKLOG */}
-            {activeTab === 'requirements' && (
-              <div className="space-y-3">
+            {/* ACCORDION 1: REQUIREMENTS BACKLOG */}
+            <div className={`flex flex-col overflow-hidden transition-all duration-150 ${openAccordion === 'requirements' ? 'flex-1 min-h-0' : 'shrink-0'}`}>
+              <button
+                type="button"
+                onClick={() => setOpenAccordion(prev => prev === 'requirements' ? null : 'requirements')}
+                className="w-full px-3 py-2.5 bg-panel hover:bg-fill-soft flex items-center justify-between text-left transition-colors select-none shrink-0"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <ListOrdered size={14} className="text-primary shrink-0" />
+                  <span className="text-xs font-semibold text-fg truncate">Requirements Backlog</span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-fill-mute text-muted font-bold shrink-0">
+                    {requirements.length}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0 text-muted">
+                  {openAccordion === 'requirements' ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                </div>
+              </button>
+              {openAccordion === 'requirements' && (
+                <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 space-y-3 bg-surface/30">
                 {/* Header Actions: Quick Stats + Manual Extraction Trigger */}
                 <div className="flex items-center justify-between pb-1 border-b border-border">
                   <div className="flex items-center gap-1.5">
@@ -3293,12 +3305,34 @@ export default function App() {
                 )}
               </div>
             )}
+          </div>
 
-            {/* TAB 2: TANYA JAWAB & ASUMSI (ACTION CENTER) */}
-            {activeTab === 'qa_assumptions' && (
-              <div className="space-y-4">
-                
-                {/* Sub-section 1: Pertanyaan Klarifikasi AI */}
+          {/* ACCORDION 2: QUESTIONS & CLARIFICATIONS */}
+          <div className={`flex flex-col overflow-hidden transition-all duration-150 ${openAccordion === 'qa' ? 'flex-1 min-h-0' : 'shrink-0'}`}>
+            <button
+              type="button"
+              onClick={() => setOpenAccordion(prev => prev === 'qa' ? null : 'qa')}
+              className="w-full px-3 py-2.5 bg-panel hover:bg-fill-soft flex items-center justify-between text-left transition-colors select-none shrink-0"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <MessageSquare size={14} className={unresolvedQACount > 0 ? "text-amber-500 shrink-0" : "text-primary shrink-0"} />
+                <span className="text-xs font-semibold text-fg truncate">Questions & Clarifications</span>
+                {unresolvedQACount > 0 ? (
+                  <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-amber-500 text-white font-bold animate-pulse shrink-0">
+                    {unresolvedQACount} Open
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-fill-mute text-muted font-bold shrink-0">
+                    {clarifications.length}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0 text-muted">
+                {openAccordion === 'qa' ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              </div>
+            </button>
+            {openAccordion === 'qa' && (
+              <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 space-y-3 bg-surface/30">
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between pb-1 border-b border-border">
                     <div className="flex items-center gap-1.5">
@@ -3369,9 +3403,31 @@ export default function App() {
                     ))
                   )}
                 </div>
+              </div>
+            )}
+          </div>
 
-                {/* Sub-section 2: Asumsi Sistem (Interactive Confirm, Correct, Reject) */}
-                <div className="space-y-2.5 pt-2 border-t border-border">
+          {/* ACCORDION 3: ASSUMPTIONS & CONSTRAINTS */}
+          <div className={`flex flex-col overflow-hidden transition-all duration-150 ${openAccordion === 'assumptions' ? 'flex-1 min-h-0' : 'shrink-0'}`}>
+            <button
+              type="button"
+              onClick={() => setOpenAccordion(prev => prev === 'assumptions' ? null : 'assumptions')}
+              className="w-full px-3 py-2.5 bg-panel hover:bg-fill-soft flex items-center justify-between text-left transition-colors select-none shrink-0"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <AlertTriangle size={14} className="text-amber-500 shrink-0" />
+                <span className="text-xs font-semibold text-fg truncate">Assumptions & Constraints</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-fill-mute text-muted font-bold shrink-0">
+                  {assumptions.length}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0 text-muted">
+                {openAccordion === 'assumptions' ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              </div>
+            </button>
+            {openAccordion === 'assumptions' && (
+              <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 space-y-3 bg-surface/30">
+                <div className="space-y-2.5">
                   <div className="flex items-center justify-between pb-1 border-b border-border">
                     <div className="flex items-center gap-1.5">
                       <AlertTriangle size={13} className="text-amber-500" />
@@ -3495,10 +3551,35 @@ export default function App() {
                 </div>
               </div>
             )}
+          </div>
 
-            {/* TAB 3: PIPELINE & AUDIT */}
-            {activeTab === 'pipeline_audit' && (
-              <div className="space-y-4">
+          {/* ACCORDION 4: QUALITY & AUDIT FINDINGS */}
+          <div className={`flex flex-col overflow-hidden transition-all duration-150 ${openAccordion === 'audit' ? 'flex-1 min-h-0' : 'shrink-0'}`}>
+            <button
+              type="button"
+              onClick={() => setOpenAccordion(prev => prev === 'audit' ? null : 'audit')}
+              className="w-full px-3 py-2.5 bg-panel hover:bg-fill-soft flex items-center justify-between text-left transition-colors select-none shrink-0"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <ShieldAlert size={14} className={findings.length > 0 ? "text-rose-500 shrink-0" : "text-emerald-500 shrink-0"} />
+                <span className="text-xs font-semibold text-fg truncate">Quality & Audit Findings</span>
+                {findings.length > 0 ? (
+                  <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-rose-500 text-white font-bold shrink-0">
+                    {findings.length}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-ok-tint text-ok font-bold shrink-0">
+                    Clean
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0 text-muted">
+                {openAccordion === 'audit' ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              </div>
+            </button>
+            {openAccordion === 'audit' && (
+              <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 space-y-3 bg-surface/30">
+                <div className="space-y-4">
                 
                 {/* 1. Interactive Multi-Agent Pipeline Stepper */}
                 <div className="p-3 bg-surface border border-border rounded-xl space-y-2.5 shadow-2xs">
@@ -3695,8 +3776,11 @@ export default function App() {
                   )}
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
+
+      </div>
 
           {/* Footer Document Stats */}
           <div className="p-2 border-t border-border bg-panel flex items-center justify-between text-xs shrink-0">
