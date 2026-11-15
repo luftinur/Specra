@@ -50,3 +50,6 @@ coverage.html
 
 # Reference UI Source (Documented in design_system.md)
 _ref_ui/
+
+# Machine conversation logs (kept locally in ~/.gemini/antigravity-cli/brain/)
+docs/context_history/*.jsonl

@@ -5,11 +5,11 @@
 	"info": {
 		"0409": {
 			"ProductVersion": "0.1.0",
-			"CompanyName": "My Company",
-			"FileDescription": "A ai-requirements-studio application",
-			"LegalCopyright": "© 2026, My Company",
-			"ProductName": "My Product",
-			"Comments": "This is a comment"
+			"CompanyName": "specra",
+			"FileDescription": "Specra - AI Requirements Studio",
+			"LegalCopyright": "© 2026, specra",
+			"ProductName": "Specra",
+			"Comments": "Personal AI Requirements Engineering Workspace"
 		}
 	}
 }

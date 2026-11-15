@@ -239,7 +239,7 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               >
                 <div className="flex items-center gap-2">
                   <Settings size={13} />
-                  <span>Studio Settings...</span>
+                  <span>Settings / Configuration...</span>
                 </div>
                 <span className="text-[10px] text-muted font-mono">Ctrl+,</span>
               </button>
@@ -685,8 +685,8 @@ export const DesktopMenuBar: React.FC<DesktopMenuBarProps> = ({
               </button>
               <div className="my-1 border-t border-border/60" />
               <div className="px-3 py-1.5 text-[11px] text-muted space-y-0.5">
-                <div className="font-semibold text-fg">AI Requirements Studio</div>
-                <div className="text-[10px] text-muted-2">v1.2.0 Desktop • Zero-Mock</div>
+                <div className="font-bold text-fg tracking-tight">specra</div>
+                <div className="text-[10px] text-muted-2">AI Requirements Studio • Zero-Mock</div>
               </div>
             </div>
           )}

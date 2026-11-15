@@ -461,6 +461,13 @@ export default function App() {
       } else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
         e.preventDefault();
         applyFontScale('auto');
+      } else if ((e.ctrlKey || e.metaKey) && e.key === ',') {
+        e.preventDefault();
+        setSettingsTab('general');
+        setShowSettingsModal(true);
+        loadGeneralSettings();
+        loadTokenUsage();
+        handleDetectAgents(true);
       }
     };
     window.addEventListener('keydown', handleGlobalZoomKeys);
@@ -2543,16 +2550,6 @@ export default function App() {
               <Moon size={14} />
             )}
           </button>
-
-          {/* Settings Studio */}
-          <button
-            type="button"
-            onClick={() => { setShowSettingsModal(true); loadGeneralSettings(); loadTokenUsage(); handleDetectAgents(true); }}
-            className="p-1.5 rounded-[6px] text-muted hover:text-fg hover:bg-fill-mute transition-colors cursor-pointer"
-            title="Studio Settings (Ctrl+,)"
-          >
-            <Settings size={14} />
-          </button>
         </div>
       </header>
 
@@ -2863,46 +2860,28 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Sidebar Footer */}
-              <div className="space-y-1 pt-2 border-t border-border/60">
+              {/* Sidebar Footer: Settings / Configuration */}
+              <div className="pt-2 border-t border-border/60">
                 <button
                   type="button"
                   onClick={() => {
                     setSettingsTab('general');
                     setShowSettingsModal(true);
                     loadGeneralSettings();
+                    loadTokenUsage();
+                    handleDetectAgents(true);
                   }}
-                  className="w-full flex items-center justify-between text-xs px-2 py-1.5 rounded-[6px] hover:bg-fill-mute text-fg-2 hover:text-fg transition-colors border border-border/50 bg-fill-soft/40 shadow-2xs cursor-pointer"
-                  title="Open Display & Font Settings"
+                  className="w-full flex items-center justify-between text-xs px-2.5 py-2 rounded-[7px] hover:bg-fill-mute text-fg-2 hover:text-fg transition-colors border border-border/60 bg-surface shadow-2xs cursor-pointer group"
+                  title="Settings / Configuration (Ctrl+,)"
                 >
                   <div className="flex items-center gap-2">
-                    <Sliders size={13} className="text-primary" />
-                    <span className="font-medium text-xs">General & Appearance</span>
+                    <Settings size={14} className="text-primary group-hover:rotate-45 transition-transform" />
+                    <span className="font-semibold text-xs text-fg">Settings / Configuration</span>
                   </div>
-                  <span className="text-[10.5px] font-mono text-muted uppercase font-semibold">
-                    {fontScale === 'auto' ? 'Auto HiDPI' : fontScale}
+                  <span className="text-[10px] font-mono text-muted bg-fill px-1.5 py-0.5 rounded border border-border/60">
+                    Ctrl+,
                   </span>
                 </button>
-
-                <div className="flex items-center justify-between text-xs px-2 py-1 rounded-[6px] border border-border/80 bg-surface shadow-2xs">
-                  <div className="flex items-center gap-1.5 text-fg-2">
-                    <Bot size={13} className="text-primary" />
-                    <span className="font-medium truncate max-w-[130px] capitalize">
-                      {primaryProvider.replace('-cli', '')}
-                    </span>
-                    {fallbackEnabled && (
-                      <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-primary-soft text-primary font-semibold">
-                        +FB
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className={`w-1.5 h-1.5 rounded-full ${providerStatus.available ? 'bg-ok' : 'bg-err'}`} />
-                    <span className="text-[10px] text-muted font-mono">
-                      {tokenSummary ? `${tokenSummary.total_tokens.toLocaleString()} tok` : '0 tok'}
-                    </span>
-                  </div>
-                </div>
               </div>
             </aside>
 
