@@ -2,7 +2,10 @@ package ai
 
 import (
 	"context"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -10,11 +13,12 @@ import (
 )
 
 type AgentCandidate struct {
-	ID          string
-	Name        string
-	Executable  string
-	VersionArgs []string
-	Description string
+	ID            string
+	Name          string
+	Executable    string
+	VersionArgs   []string
+	Description   string
+	FallbackPaths []string
 }
 
 var knownAgents = []AgentCandidate{
@@ -22,8 +26,15 @@ var knownAgents = []AgentCandidate{
 		ID:          "antigravity-cli",
 		Name:        "Google Antigravity CLI",
 		Executable:  "agy",
-		VersionArgs: []string{"-v"},
+		VersionArgs: []string{"--version"},
 		Description: "Official Google Antigravity autonomous coding agent CLI with non-interactive subprocess support.",
+		FallbackPaths: []string{
+			".local/bin/agy",
+			".gemini/antigravity-cli/bin/agy",
+			".antigravity-ide/antigravity-ide/bin/agy",
+			"/opt/homebrew/bin/agy",
+			"/usr/local/bin/agy",
+		},
 	},
 	{
 		ID:          "opencode",
@@ -31,6 +42,12 @@ var knownAgents = []AgentCandidate{
 		Executable:  "opencode",
 		VersionArgs: []string{"-v"},
 		Description: "Autonomous terminal coding agent & server with multi-provider integration and background service.",
+		FallbackPaths: []string{
+			".opencode/bin/opencode",
+			".local/bin/opencode",
+			"/opt/homebrew/bin/opencode",
+			"/usr/local/bin/opencode",
+		},
 	},
 	{
 		ID:          "claude-code",
@@ -38,6 +55,11 @@ var knownAgents = []AgentCandidate{
 		Executable:  "claude",
 		VersionArgs: []string{"--version"},
 		Description: "Anthropic Claude terminal-based agentic coding assistant.",
+		FallbackPaths: []string{
+			".local/bin/claude",
+			"/opt/homebrew/bin/claude",
+			"/usr/local/bin/claude",
+		},
 	},
 	{
 		ID:          "aider",
@@ -45,6 +67,11 @@ var knownAgents = []AgentCandidate{
 		Executable:  "aider",
 		VersionArgs: []string{"--version"},
 		Description: "AI pair programming in your terminal supporting git repos and multi-file editing.",
+		FallbackPaths: []string{
+			".local/bin/aider",
+			"/opt/homebrew/bin/aider",
+			"/usr/local/bin/aider",
+		},
 	},
 	{
 		ID:          "ollama",
@@ -52,6 +79,10 @@ var knownAgents = []AgentCandidate{
 		Executable:  "ollama",
 		VersionArgs: []string{"--version"},
 		Description: "Local model runtime supporting Llama 3, Mistral, Qwen, DeepSeek via OpenAI-compatible API.",
+		FallbackPaths: []string{
+			"/usr/local/bin/ollama",
+			"/opt/homebrew/bin/ollama",
+		},
 	},
 	{
 		ID:          "cursor",
@@ -59,6 +90,10 @@ var knownAgents = []AgentCandidate{
 		Executable:  "cursor",
 		VersionArgs: []string{"--version"},
 		Description: "Cursor AI editor command line launcher and automation interface.",
+		FallbackPaths: []string{
+			"/usr/local/bin/cursor",
+			"/Applications/Cursor.app/Contents/Resources/app/bin/cursor",
+		},
 	},
 	{
 		ID:          "goose",
@@ -66,11 +101,17 @@ var knownAgents = []AgentCandidate{
 		Executable:  "goose",
 		VersionArgs: []string{"--version"},
 		Description: "Open-source extensible on-machine AI agent from Block.",
+		FallbackPaths: []string{
+			".local/bin/goose",
+			"/opt/homebrew/bin/goose",
+			"/usr/local/bin/goose",
+		},
 	},
 }
 
 func DetectInstalledCodingAgents(ctx context.Context) ([]domain.DetectedAgent, error) {
 	results := make([]domain.DetectedAgent, 0, len(knownAgents))
+	home, _ := os.UserHomeDir()
 
 	for _, agent := range knownAgents {
 		detected := domain.DetectedAgent{
@@ -84,13 +125,30 @@ func DetectInstalledCodingAgents(ctx context.Context) ([]domain.DetectedAgent, e
 		}
 
 		path, err := exec.LookPath(agent.Executable)
+		if err != nil || path == "" {
+			// Fallback check: probe known standard locations directly
+			for _, fb := range agent.FallbackPaths {
+				candidate := fb
+				if !filepath.IsAbs(candidate) && home != "" {
+					candidate = filepath.Join(home, candidate)
+				}
+				if info, statErr := os.Stat(candidate); statErr == nil && !info.IsDir() {
+					if runtime.GOOS == "windows" || info.Mode()&0111 != 0 {
+						path = candidate
+						err = nil
+						break
+					}
+				}
+			}
+		}
+
 		if err == nil && path != "" {
 			detected.Installed = true
 			detected.Path = path
 
 			// Try obtaining version with short timeout
 			vCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-			cmd := exec.CommandContext(vCtx, agent.Executable, agent.VersionArgs...)
+			cmd := exec.CommandContext(vCtx, path, agent.VersionArgs...)
 			out, err := cmd.CombinedOutput()
 			cancel()
 
@@ -107,7 +165,7 @@ func DetectInstalledCodingAgents(ctx context.Context) ([]domain.DetectedAgent, e
 			}
 
 			// Dynamically discover models supported by this agent
-			detected.AvailableModels = detectAgentModels(ctx, agent.ID, agent.Executable)
+			detected.AvailableModels = detectAgentModels(ctx, agent.ID, path)
 		}
 
 		results = append(results, detected)

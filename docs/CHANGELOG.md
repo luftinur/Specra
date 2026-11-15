@@ -23,6 +23,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - Distribution guide (`docs/INSTALLATION.md`).
 
 ### Fixed
+- **macOS Application Icon**: Resolved legacy Wails "W" icon display on macOS by removing obsolete `Assets.car`, stripping `CFBundleIconName` from `Info.plist`, and compiling multi-resolution Apple-certified `icons.icns` with the Specra "S" monogram.
+- **Desktop GUI PATH Environment**: Implemented dynamic login shell PATH resolution on app startup (`FixEnvironmentPath`), allowing autonomous coding agents (`agy`, `opencode`) to be reliably detected when launched from macOS Finder / Dock without terminal dependencies.
 - **macOS Bundle Executable**: Corrected `CFBundleExecutable` in `Info.plist` from legacy `.exe` to `specra`, preventing LaunchServices missing executable errors on macOS.
 - **Dynamic Coding Agent Discovery**: Auto-detect installed CLI agents (`agy`, `opencode`) upon settings open with upward-opening dropdowns preventing viewport clipping.
 - **Outdated Status Clear**: Automatically clears `outdated` document status upon regeneration and synchronizes newest upstream context.

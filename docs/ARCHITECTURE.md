@@ -197,8 +197,9 @@ Styled via MQ-Studio 0.4.2 Token Scale (`src/design/tokens.css`):
 
 ---
 
-## 7. Zero-Mock Policy & Real Fail-Fast Security
+## 7. Zero-Mock Policy, Security & OS Environment Integration
 
 1. **Zero-Mock Policy**: Specra strictly forbids mock/synthetic AI generation in production code. If an AI CLI or API fails, the actual error is immediately surfaced to the UI.
-2. **Path Traversal Guard**: All file attachments and workspace operations are validated via `filepath.Clean` and sandboxed strictly inside `workspaces/projects/{id}/`.
-3. **Credential Storage**: API keys are never stored in plaintext SQLite databases; they are stored encrypted using OS Keyring via `go-keyring`.
+2. **Desktop GUI PATH Environment Resolution (`internal/security/pathenv.go`)**: When desktop applications are launched via macOS Finder, Dock, or Windows desktop shortcuts, the OS executes them without evaluating interactive user shell configurations (`~/.zshrc`). On startup, Specra dynamically queries the login shell and augments `PATH` with standard user tool directories (`~/.local/bin`, `~/.opencode/bin`, `/opt/homebrew/bin`, `~/go/bin`), ensuring autonomous coding agents (`agy`, `opencode`) are reliably detected and executed without terminal dependencies.
+3. **Path Traversal Guard**: All file attachments and workspace operations are validated via `filepath.Clean` and sandboxed strictly inside `workspaces/projects/{id}/`.
+4. **Credential Storage**: API keys are never stored in plaintext SQLite databases; they are stored encrypted using OS Keyring via `go-keyring`.

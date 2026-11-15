@@ -52,6 +52,14 @@ func NewAdapter(customPath string) *Adapter {
 	return &Adapter{executablePath: customPath}
 }
 
+func (a *Adapter) SetExecutablePath(path string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if strings.TrimSpace(path) != "" {
+		a.executablePath = strings.TrimSpace(path)
+	}
+}
+
 func (a *Adapter) SetConfig(model string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()

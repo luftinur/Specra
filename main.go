@@ -10,6 +10,7 @@ import (
 	"ai-requirements-studio/internal/ai/adapters/antigravity"
 	"ai-requirements-studio/internal/ai/adapters/gemini"
 	"ai-requirements-studio/internal/ai/adapters/opencode"
+	"ai-requirements-studio/internal/security"
 	"ai-requirements-studio/internal/services"
 	"ai-requirements-studio/internal/storage"
 
@@ -28,6 +29,9 @@ func getWorkspaceDir() string {
 }
 
 func main() {
+	// Fix environment PATH for macOS Finder/Dock GUI launches
+	security.FixEnvironmentPath()
+
 	workspaceDir := getWorkspaceDir()
 	dbPath := filepath.Join(workspaceDir, "app.db")
 

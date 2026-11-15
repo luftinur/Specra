@@ -51,6 +51,14 @@ func NewAdapter(customPath, baseURL, model, apiKey string) *Adapter {
 	}
 }
 
+func (a *Adapter) SetExecutablePath(path string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if strings.TrimSpace(path) != "" {
+		a.executablePath = strings.TrimSpace(path)
+	}
+}
+
 func (a *Adapter) ID() string {
 	return "opencode"
 }

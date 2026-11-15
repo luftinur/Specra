@@ -108,8 +108,14 @@ func (s *ProviderService) DetectInstalledCodingAgents() ([]domain.DetectedAgent,
 			switch agents[i].ID {
 			case "antigravity-cli":
 				agents[i].SelectedModel = agyModel
+				if agents[i].Installed && agents[i].Path != "" && s.agyAdapter != nil {
+					s.agyAdapter.SetExecutablePath(agents[i].Path)
+				}
 			case "opencode":
 				agents[i].SelectedModel = ocModel
+				if agents[i].Installed && agents[i].Path != "" && s.opencodeAdapter != nil {
+					s.opencodeAdapter.SetExecutablePath(agents[i].Path)
+				}
 			}
 		}
 	}
