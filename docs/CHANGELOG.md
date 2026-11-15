@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Dual-Track Language Preferences**: Decoupled Chat & Discovery Language (`chat_language`) from Document Specification Language (`doc_language`), allowing natural Indonesian conversation while producing standard English (IEEE 830) specifications, or vice-versa.
 - **Centralized Agent & System Diagnostics**: Dedicated diagnostic inspector in Settings displaying exact binary paths, detected CLI versions, model counts, and evaluated system `$PATH` directories.
 - **1-Click Copy Diagnostic Report**: Added a button to generate and copy a comprehensive markdown system diagnostic report to the clipboard for fast troubleshooting.
+- **Open-Source Contributor Workflow**: Standardized Fork & Pull Request model (`CONTRIBUTING.md`), Pull Request Template (`.github/PULL_REQUEST_TEMPLATE.md`), and structured Issue Templates.
+- **Automated Pull Request CI Pipeline**: GitHub Actions CI workflow (`.github/workflows/ci.yml`) automatically validating Go backend tests and frontend TypeScript builds for all incoming PRs.
 
 ### Changed
 - **Streamlined Coding Agents Configuration**: Removed raw executable paths from main agent cards in the Coding Agents & LLM tab to keep the interface uncluttered, with a quick-action link to view detailed diagnostics.

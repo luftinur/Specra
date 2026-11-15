@@ -6,6 +6,8 @@
 
 Turn vague ideas, scattered briefs, and meeting notes into production-ready software specifications: PRD, IEEE 830 SRS, C4 System Architecture, and Design Systems.
 
+[![CI](https://github.com/Luftinurfahmi/dev-agent-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/Luftinurfahmi/dev-agent-assistant/actions/workflows/ci.yml)
+[![Release](https://github.com/Luftinurfahmi/dev-agent-assistant/actions/workflows/release.yml/badge.svg)](https://github.com/Luftinurfahmi/dev-agent-assistant/actions/workflows/release.yml)
 [![Go Version](https://img.shields.io/badge/Go-1.24%2B-00ADD8?style=flat&logo=go)](https://go.dev)
 [![React Version](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react)](https://react.dev)
 [![Wails Desktop](https://img.shields.io/badge/Desktop-Wails_v3-DF0000?style=flat)](https://v3.wails.io)
@@ -13,7 +15,7 @@ Turn vague ideas, scattered briefs, and meeting notes into production-ready soft
 [![Zero-Mock Policy](https://img.shields.io/badge/AI_Execution-Real_Zero--Mock-6366F1?style=flat)]()
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat)](./LICENSE)
 
-[Features](#-features) • [Pipeline](#-specification-pipeline) • [Quickstart](#-quickstart) • [Specialist Personas](#-4-specialist-personas) • [Architecture](#-architecture--security)
+[Features](#-features) • [Pipeline](#-specification-pipeline) • [Quickstart](#-quickstart) • [Specialist Personas](#-4-specialist-personas) • [Contributing](./CONTRIBUTING.md) • [Architecture](#-architecture--security)
 
 ---
 
@@ -179,6 +181,14 @@ Specra Desktop Shell (Wails v3)
 - **Zero Telemetry**: Specra never transmits code, drafts, or usage telemetry to third-party tracking servers.
 - **Project Isolation**: Subprocesses execute strictly inside the user's isolated local workspace directory (`cmd.Dir`).
 - **No Mock Fallbacks**: Production errors are exposed transparently so developers always have full visibility into AI provider status.
+
+---
+
+## 🤝 Contributing
+
+We welcome community contributions! Please review our [Contributing Guide](./CONTRIBUTING.md) for details on the Fork & Pull Request workflow, local development environment setup, and coding guidelines.
+
+Direct pushes to `main` are disabled via Branch Protection. All changes are validated via automated GitHub Actions CI and merged upon review approval.
 
 ---
 
