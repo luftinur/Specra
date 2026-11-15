@@ -73,6 +73,7 @@ func main() {
 	conversationService := services.NewConversationService(convRepo, reqRepo, orchestrator)
 	conversationService.SetWorkspace(wm)
 	conversationService.SetAgentRegistry(agentRegistry)
+	conversationService.SetProviderRepo(providerRepo)
 
 	providerService := services.NewProviderService(orchestrator, providerRepo, agyAdapter, opencodeAdapter, geminiAdapter)
 	providerService.SetAgentRegistry(agentRegistry)
@@ -80,6 +81,7 @@ func main() {
 
 	requirementService := services.NewRequirementService(reqRepo, convRepo)
 	documentService := services.NewDocumentService(docRepo, projectRepo, reqRepo, convRepo, wm, orchestrator)
+	documentService.SetProviderRepo(providerRepo)
 	validationService := services.NewValidationService(valRepo, docRepo, reqRepo, convRepo)
 
 	// 6. Create Wails v3 Application

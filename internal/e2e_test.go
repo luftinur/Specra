@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,7 +24,7 @@ func (m *mockE2EAIProvider) Type() domain.ProviderType           { return domain
 func (m *mockE2EAIProvider) CheckAvailability(ctx context.Context) error { return nil }
 func (m *mockE2EAIProvider) CheckAuthentication(ctx context.Context) error { return nil }
 func (m *mockE2EAIProvider) Generate(ctx context.Context, req ai.GenerateRequest) (*ai.GenerateResponse, error) {
-	if req.Role == "Product Analyst" && req.Prompt[0:4] == "Role" {
+	if req.Role == "Product Analyst" && strings.Contains(req.Prompt, "Role: Product Analyst") {
 		// Discovery prompt response
 		rawJSON := `{
 			"reply": "E2E: Analyzed user brief. Extracted core checkout requirements.",

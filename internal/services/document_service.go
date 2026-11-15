@@ -19,6 +19,7 @@ type DocumentService struct {
 	projRepo     *storage.ProjectRepository
 	reqRepo      *storage.RequirementRepository
 	convRepo     *storage.ConversationRepository
+	providerRepo *storage.ProviderRepository
 	workspace    *storage.WorkspaceManager
 	orchestrator *ai.Orchestrator
 }
@@ -39,6 +40,22 @@ func NewDocumentService(
 		workspace:    wm,
 		orchestrator: orch,
 	}
+}
+
+func (s *DocumentService) SetProviderRepo(pr *storage.ProviderRepository) {
+	s.providerRepo = pr
+}
+
+func (s *DocumentService) getDocLanguage(ctx context.Context) string {
+	if s.providerRepo != nil {
+		if val, err := s.providerRepo.GetSetting(ctx, "gen_doc_language"); err == nil && val != "" {
+			return val
+		}
+		if val, err := s.providerRepo.GetSetting(ctx, "gen_language"); err == nil && val != "" {
+			return val
+		}
+	}
+	return "en"
 }
 
 func (s *DocumentService) getWorkDir(projectID string) string {
@@ -102,7 +119,7 @@ func (s *DocumentService) GeneratePRD(projectID string) (*domain.DocumentVersion
 	assump, _ := s.convRepo.ListAssumptions(ctx, projectID)
 	clar, _ := s.convRepo.ListClarifications(ctx, projectID)
 
-	prompt := ai.BuildPRDGenerationPrompt(project, reqs, assump, clar)
+	prompt := ai.BuildPRDGenerationPrompt(project, reqs, assump, clar, s.getDocLanguage(ctx))
 
 	resp, err := s.orchestrator.Execute(ctx, ai.GenerateRequest{
 		ProjectID: projectID,
@@ -232,7 +249,7 @@ func (s *DocumentService) GenerateSRS(projectID string) (*domain.DocumentVersion
 
 	reqs, _ := s.reqRepo.ListByProject(ctx, projectID)
 
-	prompt := ai.BuildSRSGenerationPrompt(project, prdVersion.Content, reqs)
+	prompt := ai.BuildSRSGenerationPrompt(project, prdVersion.Content, reqs, s.getDocLanguage(ctx))
 
 	resp, err := s.orchestrator.Execute(ctx, ai.GenerateRequest{
 		ProjectID: projectID,
@@ -372,7 +389,7 @@ func (s *DocumentService) GenerateDesign(projectID string) (*domain.DocumentVers
 
 	reqs, _ := s.reqRepo.ListByProject(ctx, projectID)
 
-	prompt := ai.BuildDesignGenerationPrompt(project, prdVersion.Content, srsContent, reqs)
+	prompt := ai.BuildDesignGenerationPrompt(project, prdVersion.Content, srsContent, reqs, s.getDocLanguage(ctx))
 
 	resp, err := s.orchestrator.Execute(ctx, ai.GenerateRequest{
 		ProjectID: projectID,
@@ -509,7 +526,7 @@ func (s *DocumentService) GenerateArchitecture(projectID string) (*domain.Docume
 
 	reqs, _ := s.reqRepo.ListByProject(ctx, projectID)
 
-	prompt := ai.BuildArchitectureGenerationPrompt(project, prdVersion.Content, srsContent, reqs)
+	prompt := ai.BuildArchitectureGenerationPrompt(project, prdVersion.Content, srsContent, reqs, s.getDocLanguage(ctx))
 
 	resp, err := s.orchestrator.Execute(ctx, ai.GenerateRequest{
 		ProjectID: projectID,

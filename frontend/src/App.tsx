@@ -48,7 +48,8 @@ import {
   ChevronDown,
   ChevronRight,
   HelpCircle,
-  Columns
+  Columns,
+  Copy
 } from 'lucide-react';
 import { MarkdownViewer } from './components/MarkdownViewer';
 import { SpecraLogo, SpecraIcon, SpecraWordmark } from './components/SpecraBrand';
@@ -304,6 +305,8 @@ export default function App() {
     font_size: 'standard',
     animations: true,
     language: 'id',
+    chat_language: 'id',
+    doc_language: 'en',
     auto_save_draft: true,
     auto_save_interval_ms: 1000,
     default_doc_depth: 'standard',
@@ -1016,6 +1019,44 @@ export default function App() {
     } finally {
       setIsRunningDiag(false);
     }
+  };
+
+  const handleCopyDiagnostics = () => {
+    if (!diagResults) return;
+    const lines: string[] = [
+      '# Specra Diagnostic Report',
+      `- Generated: ${new Date().toLocaleString()}`,
+      `- OS / Architecture: ${diagResults.os || navigator.platform} / ${diagResults.arch || 'unknown'}`,
+      `- Execution Duration: ${diagResults.duration_ms} ms`,
+      `- Storage Engine: ${diagResults.storage_strategy || 'Local SQLite WAL'}`,
+      `- OS Keyring Status: ${diagResults.keyring_health || 'Healthy'}`,
+      '',
+      '## Detected Coding Agents & Executables',
+    ];
+    if (diagResults.agents && Array.isArray(diagResults.agents)) {
+      diagResults.agents.forEach((ag: any) => {
+        lines.push(`- **${ag.name}** (${ag.id})`);
+        lines.push(`  - Status: ${ag.installed ? `Installed (${ag.version})` : 'Not Installed'}`);
+        lines.push(`  - Path: ${ag.path || 'N/A'}`);
+        lines.push(`  - Available Models: ${ag.models_count || 0}`);
+      });
+    } else {
+      lines.push(`- Antigravity CLI: ${diagResults.cli_available ? `Found (${diagResults.cli_version}) at ${diagResults.cli_path || 'PATH'}` : (diagResults.cli_error || 'Not Installed')}`);
+      lines.push(`- OpenCode CLI: ${diagResults.opencode_available ? `Installed at ${diagResults.opencode_path || 'PATH'}` : 'Not Detected'}`);
+    }
+    if (diagResults.path_directories && Array.isArray(diagResults.path_directories)) {
+      lines.push('');
+      lines.push('## System Environment PATH Directories');
+      diagResults.path_directories.forEach((dir: string) => {
+        if (dir.trim()) lines.push(`- \`${dir.trim()}\``);
+      });
+    }
+    const reportText = lines.join('\n');
+    navigator.clipboard.writeText(reportText).then(() => {
+      notifySuccess("Copied Diagnostics", "Diagnostic report copied to clipboard.");
+    }).catch(() => {
+      notifyError("Copy Failed", "Failed to copy diagnostic report to clipboard.");
+    });
   };
 
   const handleSaveApiKey = async (e: React.FormEvent) => {
@@ -4145,29 +4186,60 @@ export default function App() {
                 </div>
 
                 {/* 3. AI Document Generation Preferences */}
-                <div className="p-4 bg-fill-soft rounded-xl border border-border space-y-3">
-                  <h4 className="font-semibold text-sm text-fg flex items-center gap-2">
-                    <Sparkles size={16} className="text-primary" />
-                    AI Generation & Language Preferences
-                  </h4>
+                <div className="p-4 bg-fill-soft rounded-xl border border-border space-y-3.5">
+                  <div>
+                    <h4 className="font-semibold text-sm text-fg flex items-center gap-2">
+                      <Sparkles size={16} className="text-primary" />
+                      AI Generation & Language Preferences
+                    </h4>
+                    <p className="text-xs text-muted mt-0.5">
+                      Atur preferensi bahasa obrolan saat discovery dan bahasa penulisan dokumen spesifikasi formal (PRD, SRS, Arsitektur, Desain).
+                    </p>
+                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                    <div>
-                      <label className="block font-semibold text-xs text-fg mb-1">
-                        Primary Document Language
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                    {/* Track 1: Chat Language */}
+                    <div className="space-y-1">
+                      <label className="block font-semibold text-xs text-fg">
+                        Chat & Discovery Language
                       </label>
                       <select
-                        value={generalSettings.language}
-                        onChange={(e) => setGeneralSettings(prev => ({ ...prev, language: e.target.value }))}
-                        className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-xs text-fg focus:outline-none focus:border-primary"
+                        value={generalSettings.chat_language || 'id'}
+                        onChange={(e) => setGeneralSettings(prev => ({ ...prev, chat_language: e.target.value }))}
+                        className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-fg focus:outline-none focus:border-primary"
                       >
-                        <option value="id">Bahasa Indonesia Teknis Formal (Standar Industri)</option>
-                        <option value="en">English (IEEE 830 / ISO Standard)</option>
+                        <option value="id">Bahasa Indonesia (Alami, Ramah & Jelas)</option>
+                        <option value="en">English (Global Standard / Clear)</option>
+                        <option value="auto">Auto / Adaptif (Ikuti Bahasa Pengguna)</option>
                       </select>
+                      <p className="text-[11px] text-muted">
+                        Bahasa interaksi saat mengobrol, brainstorming, dan tanya jawab klarifikasi dengan 4 Specialist Agents.
+                      </p>
                     </div>
 
-                    <div>
-                      <label className="block font-semibold text-xs text-fg mb-1">
+                    {/* Track 2: Document Language */}
+                    <div className="space-y-1">
+                      <label className="block font-semibold text-xs text-fg">
+                        Document Specification Output Language
+                      </label>
+                      <select
+                        value={generalSettings.doc_language || 'en'}
+                        onChange={(e) => setGeneralSettings(prev => ({ ...prev, doc_language: e.target.value, language: e.target.value }))}
+                        className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-xs text-fg focus:outline-none focus:border-primary"
+                      >
+                        <option value="en">English (IEEE 830 / ISO Standard) — Rekomendasi Global</option>
+                        <option value="id">Bahasa Indonesia Teknis Formal (Standar Industri)</option>
+                        <option value="auto">Samakan dengan Bahasa Obrolan (Auto)</option>
+                      </select>
+                      <p className="text-[11px] text-muted">
+                        Bahasa penulisan formal untuk dokumen PRD (20 bab), SRS (22 bab), Arsitektur, dan Design System.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-border/60">
+                    <div className="max-w-md space-y-1">
+                      <label className="block font-semibold text-xs text-fg">
                         Document Template Depth
                       </label>
                       <select
@@ -4175,7 +4247,7 @@ export default function App() {
                         onChange={(e) => setGeneralSettings(prev => ({ ...prev, default_doc_depth: e.target.value }))}
                         className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-xs text-fg focus:outline-none focus:border-primary"
                       >
-                        <option value="standard">Enterprise Comprehensive (20+ Sections Lengkap)</option>
+                        <option value="standard">Enterprise Comprehensive (20+ Sections Lengkap & Mendalam)</option>
                         <option value="compact">Rapid Agile / Sprint Lite (Ringkas & Cepat)</option>
                       </select>
                     </div>
@@ -5012,9 +5084,23 @@ export default function App() {
                             </span>
                           </div>
 
-                          {agent.installed && agent.path && (
-                            <div className="text-xs font-mono text-muted truncate" title={agent.path}>
-                              Path: {agent.path}
+                          {agent.installed && (
+                            <div className="text-[11px] text-muted flex items-center justify-between">
+                              <span className="text-ok font-medium flex items-center gap-1">
+                                <CheckCircle2 size={11} /> Ready to Execute
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSettingsTab('diagnostics');
+                                  handleRunDiagnostics();
+                                }}
+                                className="text-[11px] text-muted hover:text-primary hover:underline flex items-center gap-1 transition-colors"
+                                title="Lihat detail lokasi biner dan diagnostik sistem"
+                              >
+                                <Activity size={11} />
+                                <span>Info Diagnostik</span>
+                              </button>
                             </div>
                           )}
 
@@ -5458,6 +5544,17 @@ export default function App() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className={`w-2 h-2 rounded-full ${diagResults ? 'bg-ok' : 'bg-muted-2'}`} />
+                      {diagResults && (
+                        <button
+                          type="button"
+                          onClick={handleCopyDiagnostics}
+                          className="px-3 py-1.5 text-xs font-medium rounded-md bg-surface hover:bg-fill text-fg border border-border flex items-center gap-1.5 transition-colors shadow-2xs"
+                          title="Salin ringkasan hasil diagnostik ke clipboard"
+                        >
+                          <Copy size={13} />
+                          <span>Salin Laporan</span>
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={handleRunDiagnostics}
@@ -5471,36 +5568,107 @@ export default function App() {
                   </div>
 
                   {diagResults ? (
-                    <div className="p-3.5 bg-surface border border-border/80 rounded-lg text-xs space-y-2 font-mono">
-                      <div className="flex justify-between items-center py-0.5 border-b border-border/40">
-                        <span className="text-muted">Duration</span>
-                        <span className="text-ok font-bold">{diagResults.duration_ms} ms</span>
+                    <div className="space-y-3">
+                      {/* System Overview Matrix */}
+                      <div className="p-3.5 bg-surface border border-border/80 rounded-lg text-xs space-y-2 font-mono">
+                        <div className="flex justify-between items-center py-0.5 border-b border-border/40">
+                          <span className="text-muted">Platform OS / Arch</span>
+                          <span className="text-fg font-semibold">{diagResults.os || 'darwin'} / {diagResults.arch || 'arm64'}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-0.5 border-b border-border/40">
+                          <span className="text-muted">Diagnostics Duration</span>
+                          <span className="text-ok font-bold">{diagResults.duration_ms} ms</span>
+                        </div>
+                        <div className="flex justify-between items-center py-0.5 border-b border-border/40">
+                          <span className="text-muted">OS Keyring Health</span>
+                          <span className="text-primary font-semibold">{diagResults.keyring_health}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-0.5">
+                          <span className="text-muted">Storage Engine</span>
+                          <span className="text-fg">{diagResults.storage_strategy}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center py-0.5 border-b border-border/40">
-                        <span className="text-muted">Antigravity CLI</span>
-                        <span className={diagResults.cli_available ? 'text-ok font-semibold' : 'text-err font-semibold'}>
-                          {diagResults.cli_available ? `Found (v${diagResults.cli_version})` : diagResults.cli_error}
-                        </span>
+
+                      {/* Detected Agent Executable Paths */}
+                      <div className="p-3 bg-surface border border-border/80 rounded-lg space-y-2">
+                        <div className="flex items-center justify-between text-xs font-semibold text-fg">
+                          <span className="flex items-center gap-1.5">
+                            <Cpu size={13} className="text-primary" />
+                            Agent Executable Paths & Binary Resolution
+                          </span>
+                          <span className="text-[11px] text-muted font-normal">
+                            Detail lokasi biner di disk
+                          </span>
+                        </div>
+                        <div className="space-y-1.5 pt-1">
+                          {diagResults.agents && Array.isArray(diagResults.agents) && diagResults.agents.length > 0 ? (
+                            diagResults.agents.map((ag: any) => (
+                              <div key={ag.id} className="p-2 rounded bg-fill-soft/70 border border-border/50 text-xs font-mono flex flex-col gap-0.5">
+                                <div className="flex items-center justify-between font-semibold">
+                                  <span className="text-fg">{ag.name}</span>
+                                  <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                                    ag.installed ? 'bg-ok-tint text-ok' : 'bg-fill text-muted'
+                                  }`}>
+                                    {ag.installed ? `v${ag.version}` : 'Not Detected'}
+                                  </span>
+                                </div>
+                                <div className="text-[11px] text-muted truncate select-all" title={ag.path || 'Not installed'}>
+                                  Path: <span className={ag.path ? 'text-fg-2 font-medium' : 'italic text-muted'}>{ag.path || 'Biner tidak ditemukan pada $PATH'}</span>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="space-y-1 text-xs font-mono">
+                              <div className="p-2 rounded bg-fill-soft/70 border border-border/50">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-semibold text-fg">Antigravity CLI (agy)</span>
+                                  <span className={diagResults.cli_available ? 'text-ok font-bold' : 'text-err font-bold'}>
+                                    {diagResults.cli_available ? `Found (v${diagResults.cli_version})` : 'Not Detected'}
+                                  </span>
+                                </div>
+                                <div className="text-[11px] text-muted truncate mt-0.5">
+                                  Path: <span className="text-fg-2">{diagResults.cli_path || 'PATH environment'}</span>
+                                </div>
+                              </div>
+                              <div className="p-2 rounded bg-fill-soft/70 border border-border/50">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-semibold text-fg">OpenCode CLI (opencode)</span>
+                                  <span className={diagResults.opencode_available ? 'text-ok font-bold' : 'text-muted font-bold'}>
+                                    {diagResults.opencode_available ? `Installed (v${diagResults.opencode_version})` : 'Not Detected'}
+                                  </span>
+                                </div>
+                                <div className="text-[11px] text-muted truncate mt-0.5">
+                                  Path: <span className="text-fg-2">{diagResults.opencode_path || 'PATH environment'}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center py-0.5 border-b border-border/40">
-                        <span className="text-muted">OpenCode CLI</span>
-                        <span className={diagResults.opencode_available ? 'text-ok font-semibold' : 'text-muted'}>
-                          {diagResults.opencode_available ? 'Installed & Ready' : 'Not Detected'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center py-0.5 border-b border-border/40">
-                        <span className="text-muted">OS Keyring</span>
-                        <span className="text-primary font-semibold">{diagResults.keyring_health}</span>
-                      </div>
-                      <div className="flex justify-between items-center py-0.5">
-                        <span className="text-muted">Storage Engine</span>
-                        <span className="text-fg">{diagResults.storage_strategy}</span>
-                      </div>
+
+                      {/* Evaluated PATH Directories */}
+                      {diagResults.path_directories && Array.isArray(diagResults.path_directories) && diagResults.path_directories.length > 0 && (
+                        <div className="p-3 bg-surface border border-border/80 rounded-lg space-y-1.5">
+                          <div className="flex items-center justify-between text-xs font-semibold text-fg">
+                            <span className="flex items-center gap-1.5">
+                              <Terminal size={13} className="text-primary" />
+                              System $PATH Directories Evaluated ({diagResults.path_directories.length})
+                            </span>
+                          </div>
+                          <div className="max-h-28 overflow-y-auto font-mono text-[11px] text-muted space-y-0.5 p-2 bg-fill-soft/50 rounded border border-border/40">
+                            {diagResults.path_directories.map((dir: string, idx: number) => (
+                              <div key={idx} className="truncate select-all hover:text-fg">
+                                • {dir}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="p-3 bg-surface/60 border border-dashed border-border rounded-lg text-xs text-muted flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-muted-2" />
-                      <span>No diagnostic results yet. Click "Run Diagnostics" to validate system performance and integrity.</span>
+                      <span>No diagnostic results yet. Click "Jalankan Diagnostik" to validate system performance, executable paths, and environment PATH.</span>
                     </div>
                   )}
                 </div>

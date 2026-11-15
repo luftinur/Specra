@@ -94,11 +94,27 @@ var ArchitectureSections = []string{
 	"Deployment Topology, Infrastructure as Code and CI/CD",
 }
 
+func getDocumentLanguageDirective(docLang ...string) string {
+	lang := "en"
+	if len(docLang) > 0 && docLang[0] != "" {
+		lang = docLang[0]
+	}
+	switch lang {
+	case "id":
+		return "\nCRITICAL LANGUAGE REQUIREMENT:\nSeluruh dokumen spesifikasi, judul bab/section, deskripsi kebutuhan fungsional (FR), tabel, dan catatan teknis harus ditulis dalam Bahasa Indonesia teknis formal yang baku dan profesional. Pertahankan istilah teknis baku industri software (seperti API, REST, JSON, JWT, UUID, database, schema).\n"
+	case "auto":
+		return "\nLANGUAGE REQUIREMENT:\nGenerate this specification document using the dominant language established in the project context and requirements.\n"
+	default: // "en"
+		return "\nCRITICAL LANGUAGE REQUIREMENT:\nThe entire specification document, section headings, functional requirements descriptions, tables, and architecture notes must be authored strictly in professional English according to international engineering standards (IEEE 830 / ISO standard terminology).\n"
+	}
+}
+
 func BuildPRDGenerationPrompt(
 	project *domain.Project,
 	reqs []domain.Requirement,
 	assumptions []domain.Assumption,
 	clarifications []domain.Clarification,
+	docLang ...string,
 ) string {
 	var reqBuilder strings.Builder
 	for _, r := range reqs {
@@ -122,7 +138,7 @@ func BuildPRDGenerationPrompt(
 
 	return fmt.Sprintf(`You are a Principal Product Manager for Specra (AI Requirements Engineering Studio).
 Generate a complete, professional, publication-ready Product Requirements Document (PRD) in Markdown for the project described below.
-
+%s
 CRITICAL DOMAIN ISOLATION & ZERO-LEAKAGE:
 Base this document strictly on the provided PROJECT name, description, confirmed requirements, and clarification Q&A.
 Do NOT mention, assume, or leak internal developer tools, framework references (such as MQ-Studio, dev assistants, or Specra itself) into this document unless the user's project explicitly targets them.
@@ -165,7 +181,7 @@ You MUST structure the document using the following exact 20 numbered sections w
 20. Open Questions
 
 Output valid CommonMark Markdown directly without conversational preface.`,
-		project.Name, project.Description, reqBuilder.String(), assumpBuilder.String(), clarBuilder.String(),
+		getDocumentLanguageDirective(docLang...), project.Name, project.Description, reqBuilder.String(), assumpBuilder.String(), clarBuilder.String(),
 	)
 }
 
@@ -173,6 +189,7 @@ func BuildSRSGenerationPrompt(
 	project *domain.Project,
 	approvedPRD string,
 	reqs []domain.Requirement,
+	docLang ...string,
 ) string {
 	var reqBuilder strings.Builder
 	for _, r := range reqs {
@@ -182,7 +199,7 @@ func BuildSRSGenerationPrompt(
 
 	return fmt.Sprintf(`You are a Lead Software Architect and System Analyst for Specra.
 Generate a complete, professional Software Requirements Specification (SRS) in Markdown based on the APPROVED PRD below.
-
+%s
 CRITICAL DOMAIN ISOLATION & ZERO-LEAKAGE:
 Base this document strictly on the provided PROJECT name, description, and approved PRD baseline.
 Do NOT mention, assume, or leak internal developer tools, framework references (such as MQ-Studio, dev assistants, or Specra itself) into this document.
@@ -224,7 +241,7 @@ You MUST structure the document using the following exact 22 numbered sections w
 22. Constraints and Assumptions
 
 Output valid CommonMark Markdown directly without conversational preface.`,
-		project.Name, project.Description, approvedPRD, reqBuilder.String(),
+		getDocumentLanguageDirective(docLang...), project.Name, project.Description, approvedPRD, reqBuilder.String(),
 	)
 }
 
@@ -233,6 +250,7 @@ func BuildDesignGenerationPrompt(
 	approvedPRD string,
 	approvedSRS string,
 	reqs []domain.Requirement,
+	docLang ...string,
 ) string {
 	var reqBuilder strings.Builder
 	for _, r := range reqs {
@@ -244,7 +262,7 @@ func BuildDesignGenerationPrompt(
 
 	return fmt.Sprintf(`You are an elite UI/UX Architect and Design System Specialist for Specra.
 Generate a comprehensive Design Specification and Design System (design.md) for the following project:
-
+%s
 CRITICAL DOMAIN ISOLATION & ZERO-LEAKAGE:
 Design a cohesive, bespoke visual identity, theme tokens, and component architecture strictly for the user's specific project domain.
 Do NOT mention, assume, or leak internal developer tools, framework references (such as MQ-Studio, dev assistants, or Specra itself) into this design system.
@@ -283,7 +301,7 @@ You MUST structure the document using the following exact 16 numbered sections w
 16. Asset Delivery and Export Specifications (SVG guidelines, raster asset densities, favicon)
 
 Output valid CommonMark Markdown directly without conversational preface.`,
-		project.Name, project.Description, approvedPRD, approvedSRS, reqBuilder.String(),
+		getDocumentLanguageDirective(docLang...), project.Name, project.Description, approvedPRD, approvedSRS, reqBuilder.String(),
 	)
 }
 
@@ -292,6 +310,7 @@ func BuildArchitectureGenerationPrompt(
 	approvedPRD string,
 	approvedSRS string,
 	reqs []domain.Requirement,
+	docLang ...string,
 ) string {
 	var reqBuilder strings.Builder
 	for _, r := range reqs {
@@ -301,7 +320,7 @@ func BuildArchitectureGenerationPrompt(
 
 	return fmt.Sprintf(`You are a Principal Software Architect for Specra.
 Generate an industry-standard, comprehensive Architecture Document (architecture.md) for the project:
-
+%s
 CRITICAL DOMAIN ISOLATION & ZERO-LEAKAGE:
 Base this architecture strictly on the provided PROJECT name, description, approved PRD, and approved SRS.
 Do NOT mention, assume, or leak internal developer tools, framework references (such as MQ-Studio, dev assistants, or Specra itself) into this document.
@@ -339,7 +358,7 @@ Generate all 16 numbered sections in order, using "## {number}. {Section Title}"
 16. Deployment Topology, Infrastructure as Code and CI/CD (Docker, orchestration, deployment phases)
 
 Output valid CommonMark Markdown directly without conversational preface.`,
-		project.Name, project.Description, approvedPRD, approvedSRS, reqBuilder.String(),
+		getDocumentLanguageDirective(docLang...), project.Name, project.Description, approvedPRD, approvedSRS, reqBuilder.String(),
 	)
 }
 

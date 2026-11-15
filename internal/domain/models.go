@@ -281,7 +281,9 @@ type GeneralSettings struct {
 	Theme                  string `json:"theme"`                   // "system" | "light" | "dark"
 	FontSize               string `json:"font_size"`               // "compact" (13px), "standard" (14px), "comfort" (15.5px)
 	Animations             bool   `json:"animations"`              // true / false
-	Language               string `json:"language"`                // "id" | "en"
+	Language               string `json:"language"`                // Kept for backward compatibility
+	ChatLanguage           string `json:"chat_language"`           // "id" | "en" | "auto"
+	DocLanguage            string `json:"doc_language"`            // "en" | "id" | "auto"
 	AutoSaveDraft          bool   `json:"auto_save_draft"`         // true / false
 	AutoSaveIntervalMs     int    `json:"auto_save_interval_ms"`   // 1000
 	DefaultDocDepth        string `json:"default_doc_depth"`       // "standard" | "compact"

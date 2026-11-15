@@ -8,6 +8,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as domain$0 from "../domain/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as storage$0 from "../storage/models.js";
 
 export function ApproveArchitecture(projectID: string, versionID: string): $CancellablePromise<void> {
     return $Call.ByID(978232344, projectID, versionID);
@@ -86,4 +89,8 @@ export function SelectDirectory(title: string): $CancellablePromise<string> {
 
 export function SelectSaveFile(title: string, defaultFilename: string): $CancellablePromise<string> {
     return $Call.ByID(2175121209, title, defaultFilename);
+}
+
+export function SetProviderRepo(pr: storage$0.ProviderRepository | null): $CancellablePromise<void> {
+    return $Call.ByID(1762519735, pr);
 }

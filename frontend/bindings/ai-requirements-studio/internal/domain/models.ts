@@ -135,9 +135,19 @@ export interface GeneralSettings {
     "animations": boolean;
 
     /**
-     * "id" | "en"
+     * Kept for backward compatibility
      */
     "language": string;
+
+    /**
+     * "id" | "en" | "auto"
+     */
+    "chat_language": string;
+
+    /**
+     * "en" | "id" | "auto"
+     */
+    "doc_language": string;
 
     /**
      * true / false

@@ -18,6 +18,7 @@ import (
 type ConversationService struct {
 	repo          *storage.ConversationRepository
 	reqRepo       *storage.RequirementRepository
+	providerRepo  *storage.ProviderRepository
 	orchestrator  *ai.Orchestrator
 	workspace     *storage.WorkspaceManager
 	agentRegistry *ai.AgentRegistry
@@ -33,6 +34,10 @@ func NewConversationService(
 		reqRepo:      reqRepo,
 		orchestrator: orch,
 	}
+}
+
+func (s *ConversationService) SetProviderRepo(pr *storage.ProviderRepository) {
+	s.providerRepo = pr
 }
 
 func (s *ConversationService) SetWorkspace(wm *storage.WorkspaceManager) {
@@ -169,6 +174,26 @@ func (s *ConversationService) SendMessageWithAgent(conversationID, projectID, co
 			prompt = prompt + "\n" + contextBuilder.String()
 		}
 	}
+
+	// Chat Language Directive Injection
+	chatLang := "id"
+	if s.providerRepo != nil {
+		if val, err := s.providerRepo.GetSetting(ctx, "gen_chat_language"); err == nil && val != "" {
+			chatLang = val
+		} else if val, err := s.providerRepo.GetSetting(ctx, "gen_language"); err == nil && val != "" {
+			chatLang = val
+		}
+	}
+	var chatLangDirective string
+	switch chatLang {
+	case "en":
+		chatLangDirective = "\n\nCHAT INTERACTION LANGUAGE DIRECTIVE: You must reply, ask clarification questions, and converse with the user strictly in clear, professional English."
+	case "auto":
+		chatLangDirective = "\n\nCHAT INTERACTION LANGUAGE DIRECTIVE: Dynamically adapt to the language used by the user in their messages (Indonesian or English)."
+	default:
+		chatLangDirective = "\n\nCHAT INTERACTION LANGUAGE DIRECTIVE: Wajib menjawab, mengajukan pertanyaan klarifikasi, dan berdialog dengan pengguna menggunakan Bahasa Indonesia yang profesional, ramah, dan jelas."
+	}
+	systemDirective += chatLangDirective
 
 	if systemDirective != "" {
 		prompt = fmt.Sprintf("SPECIALIST PERSONA INSTRUCTIONS:\n%s\n\n%s", systemDirective, prompt)

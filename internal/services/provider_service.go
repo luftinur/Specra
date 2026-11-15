@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"ai-requirements-studio/internal/ai"
@@ -310,21 +311,53 @@ func (s *ProviderService) RunDiagnostics() (map[string]any, error) {
 	start := time.Now()
 	cliAvailable := false
 	cliVersion := "unknown"
+	cliPath := ""
 	cliError := ""
 
-	if s.agyAdapter != nil {
+	opencodeAvailable := false
+	opencodeVersion := "unknown"
+	opencodePath := ""
+
+	// Probe device coding agents for accurate paths and versions
+	detectedAgents, _ := ai.DetectInstalledCodingAgents(ctx)
+	agentDiagnostics := make([]map[string]any, 0, len(detectedAgents))
+
+	for _, ag := range detectedAgents {
+		diag := map[string]any{
+			"id":           ag.ID,
+			"name":         ag.Name,
+			"installed":    ag.Installed,
+			"version":      ag.Version,
+			"path":         ag.Path,
+			"models_count": len(ag.AvailableModels),
+		}
+		agentDiagnostics = append(agentDiagnostics, diag)
+
+		if ag.ID == "antigravity-cli" && ag.Installed {
+			cliAvailable = true
+			cliVersion = ag.Version
+			cliPath = ag.Path
+		}
+		if ag.ID == "opencode" && ag.Installed {
+			opencodeAvailable = true
+			opencodeVersion = ag.Version
+			opencodePath = ag.Path
+		}
+	}
+
+	if !cliAvailable && s.agyAdapter != nil {
 		if err := s.agyAdapter.CheckAvailability(ctx); err == nil {
 			cliAvailable = true
-			cliVersion = "1.5.5"
+			cliVersion = "detected"
 		} else {
 			cliError = err.Error()
 		}
 	}
 
-	opencodeAvailable := false
-	if s.opencodeAdapter != nil {
+	if !opencodeAvailable && s.opencodeAdapter != nil {
 		if err := s.opencodeAdapter.CheckAvailability(ctx); err == nil {
 			opencodeAvailable = true
+			opencodeVersion = "detected"
 		}
 	}
 
@@ -337,15 +370,30 @@ func (s *ProviderService) RunDiagnostics() (map[string]any, error) {
 		_ = s.credManager.StoreAPIKey("diagnostic_test", "") // cleanup
 	}
 
+	// Capture environment diagnostics
+	pathEnv := os.Getenv("PATH")
+	var pathDirs []string
+	if pathEnv != "" {
+		pathDirs = strings.Split(pathEnv, string(os.PathListSeparator))
+	}
+
 	return map[string]any{
 		"timestamp":          time.Now().UTC().Format(time.RFC3339),
 		"duration_ms":        time.Since(start).Milliseconds(),
+		"os":                 runtime.GOOS,
+		"arch":               runtime.GOARCH,
 		"cli_available":      cliAvailable,
 		"cli_version":        cliVersion,
+		"cli_path":           cliPath,
 		"cli_error":          cliError,
 		"opencode_available": opencodeAvailable,
+		"opencode_version":   opencodeVersion,
+		"opencode_path":      opencodePath,
 		"keyring_health":     keyringHealth,
 		"storage_strategy":   "Local SQLite WAL + Markdown Workspace",
+		"agents":             agentDiagnostics,
+		"system_path":        pathEnv,
+		"path_directories":   pathDirs,
 	}, nil
 }
 
@@ -437,6 +485,8 @@ func (s *ProviderService) GetGeneralSettings() (domain.GeneralSettings, error) {
 		FontSize:               "standard",
 		Animations:             true,
 		Language:               "id",
+		ChatLanguage:           "id",
+		DocLanguage:            "en",
 		AutoSaveDraft:          true,
 		AutoSaveIntervalMs:     1000,
 		DefaultDocDepth:        "standard",
@@ -460,6 +510,14 @@ func (s *ProviderService) GetGeneralSettings() (domain.GeneralSettings, error) {
 	}
 	if val, err := s.repo.GetSetting(ctx, "gen_language"); err == nil && val != "" {
 		cfg.Language = val
+	}
+	if val, err := s.repo.GetSetting(ctx, "gen_chat_language"); err == nil && val != "" {
+		cfg.ChatLanguage = val
+	} else if cfg.Language != "" {
+		cfg.ChatLanguage = cfg.Language
+	}
+	if val, err := s.repo.GetSetting(ctx, "gen_doc_language"); err == nil && val != "" {
+		cfg.DocLanguage = val
 	}
 	if val, err := s.repo.GetSetting(ctx, "gen_auto_save_draft"); err == nil {
 		cfg.AutoSaveDraft = (val == "true" || val == "1")
@@ -488,6 +546,8 @@ func (s *ProviderService) SaveGeneralSettings(cfg domain.GeneralSettings) error 
 	_ = s.repo.SetSetting(ctx, "gen_font_size", cfg.FontSize)
 	_ = s.repo.SetSetting(ctx, "gen_animations", fmt.Sprintf("%t", cfg.Animations))
 	_ = s.repo.SetSetting(ctx, "gen_language", cfg.Language)
+	_ = s.repo.SetSetting(ctx, "gen_chat_language", cfg.ChatLanguage)
+	_ = s.repo.SetSetting(ctx, "gen_doc_language", cfg.DocLanguage)
 	_ = s.repo.SetSetting(ctx, "gen_auto_save_draft", fmt.Sprintf("%t", cfg.AutoSaveDraft))
 	_ = s.repo.SetSetting(ctx, "gen_default_doc_depth", cfg.DefaultDocDepth)
 	_ = s.repo.SetSetting(ctx, "gen_proactive_clarification", fmt.Sprintf("%t", cfg.ProactiveClarification))

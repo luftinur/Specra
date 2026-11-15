@@ -51,6 +51,10 @@ export function SetAgentRegistry(ar: ai$0.AgentRegistry | null): $CancellablePro
     return $Call.ByID(1121928102, ar);
 }
 
+export function SetProviderRepo(pr: storage$0.ProviderRepository | null): $CancellablePromise<void> {
+    return $Call.ByID(2301231993, pr);
+}
+
 export function SetWorkspace(wm: storage$0.WorkspaceManager | null): $CancellablePromise<void> {
     return $Call.ByID(3897136401, wm);
 }

@@ -5,6 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [0.1.1] — 2026-11-15
+
+### Added
+- **Dual-Track Language Preferences**: Decoupled Chat & Discovery Language (`chat_language`) from Document Specification Language (`doc_language`), allowing natural Indonesian conversation while producing standard English (IEEE 830) specifications, or vice-versa.
+- **Centralized Agent & System Diagnostics**: Dedicated diagnostic inspector in Settings displaying exact binary paths, detected CLI versions, model counts, and evaluated system `$PATH` directories.
+- **1-Click Copy Diagnostic Report**: Added a button to generate and copy a comprehensive markdown system diagnostic report to the clipboard for fast troubleshooting.
+
+### Changed
+- **Streamlined Coding Agents Configuration**: Removed raw executable paths from main agent cards in the Coding Agents & LLM tab to keep the interface uncluttered, with a quick-action link to view detailed diagnostics.
+
+---
+
 ## [0.1.0] — 2026-11-15
 
 ### Added

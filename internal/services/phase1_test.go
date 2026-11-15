@@ -453,7 +453,7 @@ func TestGeneralSettings_Persistence(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get default general settings: %v", err)
 	}
-	if defaults.Theme != "system" || defaults.FontSize != "standard" || defaults.Language != "id" {
+	if defaults.Theme != "system" || defaults.FontSize != "standard" || defaults.Language != "id" || defaults.ChatLanguage != "id" || defaults.DocLanguage != "en" {
 		t.Fatalf("unexpected defaults: %+v", defaults)
 	}
 	if defaults.WorkspacePath != "C:\\TestWorkspace\\AI-Requirements-Studio" {
@@ -466,6 +466,8 @@ func TestGeneralSettings_Persistence(t *testing.T) {
 		FontSize:               "comfort",
 		Animations:             false,
 		Language:               "en",
+		ChatLanguage:           "id",
+		DocLanguage:            "en",
 		AutoSaveDraft:          true,
 		AutoSaveIntervalMs:     2000,
 		DefaultDocDepth:        "compact",
@@ -483,7 +485,7 @@ func TestGeneralSettings_Persistence(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to reload general settings: %v", err)
 	}
-	if reloaded.Theme != "dark" || reloaded.FontSize != "comfort" || reloaded.Language != "en" || reloaded.Animations != false || reloaded.ProactiveClarification != false {
+	if reloaded.Theme != "dark" || reloaded.FontSize != "comfort" || reloaded.Language != "en" || reloaded.ChatLanguage != "id" || reloaded.DocLanguage != "en" || reloaded.Animations != false || reloaded.ProactiveClarification != false {
 		t.Fatalf("persisted settings mismatch: %+v", reloaded)
 	}
 }
