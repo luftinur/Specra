@@ -3,7 +3,7 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wailsio/runtime";
+import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -28,8 +28,10 @@ export function ApproveSRS(projectID: string, versionID: string): $CancellablePr
     return $Call.ByID(4244903559, projectID, versionID);
 }
 
-export function ExportAllDocuments(projectID: string, targetDir: string): $CancellablePromise<{ [_ in string]?: string } | null> {
-    return $Call.ByID(409571823, projectID, targetDir);
+export function ExportAllDocuments(projectID: string, targetDir: string): $CancellablePromise<{ [_ in string]?: string }> {
+    return $Call.ByID(409571823, projectID, targetDir).then(($result: any) => {
+        return $$createType0($result);
+    });
 }
 
 export function ExportDocument(projectID: string, docType: string, targetPath: string): $CancellablePromise<void> {
@@ -37,50 +39,72 @@ export function ExportDocument(projectID: string, docType: string, targetPath: s
 }
 
 export function GenerateArchitecture(projectID: string): $CancellablePromise<domain$0.DocumentVersion | null> {
-    return $Call.ByID(378803874, projectID);
+    return $Call.ByID(378803874, projectID).then(($result: any) => {
+        return $$createType2($result);
+    });
 }
 
 export function GenerateDesign(projectID: string): $CancellablePromise<domain$0.DocumentVersion | null> {
-    return $Call.ByID(1637198255, projectID);
+    return $Call.ByID(1637198255, projectID).then(($result: any) => {
+        return $$createType2($result);
+    });
 }
 
 export function GeneratePRD(projectID: string): $CancellablePromise<domain$0.DocumentVersion | null> {
-    return $Call.ByID(2827877721, projectID);
+    return $Call.ByID(2827877721, projectID).then(($result: any) => {
+        return $$createType2($result);
+    });
 }
 
 /**
  * GenerateSRS - GATED BY APPROVED PRD (SYS-SRS-001)
  */
 export function GenerateSRS(projectID: string): $CancellablePromise<domain$0.DocumentVersion | null> {
-    return $Call.ByID(3732185721, projectID);
+    return $Call.ByID(3732185721, projectID).then(($result: any) => {
+        return $$createType2($result);
+    });
 }
 
 export function GetDocument(projectID: string, docType: string): $CancellablePromise<domain$0.Document | null> {
-    return $Call.ByID(1252034195, projectID, docType);
+    return $Call.ByID(1252034195, projectID, docType).then(($result: any) => {
+        return $$createType4($result);
+    });
 }
 
-export function GetDocumentDetails(projectID: string, docType: string): $CancellablePromise<{ [_ in string]?: any } | null> {
-    return $Call.ByID(178306915, projectID, docType);
+export function GetDocumentDetails(projectID: string, docType: string): $CancellablePromise<{ [_ in string]?: any }> {
+    return $Call.ByID(178306915, projectID, docType).then(($result: any) => {
+        return $$createType5($result);
+    });
 }
 
 export function RegenerateArchitectureSection(projectID: string, sectionNumber: number): $CancellablePromise<domain$0.DocumentVersion | null> {
-    return $Call.ByID(2342738662, projectID, sectionNumber);
+    return $Call.ByID(2342738662, projectID, sectionNumber).then(($result: any) => {
+        return $$createType2($result);
+    });
 }
 
 export function RegenerateDesignSection(projectID: string, sectionNumber: number): $CancellablePromise<domain$0.DocumentVersion | null> {
-    return $Call.ByID(4092727345, projectID, sectionNumber);
+    return $Call.ByID(4092727345, projectID, sectionNumber).then(($result: any) => {
+        return $$createType2($result);
+    });
 }
 
 export function RegeneratePRDSection(projectID: string, sectionNumber: number): $CancellablePromise<domain$0.DocumentVersion | null> {
-    return $Call.ByID(3221201553, projectID, sectionNumber);
+    return $Call.ByID(3221201553, projectID, sectionNumber).then(($result: any) => {
+        return $$createType2($result);
+    });
 }
 
 export function RegenerateSRSSection(projectID: string, sectionNumber: number): $CancellablePromise<domain$0.DocumentVersion | null> {
-    return $Call.ByID(2053554305, projectID, sectionNumber);
+    return $Call.ByID(2053554305, projectID, sectionNumber).then(($result: any) => {
+        return $$createType2($result);
+    });
 }
 
 export function SaveManualEdit(projectID: string, docType: string, content: string): $CancellablePromise<domain$0.DocumentVersion | null> {
-    return $Call.ByID(1580935285, projectID, docType, content);
+    return $Call.ByID(1580935285, projectID, docType, content).then(($result: any) => {
+        return $$createType2($result);
+    });
 }
 
 export function SelectDirectory(title: string): $CancellablePromise<string> {
@@ -94,3 +118,11 @@ export function SelectSaveFile(title: string, defaultFilename: string): $Cancell
 export function SetProviderRepo(pr: storage$0.ProviderRepository | null): $CancellablePromise<void> {
     return $Call.ByID(1762519735, pr);
 }
+
+// Private type creation functions
+const $$createType0 = $Create.Map($Create.Any, $Create.Any);
+const $$createType1 = domain$0.DocumentVersion.createFrom;
+const $$createType2 = $Create.Nullable($$createType1);
+const $$createType3 = domain$0.Document.createFrom;
+const $$createType4 = $Create.Nullable($$createType3);
+const $$createType5 = $Create.Map($Create.Any, $Create.Any);

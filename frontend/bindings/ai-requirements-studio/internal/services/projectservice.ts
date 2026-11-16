@@ -3,14 +3,16 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wailsio/runtime";
+import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as domain$0 from "../domain/models.js";
 
 export function CreateProject(name: string, description: string): $CancellablePromise<domain$0.Project | null> {
-    return $Call.ByID(1120201515, name, description);
+    return $Call.ByID(1120201515, name, description).then(($result: any) => {
+        return $$createType1($result);
+    });
 }
 
 export function DeleteProject(id: string): $CancellablePromise<void> {
@@ -18,13 +20,24 @@ export function DeleteProject(id: string): $CancellablePromise<void> {
 }
 
 export function GetProject(id: string): $CancellablePromise<domain$0.Project | null> {
-    return $Call.ByID(3291971195, id);
+    return $Call.ByID(3291971195, id).then(($result: any) => {
+        return $$createType1($result);
+    });
 }
 
-export function ListProjects(): $CancellablePromise<domain$0.Project[] | null> {
-    return $Call.ByID(2199041464);
+export function ListProjects(): $CancellablePromise<domain$0.Project[]> {
+    return $Call.ByID(2199041464).then(($result: any) => {
+        return $$createType2($result);
+    });
 }
 
 export function UpdateProject(id: string, name: string, description: string, status: string): $CancellablePromise<domain$0.Project | null> {
-    return $Call.ByID(4132722612, id, name, description, status);
+    return $Call.ByID(4132722612, id, name, description, status).then(($result: any) => {
+        return $$createType1($result);
+    });
 }
+
+// Private type creation functions
+const $$createType0 = domain$0.Project.createFrom;
+const $$createType1 = $Create.Nullable($$createType0);
+const $$createType2 = $Create.Array($$createType0);

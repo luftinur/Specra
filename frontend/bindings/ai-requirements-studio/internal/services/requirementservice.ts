@@ -3,7 +3,7 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wailsio/runtime";
+import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -21,8 +21,10 @@ export function CorrectAssumption(id: string, correctedText: string): $Cancellab
     return $Call.ByID(1650625553, id, correctedText);
 }
 
-export function ListRequirements(projectID: string): $CancellablePromise<domain$0.Requirement[] | null> {
-    return $Call.ByID(2771314592, projectID);
+export function ListRequirements(projectID: string): $CancellablePromise<domain$0.Requirement[]> {
+    return $Call.ByID(2771314592, projectID).then(($result: any) => {
+        return $$createType1($result);
+    });
 }
 
 export function RejectRequirement(id: string): $CancellablePromise<void> {
@@ -36,3 +38,7 @@ export function UpdateAssumptionStatus(id: string, status: string): $Cancellable
 export function UpdatePriority(id: string, priority: string): $CancellablePromise<void> {
     return $Call.ByID(2639726485, id, priority);
 }
+
+// Private type creation functions
+const $$createType0 = domain$0.Requirement.createFrom;
+const $$createType1 = $Create.Array($$createType0);

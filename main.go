@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -82,6 +83,7 @@ func main() {
 	requirementService := services.NewRequirementService(reqRepo, convRepo)
 	documentService := services.NewDocumentService(docRepo, projectRepo, reqRepo, convRepo, wm, orchestrator)
 	documentService.SetProviderRepo(providerRepo)
+	documentService.SetDialogManager(&WailsDialogManager{})
 	validationService := services.NewValidationService(valRepo, docRepo, reqRepo, convRepo)
 
 	// 6. Create Wails v3 Application
@@ -117,4 +119,37 @@ func main() {
 	if err := app.Run(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// WailsDialogManager implements services.DialogManager via Wails desktop application dialogs.
+type WailsDialogManager struct{}
+
+func (w *WailsDialogManager) SelectDirectory(title string) (string, error) {
+	app := application.Get()
+	if app == nil || app.Dialog == nil {
+		return "", fmt.Errorf("dialog manager unavailable")
+	}
+	dlg := app.Dialog.OpenFile().
+		CanChooseDirectories(true).
+		CanChooseFiles(false).
+		CanCreateDirectories(true)
+	if title != "" {
+		dlg.SetTitle(title)
+	}
+	return dlg.PromptForSingleSelection()
+}
+
+func (w *WailsDialogManager) SelectSaveFile(title string, defaultFilename string) (string, error) {
+	app := application.Get()
+	if app == nil || app.Dialog == nil {
+		return "", fmt.Errorf("dialog manager unavailable")
+	}
+	dlg := app.Dialog.SaveFile()
+	if title != "" {
+		dlg.SetMessage(title)
+	}
+	if defaultFilename != "" {
+		dlg.SetFilename(defaultFilename)
+	}
+	return dlg.PromptForSingleSelection()
 }

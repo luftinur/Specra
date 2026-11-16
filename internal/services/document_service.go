@@ -7,21 +7,32 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/wailsapp/wails/v3/pkg/application"
-
 	"ai-requirements-studio/internal/ai"
 	"ai-requirements-studio/internal/domain"
 	"ai-requirements-studio/internal/storage"
 )
 
+// DialogManager decouples desktop GUI dialog implementations (e.g. Wails)
+// from domain business logic, allowing headless testing and cross-platform compilation.
+type DialogManager interface {
+	SelectDirectory(title string) (string, error)
+	SelectSaveFile(title string, defaultFilename string) (string, error)
+}
+
 type DocumentService struct {
-	docRepo      *storage.DocumentRepository
-	projRepo     *storage.ProjectRepository
-	reqRepo      *storage.RequirementRepository
-	convRepo     *storage.ConversationRepository
-	providerRepo *storage.ProviderRepository
-	workspace    *storage.WorkspaceManager
-	orchestrator *ai.Orchestrator
+	docRepo       *storage.DocumentRepository
+	projRepo      *storage.ProjectRepository
+	reqRepo       *storage.RequirementRepository
+	convRepo      *storage.ConversationRepository
+	providerRepo  *storage.ProviderRepository
+	workspace     *storage.WorkspaceManager
+	orchestrator  *ai.Orchestrator
+	dialogManager DialogManager
+}
+
+//wails:ignore
+func (s *DocumentService) SetDialogManager(dm DialogManager) {
+	s.dialogManager = dm
 }
 
 func NewDocumentService(
@@ -728,31 +739,15 @@ func (s *DocumentService) ExportAllDocuments(projectID string, targetDir string)
 }
 
 func (s *DocumentService) SelectDirectory(title string) (string, error) {
-	app := application.Get()
-	if app == nil || app.Dialog == nil {
+	if s.dialogManager == nil {
 		return "", fmt.Errorf("dialog manager unavailable")
 	}
-	dlg := app.Dialog.OpenFile().
-		CanChooseDirectories(true).
-		CanChooseFiles(false).
-		CanCreateDirectories(true)
-	if title != "" {
-		dlg.SetTitle(title)
-	}
-	return dlg.PromptForSingleSelection()
+	return s.dialogManager.SelectDirectory(title)
 }
 
 func (s *DocumentService) SelectSaveFile(title string, defaultFilename string) (string, error) {
-	app := application.Get()
-	if app == nil || app.Dialog == nil {
+	if s.dialogManager == nil {
 		return "", fmt.Errorf("dialog manager unavailable")
 	}
-	dlg := app.Dialog.SaveFile()
-	if title != "" {
-		dlg.SetMessage(title)
-	}
-	if defaultFilename != "" {
-		dlg.SetFilename(defaultFilename)
-	}
-	return dlg.PromptForSingleSelection()
+	return s.dialogManager.SelectSaveFile(title, defaultFilename)
 }

@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Project Co-Pilot Accordion Inspector**: Refactored the right sidebar into a single-expanded (mutually exclusive) 4-panel accordion (`Requirements Backlog`, `Questions & Clarifications`, `Assumptions & Constraints`, `Quality & Audit Findings`).
 - **Independent Scroll Containers**: Each expanded accordion panel utilizes a dedicated `flex-1 min-h-0 overflow-y-auto` viewport, enabling smooth internal scrolling while keeping all accordion category headers accessible.
 
+### Fixed
+- **Linux Headless CI Build Failure**: Decoupled Wails desktop GUI dependencies from `internal/services/document_service.go` into a pure Go `DialogManager` interface. Resolved undefined pointer errors during GitHub Actions CI test runs on headless Linux runners.
+
 ---
 
 ## [0.1.1] — 2026-11-15
