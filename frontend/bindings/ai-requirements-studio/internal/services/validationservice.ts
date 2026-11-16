@@ -3,38 +3,24 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
+import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as domain$0 from "../domain/models.js";
 
-export function CheckChangeImpact(projectID: string): $CancellablePromise<{ [_ in string]?: any }> {
-    return $Call.ByID(2353594714, projectID).then(($result: any) => {
-        return $$createType0($result);
-    });
+export function CheckChangeImpact(projectID: string): $CancellablePromise<{ [_ in string]?: any } | null> {
+    return $Call.ByID(2353594714, projectID);
 }
 
-export function GetLatestFindings(projectID: string): $CancellablePromise<domain$0.ValidationFinding[]> {
-    return $Call.ByID(2239864613, projectID).then(($result: any) => {
-        return $$createType2($result);
-    });
+export function GetLatestFindings(projectID: string): $CancellablePromise<domain$0.ValidationFinding[] | null> {
+    return $Call.ByID(2239864613, projectID);
 }
 
-export function GetTraceabilityMatrix(projectID: string): $CancellablePromise<{ [_ in string]?: any }[]> {
-    return $Call.ByID(1429459016, projectID).then(($result: any) => {
-        return $$createType3($result);
-    });
+export function GetTraceabilityMatrix(projectID: string): $CancellablePromise<({ [_ in string]?: any } | null)[] | null> {
+    return $Call.ByID(1429459016, projectID);
 }
 
-export function RunValidation(projectID: string): $CancellablePromise<domain$0.ValidationFinding[]> {
-    return $Call.ByID(3636123682, projectID).then(($result: any) => {
-        return $$createType2($result);
-    });
+export function RunValidation(projectID: string): $CancellablePromise<domain$0.ValidationFinding[] | null> {
+    return $Call.ByID(3636123682, projectID);
 }
-
-// Private type creation functions
-const $$createType0 = $Create.Map($Create.Any, $Create.Any);
-const $$createType1 = domain$0.ValidationFinding.createFrom;
-const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = $Create.Array($$createType0);

@@ -202,7 +202,10 @@ tasks:
       - "windows/icon.ico"
     cmds:
       - wails3 generate icons -input appicon.png -macfilename darwin/icons.icns -windowsfilename windows/icon.ico
-      - cp darwin/icons.icns darwin/dmg-file-icon.icns
+      - cmd: powershell Copy-Item darwin/icons.icns darwin/dmg-file-icon.icns -Force
+        platforms: [windows]
+      - cmd: cp darwin/icons.icns darwin/dmg-file-icon.icns
+        platforms: [linux, darwin]
 
   dev:frontend:
     summary: Runs the frontend in development mode

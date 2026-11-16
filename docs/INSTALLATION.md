@@ -52,3 +52,27 @@ Specra strictly enforces a **Zero-Mock Policy**. It executes against real AI pro
 1. **Antigravity CLI (`agy`)**: Ensure `agy` is installed and accessible in your system `PATH`.
 2. **OpenCode CLI (`opencode`)**: Ensure `opencode` is installed in `PATH`.
 3. **Google Gemini REST API**: Open **Settings / Configuration** (`Ctrl+,` or `⌘,`), navigate to **Provider & LLMs**, and enter your Google Gemini API key. API keys are stored encrypted via OS Keyring (macOS Keychain / Windows Credential Manager).
+
+---
+
+## 🛠️ Local Development & Build Prerequisites
+
+To build, test, and package Specra from source, verify the following prerequisites:
+
+### Common Requirements (macOS & Windows)
+- **Go**: 1.24+ (tested on Go 1.27.x)
+- **Node.js**: 20+ (tested on Node 24.x & npm 11.x)
+- **Wails v3 CLI**: `go install github.com/wailsapp/wails/v3/cmd/wails3@latest`
+- **Task Runner (`task`)**: `go install github.com/go-task/task/v3/cmd/task@latest`
+
+### Windows Build & Packaging Tools
+- **NSIS (Nullsoft Install System)**: Required for building `specra-installer.exe`:
+  ```powershell
+  winget install NSIS.NSIS
+  # Or download portable zip and place in %LOCALAPPDATA%\Programs\NSIS
+  ```
+- **Windows WebView2 Runtime**: Pre-installed on Windows 10/11; auto-detected by Wails.
+- **Diagnostics Check**:
+  ```powershell
+  wails3 doctor
+  ```

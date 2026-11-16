@@ -3,7 +3,7 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
+import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -16,51 +16,35 @@ import * as domain$0 from "../domain/models.js";
 import * as storage$0 from "../storage/models.js";
 
 export function GetSession(projectID: string): $CancellablePromise<domain$0.Conversation | null> {
-    return $Call.ByID(3505812356, projectID).then(($result: any) => {
-        return $$createType1($result);
-    });
+    return $Call.ByID(3505812356, projectID);
 }
 
-export function ListAssumptions(projectID: string): $CancellablePromise<domain$0.Assumption[]> {
-    return $Call.ByID(4199265212, projectID).then(($result: any) => {
-        return $$createType3($result);
-    });
+export function ListAssumptions(projectID: string): $CancellablePromise<domain$0.Assumption[] | null> {
+    return $Call.ByID(4199265212, projectID);
 }
 
-export function ListAttachments(projectID: string): $CancellablePromise<string[]> {
-    return $Call.ByID(3291896854, projectID).then(($result: any) => {
-        return $$createType4($result);
-    });
+export function ListAttachments(projectID: string): $CancellablePromise<string[] | null> {
+    return $Call.ByID(3291896854, projectID);
 }
 
-export function ListClarifications(projectID: string): $CancellablePromise<domain$0.Clarification[]> {
-    return $Call.ByID(1618033277, projectID).then(($result: any) => {
-        return $$createType6($result);
-    });
+export function ListClarifications(projectID: string): $CancellablePromise<domain$0.Clarification[] | null> {
+    return $Call.ByID(1618033277, projectID);
 }
 
-export function ListMessages(conversationID: string): $CancellablePromise<domain$0.Message[]> {
-    return $Call.ByID(2966642368, conversationID).then(($result: any) => {
-        return $$createType8($result);
-    });
+export function ListMessages(conversationID: string): $CancellablePromise<domain$0.Message[] | null> {
+    return $Call.ByID(2966642368, conversationID);
 }
 
 export function PostSystemEvent(conversationID: string, projectID: string, title: string, message: string): $CancellablePromise<domain$0.Message | null> {
-    return $Call.ByID(219544453, conversationID, projectID, title, message).then(($result: any) => {
-        return $$createType9($result);
-    });
+    return $Call.ByID(219544453, conversationID, projectID, title, message);
 }
 
 export function SendMessage(conversationID: string, projectID: string, content: string): $CancellablePromise<domain$0.Message | null> {
-    return $Call.ByID(268470649, conversationID, projectID, content).then(($result: any) => {
-        return $$createType9($result);
-    });
+    return $Call.ByID(268470649, conversationID, projectID, content);
 }
 
 export function SendMessageWithAgent(conversationID: string, projectID: string, content: string, agentID: string): $CancellablePromise<domain$0.Message | null> {
-    return $Call.ByID(3690335374, conversationID, projectID, content, agentID).then(($result: any) => {
-        return $$createType9($result);
-    });
+    return $Call.ByID(3690335374, conversationID, projectID, content, agentID);
 }
 
 export function SetAgentRegistry(ar: ai$0.AgentRegistry | null): $CancellablePromise<void> {
@@ -76,19 +60,5 @@ export function SetWorkspace(wm: storage$0.WorkspaceManager | null): $Cancellabl
 }
 
 export function SubmitAttachment(conversationID: string, projectID: string, filename: string, fileContent: string, userNote: string, agentID: string): $CancellablePromise<domain$0.Message | null> {
-    return $Call.ByID(942645849, conversationID, projectID, filename, fileContent, userNote, agentID).then(($result: any) => {
-        return $$createType9($result);
-    });
+    return $Call.ByID(942645849, conversationID, projectID, filename, fileContent, userNote, agentID);
 }
-
-// Private type creation functions
-const $$createType0 = domain$0.Conversation.createFrom;
-const $$createType1 = $Create.Nullable($$createType0);
-const $$createType2 = domain$0.Assumption.createFrom;
-const $$createType3 = $Create.Array($$createType2);
-const $$createType4 = $Create.Array($Create.Any);
-const $$createType5 = domain$0.Clarification.createFrom;
-const $$createType6 = $Create.Array($$createType5);
-const $$createType7 = domain$0.Message.createFrom;
-const $$createType8 = $Create.Array($$createType7);
-const $$createType9 = $Create.Nullable($$createType7);

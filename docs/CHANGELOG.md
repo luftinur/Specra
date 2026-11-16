@@ -5,6 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [0.1.3] — 2026-11-16
+
+### Added
+- **Local Development Toolchain Audit & Setup**: Audited local workstation prerequisites against `Taskfile.yml` and `wails3 doctor`. Installed `go-task` (`v3.54.0`) and NSIS (`v3.13`) portable release into `%LOCALAPPDATA%\Programs\NSIS` and persistent User `PATH`.
+- **Windows Packaging Support**: Augmented `internal/security/pathenv.go` with standard NSIS executable search directories, ensuring `makensis.exe` is dynamically resolved for `specra-installer.exe` packaging.
+- **Developer Prerequisites Documentation**: Added comprehensive Windows & macOS local development prerequisites and setup commands to `docs/INSTALLATION.md`.
+
+---
+
 ## [0.1.2] — 2026-11-15
 
 ### Added

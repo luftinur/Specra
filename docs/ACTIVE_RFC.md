@@ -1,3 +1,3 @@
 # Active RFC
 
-No active RFC currently in progress. All changes for Linux CI decoupling and DialogManager architecture have been successfully implemented and verified.
+No active RFC currently in progress. All changes for Local Development Prerequisites & Toolchain Setup have been successfully implemented and verified.

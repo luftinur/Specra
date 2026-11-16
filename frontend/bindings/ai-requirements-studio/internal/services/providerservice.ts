@@ -3,7 +3,7 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
+import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -36,78 +36,56 @@ export function DeleteSkill(id: string): $CancellablePromise<void> {
     return $Call.ByID(362532714, id);
 }
 
-export function DetectInstalledCodingAgents(): $CancellablePromise<domain$0.DetectedAgent[]> {
-    return $Call.ByID(1465130493).then(($result: any) => {
-        return $$createType1($result);
-    });
+export function DetectInstalledCodingAgents(): $CancellablePromise<domain$0.DetectedAgent[] | null> {
+    return $Call.ByID(1465130493);
 }
 
 export function GetGeneralSettings(): $CancellablePromise<domain$0.GeneralSettings> {
-    return $Call.ByID(2269562047).then(($result: any) => {
-        return $$createType2($result);
-    });
+    return $Call.ByID(2269562047);
 }
 
-export function GetMCPServersForAgent(agentID: string): $CancellablePromise<domain$0.MCPServerConfig[]> {
-    return $Call.ByID(2184555110, agentID).then(($result: any) => {
-        return $$createType4($result);
-    });
+export function GetMCPServersForAgent(agentID: string): $CancellablePromise<domain$0.MCPServerConfig[] | null> {
+    return $Call.ByID(2184555110, agentID);
 }
 
-export function GetProviderModels(providerID: string): $CancellablePromise<domain$0.ModelInfo[]> {
-    return $Call.ByID(297999149, providerID).then(($result: any) => {
-        return $$createType6($result);
-    });
+export function GetProviderModels(providerID: string): $CancellablePromise<domain$0.ModelInfo[] | null> {
+    return $Call.ByID(297999149, providerID);
 }
 
-export function GetProviderStatus(): $CancellablePromise<{ [_ in string]?: any }> {
-    return $Call.ByID(1465935353).then(($result: any) => {
-        return $$createType7($result);
-    });
+export function GetProviderStatus(): $CancellablePromise<{ [_ in string]?: any } | null> {
+    return $Call.ByID(1465935353);
 }
 
 export function GetTokenUsageSummary(projectID: string): $CancellablePromise<domain$0.TokenUsageSummary | null> {
-    return $Call.ByID(580327394, projectID).then(($result: any) => {
-        return $$createType9($result);
-    });
+    return $Call.ByID(580327394, projectID);
 }
 
 export function HasAPIKey(providerID: string): $CancellablePromise<boolean> {
     return $Call.ByID(3626452105, providerID);
 }
 
-export function ListAgents(): $CancellablePromise<domain$0.AgentConfig[]> {
-    return $Call.ByID(613435532).then(($result: any) => {
-        return $$createType11($result);
-    });
+export function ListAgents(): $CancellablePromise<domain$0.AgentConfig[] | null> {
+    return $Call.ByID(613435532);
 }
 
-export function ListExecutionLogs(projectID: string, limit: number): $CancellablePromise<domain$0.ProviderExecution[]> {
-    return $Call.ByID(422772675, projectID, limit).then(($result: any) => {
-        return $$createType13($result);
-    });
+export function ListExecutionLogs(projectID: string, limit: number): $CancellablePromise<domain$0.ProviderExecution[] | null> {
+    return $Call.ByID(422772675, projectID, limit);
 }
 
-export function ListMCPServers(): $CancellablePromise<domain$0.MCPServerConfig[]> {
-    return $Call.ByID(1955463486).then(($result: any) => {
-        return $$createType4($result);
-    });
+export function ListMCPServers(): $CancellablePromise<domain$0.MCPServerConfig[] | null> {
+    return $Call.ByID(1955463486);
 }
 
-export function ListSkills(): $CancellablePromise<domain$0.SkillConfig[]> {
-    return $Call.ByID(231759408).then(($result: any) => {
-        return $$createType15($result);
-    });
+export function ListSkills(): $CancellablePromise<domain$0.SkillConfig[] | null> {
+    return $Call.ByID(231759408);
 }
 
 export function OpenWorkspaceInExplorer(): $CancellablePromise<void> {
     return $Call.ByID(3522759155);
 }
 
-export function RunDiagnostics(): $CancellablePromise<{ [_ in string]?: any }> {
-    return $Call.ByID(2392240421).then(($result: any) => {
-        return $$createType7($result);
-    });
+export function RunDiagnostics(): $CancellablePromise<{ [_ in string]?: any } | null> {
+    return $Call.ByID(2392240421);
 }
 
 export function SaveAgent(config: domain$0.AgentConfig): $CancellablePromise<void> {
@@ -137,21 +115,3 @@ export function SetWorkspaceDir(dir: string): $CancellablePromise<void> {
 export function StoreAPIKey(providerID: string, apiKey: string): $CancellablePromise<void> {
     return $Call.ByID(1773174548, providerID, apiKey);
 }
-
-// Private type creation functions
-const $$createType0 = domain$0.DetectedAgent.createFrom;
-const $$createType1 = $Create.Array($$createType0);
-const $$createType2 = domain$0.GeneralSettings.createFrom;
-const $$createType3 = domain$0.MCPServerConfig.createFrom;
-const $$createType4 = $Create.Array($$createType3);
-const $$createType5 = domain$0.ModelInfo.createFrom;
-const $$createType6 = $Create.Array($$createType5);
-const $$createType7 = $Create.Map($Create.Any, $Create.Any);
-const $$createType8 = domain$0.TokenUsageSummary.createFrom;
-const $$createType9 = $Create.Nullable($$createType8);
-const $$createType10 = domain$0.AgentConfig.createFrom;
-const $$createType11 = $Create.Array($$createType10);
-const $$createType12 = domain$0.ProviderExecution.createFrom;
-const $$createType13 = $Create.Array($$createType12);
-const $$createType14 = domain$0.SkillConfig.createFrom;
-const $$createType15 = $Create.Array($$createType14);

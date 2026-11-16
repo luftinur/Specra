@@ -89,6 +89,9 @@ func FixEnvironmentPath() {
 			filepath.Join(home, ".cargo", "bin"),
 			filepath.Join(localAppData, "Programs"),
 			filepath.Join(localAppData, "Programs", "Python"),
+			filepath.Join(localAppData, "Programs", "NSIS"),
+			`C:\Program Files (x86)\NSIS`,
+			`C:\Program Files\NSIS`,
 			filepath.Join(appData, "npm"),
 		}
 	}
