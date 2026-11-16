@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Windows Packaging Support**: Augmented `internal/security/pathenv.go` with standard NSIS executable search directories, ensuring `makensis.exe` is dynamically resolved for `specra-installer.exe` packaging.
 - **Developer Prerequisites Documentation**: Added comprehensive Windows & macOS local development prerequisites and setup commands to `docs/INSTALLATION.md`.
 
+### Fixed
+- **Windows Command Prompt Window Flashing**: Introduced `internal/executil` applying `CREATE_NO_WINDOW` (`0x08000000`) and `HideWindow: true` in `SysProcAttr` on Windows for all subprocess executions. Eliminated command prompt window flashing during app startup agent detection probes, model listing, and CLI AI generation.
+
 ---
 
 ## [0.1.2] — 2026-11-15

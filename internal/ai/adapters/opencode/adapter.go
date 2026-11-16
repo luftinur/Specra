@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os/exec"
 	"strings"
 	"sync"
 	"time"
 
 	"ai-requirements-studio/internal/ai"
 	"ai-requirements-studio/internal/domain"
+	"ai-requirements-studio/internal/executil"
 )
 
 type Adapter struct {
@@ -127,7 +127,7 @@ func (a *Adapter) ListModels(ctx context.Context) ([]domain.ModelInfo, error) {
 	}
 
 	// Otherwise query via opencode models CLI
-	cmd := exec.CommandContext(ctx, a.executablePath, "models")
+	cmd := executil.CommandContext(ctx, a.executablePath, "models")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("failed to query opencode models: %w (output: %s)", err, string(out))
@@ -170,7 +170,7 @@ func (a *Adapter) CheckAvailability(ctx context.Context) error {
 	}
 
 	// 2. Otherwise check CLI binary
-	cmd := exec.CommandContext(ctx, a.executablePath, "-v")
+	cmd := executil.CommandContext(ctx, a.executablePath, "-v")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("opencode cli (%s) not found and no working HTTP endpoint: %w", a.executablePath, err)
@@ -212,7 +212,7 @@ func (a *Adapter) generateCLI(ctx context.Context, req ai.GenerateRequest, start
 		args = append(args, "-m", targetModel)
 	}
 
-	cmd := exec.CommandContext(ctx, a.executablePath, args...)
+	cmd := executil.CommandContext(ctx, a.executablePath, args...)
 	if req.WorkDir != "" {
 		cmd.Dir = req.WorkDir
 	}

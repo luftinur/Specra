@@ -7,13 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 	"sync"
 	"time"
 
 	"ai-requirements-studio/internal/ai"
 	"ai-requirements-studio/internal/domain"
+	"ai-requirements-studio/internal/executil"
 )
 
 type CLIResponsePayload struct {
@@ -73,7 +73,7 @@ func (a *Adapter) GetModel() string {
 }
 
 func (a *Adapter) ListModels(ctx context.Context) ([]domain.ModelInfo, error) {
-	cmd := exec.CommandContext(ctx, a.executablePath, "models")
+	cmd := executil.CommandContext(ctx, a.executablePath, "models")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list models via agy models: %w (output: %s)", err, string(out))
@@ -127,7 +127,7 @@ func (a *Adapter) Type() domain.ProviderType {
 }
 
 func (a *Adapter) CheckAvailability(ctx context.Context) error {
-	cmd := exec.CommandContext(ctx, a.executablePath, "--version")
+	cmd := executil.CommandContext(ctx, a.executablePath, "--version")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("antigravity cli executable (%s) not available: %w", a.executablePath, err)
@@ -138,7 +138,7 @@ func (a *Adapter) CheckAvailability(ctx context.Context) error {
 
 func (a *Adapter) CheckAuthentication(ctx context.Context) error {
 	// A quick non-interactive prompt to verify authorization
-	cmd := exec.CommandContext(ctx, a.executablePath, "-p", "ping", "--output-format", "json", "--disable-slash-commands")
+	cmd := executil.CommandContext(ctx, a.executablePath, "-p", "ping", "--output-format", "json", "--disable-slash-commands")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("antigravity cli authentication failed: %w (output: %s)", err, string(out))
@@ -174,7 +174,7 @@ func (a *Adapter) Generate(ctx context.Context, req ai.GenerateRequest) (*ai.Gen
 		}
 	}
 
-	cmd := exec.CommandContext(ctx, a.executablePath, args...)
+	cmd := executil.CommandContext(ctx, a.executablePath, args...)
 	if req.WorkDir != "" {
 		cmd.Dir = req.WorkDir
 	}

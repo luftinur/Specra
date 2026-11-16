@@ -209,6 +209,7 @@ Styled via MQ-Studio 0.4.2 Token Scale (`src/design/tokens.css`):
 3. **Path Traversal Guard**: All file attachments and workspace operations are validated via `filepath.Clean` and sandboxed strictly inside `workspaces/projects/{id}/`.
 4. **Credential Storage**: API keys are never stored in plaintext SQLite databases; they are stored encrypted using OS Keyring via `go-keyring`.
 5. **Headless Domain Architecture (`DialogManager`)**: Domain services in `internal/services` are 100% pure Go business logic decoupled from desktop GUI shells. Native file dialogs are abstracted behind the `DialogManager` interface, with `WailsDialogManager` injected at the desktop application entry point (`main.go`). This enables headless cross-platform compilation and automated CI testing on Linux runners without native GTK3 CGO dependencies.
+6. **Silent Windows Subprocess Execution (`internal/executil`)**: When a GUI desktop application compiled with `-H windowsgui` executes console binaries via `os/exec` on Windows, the OS allocates and flashes visible command prompt / conhost windows by default. The `internal/executil` package centralizes subprocess invocation, automatically configuring `CREATE_NO_WINDOW` (`0x08000000`) and `HideWindow: true` in `SysProcAttr` on Windows (`procattr_windows.go`) while maintaining zero-overhead no-ops on macOS and Linux (`procattr_other.go`). This guarantees completely silent background execution for agent detection probes, model listing, and CLI AI generation.
 
 ---
 

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"ai-requirements-studio/internal/domain"
+	"ai-requirements-studio/internal/executil"
 )
 
 type AgentCandidate struct {
@@ -148,7 +149,7 @@ func DetectInstalledCodingAgents(ctx context.Context) ([]domain.DetectedAgent, e
 
 			// Try obtaining version with short timeout
 			vCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-			cmd := exec.CommandContext(vCtx, path, agent.VersionArgs...)
+			cmd := executil.CommandContext(vCtx, path, agent.VersionArgs...)
 			out, err := cmd.CombinedOutput()
 			cancel()
 
@@ -182,7 +183,7 @@ func detectAgentModels(ctx context.Context, agentID, executable string) []domain
 
 	switch agentID {
 	case "antigravity-cli":
-		cmd := exec.CommandContext(mCtx, executable, "models")
+		cmd := executil.CommandContext(mCtx, executable, "models")
 		out, err := cmd.CombinedOutput()
 		if err == nil {
 			for _, rawLine := range strings.Split(string(out), "\n") {
@@ -211,7 +212,7 @@ func detectAgentModels(ctx context.Context, agentID, executable string) []domain
 			}
 		}
 	case "opencode":
-		cmd := exec.CommandContext(mCtx, executable, "models")
+		cmd := executil.CommandContext(mCtx, executable, "models")
 		out, err := cmd.CombinedOutput()
 		if err == nil {
 			for _, rawLine := range strings.Split(string(out), "\n") {
@@ -225,7 +226,7 @@ func detectAgentModels(ctx context.Context, agentID, executable string) []domain
 			}
 		}
 	case "ollama":
-		cmd := exec.CommandContext(mCtx, executable, "list")
+		cmd := executil.CommandContext(mCtx, executable, "list")
 		out, err := cmd.CombinedOutput()
 		if err == nil {
 			lines := strings.Split(string(out), "\n")
