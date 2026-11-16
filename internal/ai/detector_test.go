@@ -19,23 +19,22 @@ func TestDetectInstalledCodingAgents(t *testing.T) {
 		t.Fatal("Expected at least some known agents, got 0")
 	}
 
-	foundAgy := false
-	foundOpencode := false
-
 	for _, a := range agents {
 		t.Logf("Agent: %s (%s) - Installed: %v - Path: %s - Version: %s", a.ID, a.Executable, a.Installed, a.Path, a.Version)
-		if a.ID == "antigravity-cli" && a.Installed {
-			foundAgy = true
+		if a.ID == "" || a.Executable == "" || a.Name == "" {
+			t.Errorf("Agent missing required identity fields: %+v", a)
 		}
-		if a.ID == "opencode" && a.Installed {
-			foundOpencode = true
+		if a.Installed {
+			if a.Path == "" {
+				t.Errorf("Agent %s marked as installed but path is empty", a.ID)
+			}
+			if a.Version == "Not Installed" || a.Version == "" {
+				t.Errorf("Agent %s marked as installed but version is invalid: %s", a.ID, a.Version)
+			}
+		} else {
+			if a.Version != "Not Installed" {
+				t.Errorf("Agent %s marked as not installed but version is: %s", a.ID, a.Version)
+			}
 		}
-	}
-
-	if !foundAgy {
-		t.Errorf("Expected Google Antigravity CLI (agy) to be detected on this machine")
-	}
-	if !foundOpencode {
-		t.Errorf("Expected OpenCode CLI (opencode) to be detected on this machine")
 	}
 }

@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 - **Linux Headless CI Build Failure**: Decoupled Wails desktop GUI dependencies from `internal/services/document_service.go` into a pure Go `DialogManager` interface. Resolved undefined pointer errors during GitHub Actions CI test runs on headless Linux runners.
+- **Agent Detector CI Test Assertion**: Refactored `TestDetectInstalledCodingAgents` to validate contract and metadata integrity rather than hard-failing when optional coding CLIs (`agy`, `opencode`) are absent from clean CI runner environments.
 
 ---
 
