@@ -14,17 +14,7 @@ func TestHideConsoleWindow(t *testing.T) {
 		t.Fatal("expected non-nil cmd")
 	}
 
-	if runtime.GOOS == "windows" {
-		if cmd.SysProcAttr == nil {
-			t.Fatal("expected non-nil SysProcAttr on Windows")
-		}
-		if !cmd.SysProcAttr.HideWindow {
-			t.Errorf("expected HideWindow to be true")
-		}
-		if cmd.SysProcAttr.CreationFlags&createNoWindow == 0 {
-			t.Errorf("expected CreationFlags to have CREATE_NO_WINDOW (0x08000000)")
-		}
-	}
+	assertWindowsSysProcAttr(t, cmd)
 }
 
 func TestCommandContext_Execution(t *testing.T) {
