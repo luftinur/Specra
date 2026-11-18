@@ -51,6 +51,19 @@ var knownAgents = []AgentCandidate{
 		},
 	},
 	{
+		ID:          "kiro-cli",
+		Name:        "Kiro CLI",
+		Executable:  "kiro-cli",
+		VersionArgs: []string{"--version"},
+		Description: "Kiro autonomous terminal coding agent CLI with non-interactive chat and model selection.",
+		FallbackPaths: []string{
+			".local/bin/kiro-cli",
+			".kiro/bin/kiro-cli",
+			"/opt/homebrew/bin/kiro-cli",
+			"/usr/local/bin/kiro-cli",
+		},
+	},
+	{
 		ID:          "claude-code",
 		Name:        "Claude Code CLI",
 		Executable:  "claude",
@@ -133,6 +146,13 @@ func DetectInstalledCodingAgents(ctx context.Context) ([]domain.DetectedAgent, e
 				if !filepath.IsAbs(candidate) && home != "" {
 					candidate = filepath.Join(home, candidate)
 				}
+				if runtime.GOOS == "windows" && !strings.HasSuffix(strings.ToLower(candidate), ".exe") {
+					if info, statErr := os.Stat(candidate + ".exe"); statErr == nil && !info.IsDir() {
+						path = candidate + ".exe"
+						err = nil
+						break
+					}
+				}
 				if info, statErr := os.Stat(candidate); statErr == nil && !info.IsDir() {
 					if runtime.GOOS == "windows" || info.Mode()&0111 != 0 {
 						path = candidate
@@ -176,7 +196,7 @@ func DetectInstalledCodingAgents(ctx context.Context) ([]domain.DetectedAgent, e
 }
 
 func detectAgentModels(ctx context.Context, agentID, executable string) []domain.ModelInfo {
-	mCtx, cancel := context.WithTimeout(ctx, 4*time.Second)
+	mCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 
 	var models []domain.ModelInfo
@@ -224,6 +244,12 @@ func detectAgentModels(ctx context.Context, agentID, executable string) []domain
 					models = append(models, domain.ModelInfo{ID: line, DisplayName: line})
 				}
 			}
+		}
+	case "kiro-cli":
+		cmd := executil.CommandContext(mCtx, executable, "chat", "--list-models", "--format", "json")
+		out, err := cmd.CombinedOutput()
+		if err == nil {
+			models = ParseKiroModelsOutput(out)
 		}
 	case "ollama":
 		cmd := executil.CommandContext(mCtx, executable, "list")

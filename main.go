@@ -10,6 +10,7 @@ import (
 	"ai-requirements-studio/internal/ai"
 	"ai-requirements-studio/internal/ai/adapters/antigravity"
 	"ai-requirements-studio/internal/ai/adapters/gemini"
+	"ai-requirements-studio/internal/ai/adapters/kiro"
 	"ai-requirements-studio/internal/ai/adapters/opencode"
 	"ai-requirements-studio/internal/security"
 	"ai-requirements-studio/internal/services"
@@ -61,11 +62,13 @@ func main() {
 	agyAdapter := antigravity.NewAdapter("agy")
 	opencodeAdapter := opencode.NewAdapter("opencode", "", "default", "")
 	geminiAdapter := gemini.NewAdapter("gemini-1.5-pro", "")
+	kiroAdapter := kiro.NewAdapter("kiro-cli", "auto", "")
 
 	orchestrator := ai.NewOrchestrator(providerRepo)
 	orchestrator.RegisterProvider(agyAdapter)
 	orchestrator.RegisterProvider(opencodeAdapter)
 	orchestrator.RegisterProvider(geminiAdapter)
+	orchestrator.RegisterProvider(kiroAdapter)
 
 	// 5. Initialize Application Services
 	agentRegistry := ai.NewAgentRegistry(providerRepo)
@@ -76,7 +79,7 @@ func main() {
 	conversationService.SetAgentRegistry(agentRegistry)
 	conversationService.SetProviderRepo(providerRepo)
 
-	providerService := services.NewProviderService(orchestrator, providerRepo, agyAdapter, opencodeAdapter, geminiAdapter)
+	providerService := services.NewProviderService(orchestrator, providerRepo, agyAdapter, opencodeAdapter, geminiAdapter, kiroAdapter)
 	providerService.SetAgentRegistry(agentRegistry)
 	providerService.SetWorkspaceDir(workspaceDir)
 

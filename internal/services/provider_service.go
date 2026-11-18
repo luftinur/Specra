@@ -13,6 +13,7 @@ import (
 	"ai-requirements-studio/internal/ai"
 	"ai-requirements-studio/internal/ai/adapters/antigravity"
 	"ai-requirements-studio/internal/ai/adapters/gemini"
+	"ai-requirements-studio/internal/ai/adapters/kiro"
 	"ai-requirements-studio/internal/ai/adapters/opencode"
 	"ai-requirements-studio/internal/domain"
 	"ai-requirements-studio/internal/security"
@@ -25,6 +26,7 @@ type ProviderService struct {
 	agyAdapter      *antigravity.Adapter
 	opencodeAdapter *opencode.Adapter
 	geminiAdapter   *gemini.Adapter
+	kiroAdapter     *kiro.Adapter
 	credManager     *security.CredentialManager
 	agentRegistry   *ai.AgentRegistry
 	workspaceDir    string
@@ -36,6 +38,7 @@ func NewProviderService(
 	agy *antigravity.Adapter,
 	oc *opencode.Adapter,
 	gem *gemini.Adapter,
+	k *kiro.Adapter,
 ) *ProviderService {
 	ps := &ProviderService{
 		orchestrator:    orch,
@@ -43,6 +46,7 @@ func NewProviderService(
 		agyAdapter:      agy,
 		opencodeAdapter: oc,
 		geminiAdapter:   gem,
+		kiroAdapter:     k,
 		credManager:     security.NewCredentialManager(),
 	}
 
@@ -79,6 +83,15 @@ func (s *ProviderService) restoreSettings() {
 		s.geminiAdapter.SetConfig(model, gemKey)
 	}
 
+	if s.kiroAdapter != nil {
+		kiroKey, _ := s.credManager.GetAPIKey("kiro")
+		model, _ := s.repo.GetSetting(ctx, "kiro_model")
+		if strings.TrimSpace(model) == "" {
+			model = "auto"
+		}
+		s.kiroAdapter.SetConfig(model, kiroKey)
+	}
+
 	// Restore Primary & Fallback Provider selections
 	primary, _ := s.repo.GetSetting(ctx, "primary_provider")
 	fallback, _ := s.repo.GetSetting(ctx, "fallback_provider")
@@ -94,7 +107,7 @@ func (s *ProviderService) restoreSettings() {
 }
 
 func (s *ProviderService) DetectInstalledCodingAgents() ([]domain.DetectedAgent, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
 	agents, err := ai.DetectInstalledCodingAgents(ctx)
 	if err != nil {
@@ -105,6 +118,10 @@ func (s *ProviderService) DetectInstalledCodingAgents() ([]domain.DetectedAgent,
 	if s.repo != nil {
 		agyModel, _ := s.repo.GetSetting(ctx, "agy_model")
 		ocModel, _ := s.repo.GetSetting(ctx, "opencode_model")
+		kiroModel, _ := s.repo.GetSetting(ctx, "kiro_model")
+		if strings.TrimSpace(kiroModel) == "" {
+			kiroModel = "auto"
+		}
 		for i := range agents {
 			switch agents[i].ID {
 			case "antigravity-cli":
@@ -116,6 +133,11 @@ func (s *ProviderService) DetectInstalledCodingAgents() ([]domain.DetectedAgent,
 				agents[i].SelectedModel = ocModel
 				if agents[i].Installed && agents[i].Path != "" && s.opencodeAdapter != nil {
 					s.opencodeAdapter.SetExecutablePath(agents[i].Path)
+				}
+			case "kiro-cli":
+				agents[i].SelectedModel = kiroModel
+				if agents[i].Installed && agents[i].Path != "" && s.kiroAdapter != nil {
+					s.kiroAdapter.SetExecutablePath(agents[i].Path)
 				}
 			}
 		}
@@ -142,6 +164,10 @@ func (s *ProviderService) GetProviderStatus() (map[string]any, error) {
 	if s.geminiAdapter != nil {
 		gemModel = s.geminiAdapter.GetModel()
 	}
+	kiroModel := "auto"
+	if s.kiroAdapter != nil && s.kiroAdapter.GetModel() != "" {
+		kiroModel = s.kiroAdapter.GetModel()
+	}
 
 	providers := []map[string]any{
 		{
@@ -167,6 +193,14 @@ func (s *ProviderService) GetProviderStatus() (map[string]any, error) {
 			"available": false,
 			"version":   "API",
 			"model":     gemModel,
+		},
+		{
+			"id":        "kiro-cli",
+			"name":      "Kiro CLI",
+			"type":      "cli",
+			"available": false,
+			"version":   "unknown",
+			"model":     kiroModel,
 		},
 	}
 
@@ -196,6 +230,15 @@ func (s *ProviderService) GetProviderStatus() (map[string]any, error) {
 		}
 	}
 
+	if s.kiroAdapter != nil {
+		if err := s.kiroAdapter.CheckAvailability(ctx); err == nil {
+			providers[3]["available"] = true
+			providers[3]["version"] = "detected"
+		} else {
+			providers[3]["error"] = err.Error()
+		}
+	}
+
 	return map[string]any{
 		"primary_provider":  primary,
 		"fallback_provider": fallback,
@@ -204,6 +247,7 @@ func (s *ProviderService) GetProviderStatus() (map[string]any, error) {
 		"agy_model":         agyModel,
 		"opencode_model":    ocModel,
 		"gemini_model":      gemModel,
+		"kiro_model":        kiroModel,
 	}, nil
 }
 
@@ -219,7 +263,7 @@ func (s *ProviderService) ConfigureAntigravity(model string) error {
 }
 
 func (s *ProviderService) GetProviderModels(providerID string) ([]domain.ModelInfo, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
 
 	switch providerID {
@@ -234,6 +278,10 @@ func (s *ProviderService) GetProviderModels(providerID string) ([]domain.ModelIn
 	case "gemini-direct":
 		if s.geminiAdapter != nil {
 			return s.geminiAdapter.ListModels(ctx)
+		}
+	case "kiro-cli":
+		if s.kiroAdapter != nil {
+			return s.kiroAdapter.ListModels(ctx)
 		}
 	}
 	return []domain.ModelInfo{}, nil
@@ -290,6 +338,25 @@ func (s *ProviderService) ConfigureGemini(model, apiKey string) error {
 	return nil
 }
 
+// ConfigureKiro persists Kiro CLI model preference and optional KIRO_API_KEY in the OS keyring.
+func (s *ProviderService) ConfigureKiro(model, apiKey string) error {
+	cleanModel := strings.TrimSpace(model)
+	if cleanModel == "" {
+		cleanModel = "auto"
+	}
+	if s.kiroAdapter != nil {
+		s.kiroAdapter.SetConfig(cleanModel, apiKey)
+	}
+	if strings.TrimSpace(apiKey) != "" {
+		_ = s.credManager.StoreAPIKey("kiro", strings.TrimSpace(apiKey))
+	}
+	if s.repo != nil {
+		ctx := context.Background()
+		_ = s.repo.SetSetting(ctx, "kiro_model", cleanModel)
+	}
+	return nil
+}
+
 func (s *ProviderService) GetTokenUsageSummary(projectID string) (*domain.TokenUsageSummary, error) {
 	if s.repo == nil {
 		return &domain.TokenUsageSummary{}, nil
@@ -318,6 +385,10 @@ func (s *ProviderService) RunDiagnostics() (map[string]any, error) {
 	opencodeVersion := "unknown"
 	opencodePath := ""
 
+	kiroAvailable := false
+	kiroVersion := "unknown"
+	kiroPath := ""
+
 	// Probe device coding agents for accurate paths and versions
 	detectedAgents, _ := ai.DetectInstalledCodingAgents(ctx)
 	agentDiagnostics := make([]map[string]any, 0, len(detectedAgents))
@@ -343,6 +414,11 @@ func (s *ProviderService) RunDiagnostics() (map[string]any, error) {
 			opencodeVersion = ag.Version
 			opencodePath = ag.Path
 		}
+		if ag.ID == "kiro-cli" && ag.Installed {
+			kiroAvailable = true
+			kiroVersion = ag.Version
+			kiroPath = ag.Path
+		}
 	}
 
 	if !cliAvailable && s.agyAdapter != nil {
@@ -358,6 +434,13 @@ func (s *ProviderService) RunDiagnostics() (map[string]any, error) {
 		if err := s.opencodeAdapter.CheckAvailability(ctx); err == nil {
 			opencodeAvailable = true
 			opencodeVersion = "detected"
+		}
+	}
+
+	if !kiroAvailable && s.kiroAdapter != nil {
+		if err := s.kiroAdapter.CheckAvailability(ctx); err == nil {
+			kiroAvailable = true
+			kiroVersion = "detected"
 		}
 	}
 
@@ -389,6 +472,9 @@ func (s *ProviderService) RunDiagnostics() (map[string]any, error) {
 		"opencode_available": opencodeAvailable,
 		"opencode_version":   opencodeVersion,
 		"opencode_path":      opencodePath,
+		"kiro_available":     kiroAvailable,
+		"kiro_version":       kiroVersion,
+		"kiro_path":          kiroPath,
 		"keyring_health":     keyringHealth,
 		"storage_strategy":   "Local SQLite WAL + Markdown Workspace",
 		"agents":             agentDiagnostics,
@@ -568,11 +654,12 @@ func (s *ProviderService) OpenWorkspaceInExplorer() error {
 	_ = os.MkdirAll(dir, 0755)
 
 	var cmd *exec.Cmd
-	if runtime.GOOS == "windows" {
+	switch runtime.GOOS {
+	case "windows":
 		cmd = exec.Command("explorer", dir)
-	} else if runtime.GOOS == "darwin" {
+	case "darwin":
 		cmd = exec.Command("open", dir)
-	} else {
+	default:
 		cmd = exec.Command("xdg-open", dir)
 	}
 	return cmd.Start()

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"ai-requirements-studio/internal/ai"
+	"ai-requirements-studio/internal/ai/adapters/kiro"
 	"ai-requirements-studio/internal/domain"
 	"ai-requirements-studio/internal/storage"
 )
@@ -445,7 +446,7 @@ func TestGeneralSettings_Persistence(t *testing.T) {
 	defer cleanup()
 
 	provRepo := storage.NewProviderRepository(db)
-	ps := NewProviderService(nil, provRepo, nil, nil, nil)
+	ps := NewProviderService(nil, provRepo, nil, nil, nil, nil)
 	ps.SetWorkspaceDir("C:\\TestWorkspace\\AI-Requirements-Studio")
 
 	// 1. Check default settings
@@ -487,5 +488,60 @@ func TestGeneralSettings_Persistence(t *testing.T) {
 	}
 	if reloaded.Theme != "dark" || reloaded.FontSize != "comfort" || reloaded.Language != "en" || reloaded.ChatLanguage != "id" || reloaded.DocLanguage != "en" || reloaded.Animations != false || reloaded.ProactiveClarification != false {
 		t.Fatalf("persisted settings mismatch: %+v", reloaded)
+	}
+}
+
+func TestProviderService_KiroIntegration(t *testing.T) {
+	db, cleanup := setupServiceTestDB(t)
+	defer cleanup()
+
+	provRepo := storage.NewProviderRepository(db)
+	orch := ai.NewOrchestrator(provRepo)
+	kiroAdapter := kiro.NewAdapter("kiro-cli", "", "")
+	orch.RegisterProvider(kiroAdapter)
+
+	ps := NewProviderService(orch, provRepo, nil, nil, nil, kiroAdapter)
+
+	if err := ps.ConfigureKiro("claude-sonnet-4", ""); err != nil {
+		t.Fatalf("ConfigureKiro failed: %v", err)
+	}
+	if err := ps.ConfigureProviders("kiro-cli", "", false); err != nil {
+		t.Fatalf("ConfigureProviders with kiro-cli failed: %v", err)
+	}
+
+	status, err := ps.GetProviderStatus()
+	if err != nil {
+		t.Fatalf("GetProviderStatus failed: %v", err)
+	}
+	if status["primary_provider"] != "kiro-cli" {
+		t.Fatalf("expected primary_provider kiro-cli, got %v", status["primary_provider"])
+	}
+	if status["kiro_model"] != "claude-sonnet-4" {
+		t.Fatalf("expected kiro_model claude-sonnet-4, got %v", status["kiro_model"])
+	}
+
+	providers, ok := status["providers"].([]map[string]any)
+	if !ok {
+		t.Fatalf("expected providers slice, got %T", status["providers"])
+	}
+	foundKiro := false
+	for _, p := range providers {
+		if p["id"] == "kiro-cli" {
+			foundKiro = true
+			if p["model"] != "claude-sonnet-4" {
+				t.Fatalf("expected kiro-cli model claude-sonnet-4, got %v", p["model"])
+			}
+		}
+	}
+	if !foundKiro {
+		t.Fatal("kiro-cli missing from GetProviderStatus providers list")
+	}
+
+	diag, err := ps.RunDiagnostics()
+	if err != nil {
+		t.Fatalf("RunDiagnostics failed: %v", err)
+	}
+	if _, exists := diag["kiro_available"]; !exists {
+		t.Fatal("expected kiro_available in RunDiagnostics output")
 	}
 }
