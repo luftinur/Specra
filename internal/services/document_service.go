@@ -96,11 +96,12 @@ func (s *DocumentService) GetDocumentDetails(projectID string, docType string) (
 	}
 
 	sections := ai.PRDSections
-	if dt == domain.DocTypeSRS {
+	switch dt {
+	case domain.DocTypeSRS:
 		sections = ai.SRSSections
-	} else if dt == domain.DocTypeArchitecture {
+	case domain.DocTypeArchitecture:
 		sections = ai.ArchitectureSections
-	} else if dt == domain.DocTypeDesign {
+	case domain.DocTypeDesign:
 		sections = ai.DesignSections
 	}
 
@@ -660,11 +661,12 @@ func (s *DocumentService) SaveManualEdit(projectID string, docType string, conte
 	}
 
 	filename := "PRD.md"
-	if dt == domain.DocTypeSRS {
+	switch dt {
+	case domain.DocTypeSRS:
 		filename = "SRS.md"
-	} else if dt == domain.DocTypeArchitecture {
+	case domain.DocTypeArchitecture:
 		filename = "architecture.md"
-	} else if dt == domain.DocTypeDesign {
+	case domain.DocTypeDesign:
 		filename = "design.md"
 	}
 	if s.workspace != nil {

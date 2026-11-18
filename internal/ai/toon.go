@@ -41,7 +41,7 @@ func EncodeDiscoveryToTOON(res *DiscoveryResult) string {
 		sb.WriteString(fmt.Sprintf("requirements[%d]{key,category,title,description,priority,confidence}:\n", len(res.Requirements)))
 		for _, r := range res.Requirements {
 			row := formatCSVRow([]string{r.Key, r.Category, r.Title, r.Description, r.Priority, r.Confidence})
-			sb.WriteString("  " + row + "\n")
+			writeTOONRow(&sb, row)
 		}
 	}
 
@@ -50,7 +50,7 @@ func EncodeDiscoveryToTOON(res *DiscoveryResult) string {
 		sb.WriteString(fmt.Sprintf("clarifications[%d]{question}:\n", len(res.Clarifications)))
 		for _, c := range res.Clarifications {
 			row := formatCSVRow([]string{c.Question})
-			sb.WriteString("  " + row + "\n")
+			writeTOONRow(&sb, row)
 		}
 	}
 
@@ -59,7 +59,7 @@ func EncodeDiscoveryToTOON(res *DiscoveryResult) string {
 		sb.WriteString(fmt.Sprintf("assumptions[%d]{description}:\n", len(res.Assumptions)))
 		for _, a := range res.Assumptions {
 			row := formatCSVRow([]string{a.Description})
-			sb.WriteString("  " + row + "\n")
+			writeTOONRow(&sb, row)
 		}
 	}
 
@@ -96,9 +96,10 @@ func DecodeTOONDiscovery(toonStr string) (*DiscoveryResult, error) {
 			colonIdx := strings.Index(trimmed, ":")
 			key := strings.TrimSpace(trimmed[:colonIdx])
 			val := strings.TrimSpace(trimmed[colonIdx+1:])
-			if key == "reply" {
+			switch key {
+			case "reply":
 				res.Reply = val
-			} else if key == "role" {
+			case "role":
 				res.Role = val
 			}
 			currentSection = ""
@@ -161,9 +162,15 @@ func EncodeRequirementsToTOON(reqs []domain.Requirement) string {
 	sb.WriteString(fmt.Sprintf("requirements[%d]{key,category,title,priority}:\n", len(reqs)))
 	for _, r := range reqs {
 		row := formatCSVRow([]string{r.RequirementKey, string(r.Category), r.Title, string(r.Priority)})
-		sb.WriteString("  " + row + "\n")
+		writeTOONRow(&sb, row)
 	}
 	return strings.TrimSpace(sb.String())
+}
+
+func writeTOONRow(sb *strings.Builder, row string) {
+	sb.WriteString("  ")
+	sb.WriteString(row)
+	sb.WriteByte('\n')
 }
 
 // Helper: format a list of strings into a standard CSV row.
