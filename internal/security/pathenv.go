@@ -68,6 +68,7 @@ func FixEnvironmentPath() {
 		standardDirs = []string{
 			filepath.Join(home, ".local", "bin"),
 			filepath.Join(home, ".opencode", "bin"),
+			filepath.Join(home, ".kiro", "bin"),
 			filepath.Join(home, ".gemini", "antigravity-cli", "bin"),
 			filepath.Join(home, ".antigravity-ide", "antigravity-ide", "bin"),
 			"/opt/homebrew/bin",
@@ -85,6 +86,7 @@ func FixEnvironmentPath() {
 		standardDirs = []string{
 			filepath.Join(home, ".local", "bin"),
 			filepath.Join(home, ".opencode", "bin"),
+			filepath.Join(home, ".kiro", "bin"),
 			filepath.Join(home, "go", "bin"),
 			filepath.Join(home, ".cargo", "bin"),
 			filepath.Join(localAppData, "Programs"),

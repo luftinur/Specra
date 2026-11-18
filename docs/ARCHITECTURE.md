@@ -40,6 +40,7 @@ graph TD
     subgraph AIProviders ["Real AI Execution (Zero-Mock)"]
         AGY["Antigravity CLI (agy)"]
         OC["OpenCode CLI (opencode)"]
+        KIRO["Kiro CLI (kiro-cli)"]
         Gemini["Google Gemini 1.5/2.5 REST API"]
     end
 
@@ -58,7 +59,7 @@ graph TD
 | **Backend Core** | Go 1.24+ | Clean architecture, domain services, thread-safe concurrency, process spawning. |
 | **Database** | SQLite with WAL mode (`modernc.org/sqlite`) | Local-first relational storage, zero CGO dependency, cross-compilation friendly. |
 | **Credential Storage**| OS Keyring (`zalando/go-keyring`) | Secure storage of API keys in macOS Keychain / Windows Credential Manager. |
-| **AI Providers** | Antigravity CLI (`agy`), OpenCode CLI, Gemini REST | Real execution with zero synthetic fallbacks (Zero-Mock Policy). |
+| **AI Providers** | Antigravity CLI (`agy`), OpenCode CLI, Kiro CLI (`kiro-cli`), Gemini REST | Real execution with zero synthetic fallbacks (Zero-Mock Policy). |
 
 ---
 
@@ -163,7 +164,7 @@ internal/
 │   ├── orchestrator.go          # Multi-agent prompt dispatch & stream handler
 │   ├── discovery.go             # Autonomous agent question extraction
 │   ├── toon.go                  # TOON compact serialization (30-60% token savings)
-│   └── adapters/                # Antigravity CLI, OpenCode CLI, Gemini REST
+│   └── adapters/                # Antigravity CLI, OpenCode CLI, Kiro CLI, Gemini REST
 └── security/             # Security redaction & OS credential storage
 ```
 
@@ -205,7 +206,7 @@ Styled via MQ-Studio 0.4.2 Token Scale (`src/design/tokens.css`):
 ## 7. Zero-Mock Policy, Security & OS Environment Integration
 
 1. **Zero-Mock Policy**: Specra strictly forbids mock/synthetic AI generation in production code. If an AI CLI or API fails, the actual error is immediately surfaced to the UI.
-2. **Desktop GUI PATH Environment Resolution (`internal/security/pathenv.go`)**: When desktop applications are launched via macOS Finder, Dock, or Windows desktop shortcuts, the OS executes them without evaluating interactive user shell configurations (`~/.zshrc`). On startup, Specra dynamically queries the login shell (or standard user app directories on Windows, including `%LOCALAPPDATA%\Programs\NSIS`, `~/go/bin`, and `%APPDATA%\npm`) and augments `PATH` with standard user tool directories (`~/.local/bin`, `~/.opencode/bin`, `/opt/homebrew/bin`, `~/go/bin`), ensuring autonomous coding agents (`agy`, `opencode`) and packaging tools (`makensis`) are reliably detected and executed without terminal dependencies.
+2. **Desktop GUI PATH Environment Resolution (`internal/security/pathenv.go`)**: When desktop applications are launched via macOS Finder, Dock, or Windows desktop shortcuts, the OS executes them without evaluating interactive user shell configurations (`~/.zshrc`). On startup, Specra dynamically queries the login shell (or standard user app directories on Windows, including `%LOCALAPPDATA%\Programs\NSIS`, `~/go/bin`, and `%APPDATA%\npm`) and augments `PATH` with standard user tool directories (`~/.local/bin`, `~/.opencode/bin`, `~/.kiro/bin`, `/opt/homebrew/bin`, `~/go/bin`), ensuring autonomous coding agents (`agy`, `opencode`, `kiro-cli`) and packaging tools (`makensis`) are reliably detected and executed without terminal dependencies.
 3. **Path Traversal Guard**: All file attachments and workspace operations are validated via `filepath.Clean` and sandboxed strictly inside `workspaces/projects/{id}/`.
 4. **Credential Storage**: API keys are never stored in plaintext SQLite databases; they are stored encrypted using OS Keyring via `go-keyring`.
 5. **Headless Domain Architecture (`DialogManager`)**: Domain services in `internal/services` are 100% pure Go business logic decoupled from desktop GUI shells. Native file dialogs are abstracted behind the `DialogManager` interface, with `WailsDialogManager` injected at the desktop application entry point (`main.go`). This enables headless cross-platform compilation and automated CI testing on Linux runners without native GTK3 CGO dependencies.

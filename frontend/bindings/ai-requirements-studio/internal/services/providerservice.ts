@@ -20,6 +20,13 @@ export function ConfigureGemini(model: string, apiKey: string): $CancellableProm
     return $Call.ByID(3500063709, model, apiKey);
 }
 
+/**
+ * ConfigureKiro persists Kiro CLI model preference and optional KIRO_API_KEY in the OS keyring.
+ */
+export function ConfigureKiro(model: string, apiKey: string): $CancellablePromise<void> {
+    return $Call.ByID(932748965, model, apiKey);
+}
+
 export function ConfigureOpenCode(baseURL: string, model: string, apiKey: string): $CancellablePromise<void> {
     return $Call.ByID(1822380843, baseURL, model, apiKey);
 }

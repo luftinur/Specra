@@ -5,6 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [0.1.4] — 2026-11-17
+
+### Added
+- **Kiro CLI (`kiro-cli`) Provider Adapter**: Added `internal/ai/adapters/kiro/adapter.go` implementing `AIProvider` and `ModelDiscoverer` with headless execution (`kiro-cli chat --no-interactive --output-format json --trust-all-tools`), dynamic model listing (`--list-models --format json`), workspace isolation (`cmd.Dir`), and optional `KIRO_API_KEY` storage in OS Keyring.
+- **Kiro CLI Agent Detection & Diagnostics**: Registered `kiro-cli` in `internal/ai/detector.go`, `internal/security/pathenv.go` (`~/.kiro/bin`), `ProviderService`, and `RunDiagnostics` (`kiro_available`, `kiro_version`, `kiro_path`).
+- **Settings UI Support for Kiro CLI**: Updated `Settings → Coding Agents & LLM` and `Diagnostics & Security` in `frontend/src/App.tsx` with `Kiro CLI (kiro-cli)` Primary/Fallback options, device agent model synchronization, and a dedicated Kiro CLI configuration card backed by regenerated Wails bindings (`ConfigureKiro`).
+
+---
+
 ## [0.1.3] — 2026-11-16
 
 ### Added

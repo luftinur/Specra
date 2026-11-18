@@ -87,6 +87,17 @@ import type {
   ModelInfo
 } from "../bindings/ai-requirements-studio/internal/domain/models";
 
+const DEFAULT_KIRO_MODELS: ModelInfo[] = [
+  { id: 'auto', display_name: 'auto (Default)', description: 'Models chosen by task for optimal usage and consistent quality' },
+  { id: 'claude-sonnet-4.5', display_name: 'claude-sonnet-4.5', description: 'Claude Sonnet 4.5 model' },
+  { id: 'claude-haiku-4.5', display_name: 'claude-haiku-4.5', description: 'The latest Claude Haiku model' },
+  { id: 'deepseek-3.2', display_name: 'deepseek-3.2', description: 'Experimental preview of DeepSeek V3.2' },
+  { id: 'minimax-m2.5', display_name: 'minimax-m2.5', description: 'MiniMax M2.5 model' },
+  { id: 'minimax-m2.1', display_name: 'minimax-m2.1', description: 'Experimental preview of MiniMax M2.1' },
+  { id: 'glm-5', display_name: 'glm-5', description: 'GLM-5 model' },
+  { id: 'qwen3-coder-next', display_name: 'qwen3-coder-next', description: 'Experimental preview of Qwen3 Coder Next' },
+];
+
 export default function App() {
   const [currentView, setCurrentView] = useState<'chat' | 'prd' | 'srs' | 'architecture' | 'design'>('chat');
   const [layoutMode, setLayoutMode] = useState<'chat' | 'split' | 'doc'>('chat');
@@ -356,6 +367,10 @@ export default function App() {
   const [geminiModel, setGeminiModel] = useState<string>('gemini-1.5-pro');
   const [geminiApiKey, setGeminiApiKey] = useState<string>('');
   const [geminiModelsList, setGeminiModelsList] = useState<ModelInfo[]>([]);
+  const [kiroModel, setKiroModel] = useState<string>('auto');
+  const [kiroApiKey, setKiroApiKey] = useState<string>('');
+  const [kiroModelsList, setKiroModelsList] = useState<ModelInfo[]>([]);
+  const [isRefreshingKiroModels, setIsRefreshingKiroModels] = useState<boolean>(false);
   const [tokenSummary, setTokenSummary] = useState<TokenUsageSummary | null>(null);
   const [executionLogs, setExecutionLogs] = useState<ProviderExecution[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
@@ -584,6 +599,11 @@ export default function App() {
           setOpencodeModelsList(oc.available_models);
           if (oc.selected_model) setOpencodeModel(oc.selected_model);
         }
+        const kiro = agents.find(a => a.id === 'kiro-cli');
+        if (kiro?.available_models && kiro.available_models.length > 0) {
+          setKiroModelsList(kiro.available_models);
+        }
+        if (kiro?.selected_model) setKiroModel(kiro.selected_model);
       }
     } catch (err) {
       if (!silent) notifyError("Agent Detection", `Failed to detect coding agents: ${String(err)}`);
@@ -601,6 +621,9 @@ export default function App() {
       } else if (agentId === 'opencode') {
         setOpencodeModel(modelId);
         await ProviderService.ConfigureOpenCode(opencodeBaseURL, modelId, opencodeApiKey);
+      } else if (agentId === 'kiro-cli') {
+        setKiroModel(modelId);
+        await ProviderService.ConfigureKiro(modelId, kiroApiKey);
       }
       setDetectedAgents(prev => prev.map(a => a.id === agentId ? { ...a, selected_model: modelId } : a));
       setProviderSaveSuccess(`Model for ${agentId} updated: ${modelId || '(Default)'}`);
@@ -612,7 +635,10 @@ export default function App() {
     }
   };
 
-  const handleRefreshProviderModels = async (providerId: string) => {
+  const handleRefreshProviderModels = async (providerId: string, silent: boolean = false) => {
+    if (providerId === 'kiro-cli') {
+      setIsRefreshingKiroModels(true);
+    }
     try {
       const models = await ProviderService.GetProviderModels(providerId);
       if (models && models.length > 0) {
@@ -622,17 +648,33 @@ export default function App() {
           setOpencodeModelsList(models);
         } else if (providerId === 'gemini-direct') {
           setGeminiModelsList(models);
+        } else if (providerId === 'kiro-cli') {
+          setKiroModelsList(models);
         }
-        setProviderSaveSuccess(`Successfully loaded ${models.length} models for ${providerId}`);
-        notifySuccess("Models Loaded", `Successfully loaded ${models.length} models for ${providerId}`);
-        setTimeout(() => setProviderSaveSuccess(''), 3000);
-      } else {
+        if (!silent) {
+          setProviderSaveSuccess(`Successfully loaded ${models.length} models for ${providerId}`);
+          notifySuccess("Models Loaded", `Successfully loaded ${models.length} models for ${providerId}`);
+          setTimeout(() => setProviderSaveSuccess(''), 3000);
+        }
+      } else if (!silent) {
         notifyWarn("Models Not Found", `No models found for ${providerId}`);
       }
     } catch (err) {
-      notifyError("Failed to Load Models", `Failed to load models: ${String(err)}`);
+      if (!silent) {
+        notifyError("Failed to Load Models", `Failed to load models: ${String(err)}`);
+      }
+    } finally {
+      if (providerId === 'kiro-cli') {
+        setIsRefreshingKiroModels(false);
+      }
     }
   };
+
+  useEffect(() => {
+    if (showSettingsModal && settingsTab === 'providers' && kiroModelsList.length === 0 && !isRefreshingKiroModels) {
+      handleRefreshProviderModels('kiro-cli', true);
+    }
+  }, [showSettingsModal, settingsTab]);
 
   const handleSelectPrimaryAgent = async (agentId: string) => {
     setPrimaryProvider(agentId);
@@ -668,6 +710,7 @@ export default function App() {
         if (res.agy_model) setAgyModel(res.agy_model);
         if (res.opencode_model) setOpencodeModel(res.opencode_model);
         if (res.gemini_model) setGeminiModel(res.gemini_model);
+        setKiroModel(res.kiro_model || 'auto');
         const primaryObj = (res.providers as any[])?.find((p: any) => p.id === res.primary_provider) || (res.providers as any[])?.[0];
         if (primaryObj) {
           setProviderStatus({
@@ -1043,6 +1086,7 @@ export default function App() {
     } else {
       lines.push(`- Antigravity CLI: ${diagResults.cli_available ? `Found (${diagResults.cli_version}) at ${diagResults.cli_path || 'PATH'}` : (diagResults.cli_error || 'Not Installed')}`);
       lines.push(`- OpenCode CLI: ${diagResults.opencode_available ? `Installed at ${diagResults.opencode_path || 'PATH'}` : 'Not Detected'}`);
+      lines.push(`- Kiro CLI: ${diagResults.kiro_available ? `Installed at ${diagResults.kiro_path || 'PATH'}` : 'Not Detected'}`);
     }
     if (diagResults.path_directories && Array.isArray(diagResults.path_directories)) {
       lines.push('');
@@ -1101,6 +1145,9 @@ export default function App() {
       }
       if (geminiModel || geminiApiKey) {
         await ProviderService.ConfigureGemini(geminiModel, geminiApiKey);
+      }
+      if (kiroModel || kiroApiKey) {
+        await ProviderService.ConfigureKiro(kiroModel, kiroApiKey);
       }
       setProviderSaveSuccess('AI Provider & Fallback configuration saved successfully!');
       notifySuccess("Configuration Saved", "AI Provider & Fallback configuration saved successfully.");
@@ -5117,7 +5164,7 @@ export default function App() {
                 <div>
                   <h4 className="text-lg font-semibold text-fg">Coding Agents & AI Providers</h4>
                   <p className="text-xs text-muted mt-0.5">
-                    Select primary AI execution engine (Antigravity CLI, OpenCode, or Gemini REST API) with Zero-Mock policy.
+                    Select primary AI execution engine (Antigravity CLI, OpenCode, Kiro CLI, or Gemini REST API) with Zero-Mock policy.
                   </p>
                 </div>
                 {/* 1.1 Device Agent Detection Section */}
@@ -5128,8 +5175,8 @@ export default function App() {
                         <Cpu size={14} className="text-primary" />
                         Device Installed Coding Agents
                       </h4>
-                      <p className="text-[11px] text-muted">
-                        Pindai biner coding agent (Antigravity CLI, OpenCode, Claude, Ollama) di komputer lokal.
+                      <p className="text-xs text-muted">
+                        Pindai biner coding agent (Antigravity CLI, OpenCode, Kiro CLI, Claude, Ollama) di komputer lokal.
                       </p>
                     </div>
                     <button
@@ -5197,14 +5244,27 @@ export default function App() {
                                 </span>
                               </div>
                               <select
-                                value={agent.selected_model || (agent.id === 'antigravity-cli' ? agyModel : (agent.id === 'opencode' ? opencodeModel : ''))}
+                                value={
+                                  agent.selected_model ||
+                                  (agent.id === 'antigravity-cli'
+                                    ? agyModel
+                                    : agent.id === 'opencode'
+                                      ? opencodeModel
+                                      : agent.id === 'kiro-cli'
+                                        ? (kiroModel || 'auto')
+                                        : '')
+                                }
                                 onChange={(e) => handleAgentModelChange(agent.id, e.target.value)}
                                 className="w-full border border-border rounded px-2 py-1 text-xs bg-surface text-fg font-mono outline-none focus:border-primary"
                               >
-                                <option value="">(Default CLI Model)</option>
+                                {agent.id !== 'kiro-cli' && <option value="">(Default CLI Model)</option>}
                                 {agent.available_models.map((m) => (
                                   <option key={m.id} value={m.id}>
-                                    {m.display_name && m.display_name !== m.id ? `${m.display_name} (${m.id})` : m.id}
+                                    {m.id === 'auto'
+                                      ? 'auto (Default)'
+                                      : m.display_name && m.display_name !== m.id
+                                        ? `${m.display_name} (${m.id})`
+                                        : m.id}
                                   </option>
                                 ))}
                               </select>
@@ -5263,6 +5323,7 @@ export default function App() {
                         >
                           <option value="antigravity-cli">Google Antigravity CLI (agy)</option>
                           <option value="opencode">OpenCode / OpenAI-Compatible</option>
+                          <option value="kiro-cli">Kiro CLI (kiro-cli)</option>
                           <option value="gemini-direct">Google Gemini (Direct API)</option>
                         </select>
                       </div>
@@ -5290,6 +5351,7 @@ export default function App() {
                         >
                           <option value="opencode">OpenCode / OpenAI-Compatible</option>
                           <option value="antigravity-cli">Google Antigravity CLI (agy)</option>
+                          <option value="kiro-cli">Kiro CLI (kiro-cli)</option>
                           <option value="gemini-direct">Google Gemini (Direct API)</option>
                         </select>
                       </div>
@@ -5417,7 +5479,81 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* 1.5 Gemini Direct Config */}
+                  {/* 1.5 Kiro CLI Specific Config */}
+                  <div className="p-3.5 bg-surface border border-border rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold text-fg flex items-center gap-1.5">
+                        <Terminal size={14} className="text-primary" />
+                        Kiro CLI (kiro-cli) Configuration
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => handleRefreshProviderModels('kiro-cli')}
+                        disabled={isRefreshingKiroModels}
+                        className="text-xs text-primary hover:underline flex items-center gap-1 cursor-pointer font-medium disabled:opacity-50"
+                      >
+                        <RefreshCw size={12} className={isRefreshingKiroModels ? 'animate-spin' : ''} />
+                        <span>{isRefreshingKiroModels ? 'Loading Models...' : 'Refresh Models'}</span>
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-muted mb-1">
+                          Model Identifier (kiro-cli --model)
+                        </label>
+                        {(() => {
+                          const baseModels = kiroModelsList.length > 0 ? kiroModelsList : DEFAULT_KIRO_MODELS;
+                          const hasAuto = baseModels.some((m) => m.id === 'auto');
+                          const kiroOptions: ModelInfo[] = hasAuto
+                            ? baseModels
+                            : [{ id: 'auto', display_name: 'auto (Default)', description: 'Models chosen by task for optimal usage and consistent quality' }, ...baseModels];
+                          const activeKiroModel = kiroModel || 'auto';
+                          const hasSelected = kiroOptions.some((m) => m.id === activeKiroModel);
+                          const finalOptions = hasSelected
+                            ? kiroOptions
+                            : [...kiroOptions, { id: activeKiroModel, display_name: activeKiroModel }];
+                          const activeMeta = finalOptions.find((m) => m.id === activeKiroModel);
+
+                          return (
+                            <>
+                              <select
+                                value={activeKiroModel}
+                                onChange={(e) => setKiroModel(e.target.value)}
+                                className="w-full border border-border rounded-md px-3 py-1.5 text-xs bg-surface text-fg outline-none focus:border-primary font-mono"
+                              >
+                                {finalOptions.map((m) => (
+                                  <option key={m.id} value={m.id}>
+                                    {m.id === 'auto'
+                                      ? 'auto (Default — Auto Select)'
+                                      : m.display_name && m.display_name !== m.id
+                                        ? `${m.display_name} (${m.id})`
+                                        : m.id}
+                                  </option>
+                                ))}
+                              </select>
+                              {activeMeta?.description && (
+                                <p className="text-xs text-muted mt-1">{activeMeta.description}</p>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                      <div>
+                        <label className="block text-xs text-muted mb-1">
+                          API Key (KIRO_API_KEY — Opsional)
+                        </label>
+                        <input
+                          type="password"
+                          value={kiroApiKey}
+                          onChange={(e) => setKiroApiKey(e.target.value)}
+                          placeholder="Kosongkan jika memakai sesi kiro-cli login"
+                          className="w-full border border-border rounded-md px-3 py-1.5 text-xs bg-transparent outline-none focus:border-primary text-fg"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 1.6 Gemini Direct Config */}
                   <div className="p-3.5 bg-surface border border-border rounded-lg space-y-3">
                     <div className="flex items-center justify-between">
                       <h4 className="font-semibold text-fg flex items-center gap-1.5">
@@ -5721,8 +5857,19 @@ export default function App() {
                                     {diagResults.opencode_available ? `Installed (v${diagResults.opencode_version})` : 'Not Detected'}
                                   </span>
                                 </div>
-                                <div className="text-[11px] text-muted truncate mt-0.5">
+                                <div className="text-xs text-muted truncate mt-0.5">
                                   Path: <span className="text-fg-2">{diagResults.opencode_path || 'PATH environment'}</span>
+                                </div>
+                              </div>
+                              <div className="p-2 rounded bg-fill-soft/70 border border-border/50">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-semibold text-fg">Kiro CLI (kiro-cli)</span>
+                                  <span className={diagResults.kiro_available ? 'text-ok font-bold' : 'text-muted font-bold'}>
+                                    {diagResults.kiro_available ? `Installed (v${diagResults.kiro_version})` : 'Not Detected'}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-muted truncate mt-0.5">
+                                  Path: <span className="text-fg-2">{diagResults.kiro_path || 'PATH environment'}</span>
                                 </div>
                               </div>
                             </div>
